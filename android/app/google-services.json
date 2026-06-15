@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "462208558450",
+    "project_id": "reparto-b5957",
+    "storage_bucket": "reparto-b5957.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:462208558450:android:7dd6cd4c8605e645c2e9eb",
+        "android_client_info": {
+          "package_name": "io.reparto.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5uZyauNZgPmMWwcPQq5z2hAJ_TYEdSbE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

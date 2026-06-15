@@ -1,0 +1,147 @@
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/confirm_actions.dart';
+
+/// "Forgot Passcode" — the user enters their account email, then we hand them
+/// off to the developer on WhatsApp to recover access.
+class ForgotPasscodeScreen extends StatefulWidget {
+  const ForgotPasscodeScreen({super.key});
+
+  @override
+  State<ForgotPasscodeScreen> createState() => _ForgotPasscodeScreenState();
+}
+
+class _ForgotPasscodeScreenState extends State<ForgotPasscodeScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _email = TextEditingController();
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final email = _email.text.trim();
+    final confirmed = await ConfirmActions.confirm(
+      context,
+      title: 'Contact support?',
+      message:
+      'We will open WhatsApp so you can message the developer to reset your passcode for "$email".',
+      confirmLabel: 'Open WhatsApp',
+      icon: Icons.chat_outlined,
+    );
+    if (!confirmed) return;
+
+    setState(() => _loading = true);
+    final message = Uri.encodeComponent(
+        'Hello ${AppConstants.devName}, I forgot my ${AppConstants.appName} '
+            'passcode. My account email is: $email. Please help me reset it.');
+    final url = 'https://wa.me/${AppConstants.devWhatsApp}?text=$message';
+
+    try {
+      final ok =
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      if (!ok && mounted) {
+        ConfirmActions.showError(
+            context, 'Could not open WhatsApp. Is it installed?');
+      }
+    } catch (_) {
+      if (mounted) {
+        ConfirmActions.showError(
+            context, 'Could not open WhatsApp. Is it installed?');
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Forgot Passcode')),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: scheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Icon(Icons.lock_reset,
+                            size: 38, color: scheme.onPrimaryContainer),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text('Reset your passcode',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineSmall),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Enter the email linked to your account. We will connect '
+                          'you with our support team on WhatsApp to help you regain '
+                          'access.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 28),
+                    TextFormField(
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Account email',
+                        prefixIcon: Icon(Icons.mail_outline),
+                      ),
+                      validator: Validators.email,
+                      onFieldSubmitted: (_) => _submit(),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: _loading ? null : _submit,
+                      icon: _loading
+                          ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.2, color: Colors.white))
+                          : const Icon(Icons.chat),
+                      label: Text(
+                          _loading ? 'Opening WhatsApp…' : 'Contact Support'),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Text(
+                        'Support: ${AppConstants.devPhone}',
+                        style: TextStyle(
+                            color: scheme.onSurfaceVariant, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
