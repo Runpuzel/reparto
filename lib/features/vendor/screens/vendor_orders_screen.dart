@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_network_image.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/confirm_actions.dart';
 import '../../../models/models.dart';
@@ -67,9 +76,11 @@ class _VendorOrdersScreenState extends ConsumerState<VendorOrdersScreen>
           tabs: _filters.map((f) => Tab(text: f.$1)).toList(),
         ),
         Expanded(
-          child: AsyncView<List<AppOrder>>(
-            value: orders,
-            onRetry: () => ref.invalidate(vendorOrdersProvider),
+          child: orders.when(
+            loading: () => const SkeletonList(itemCount: 5, itemHeight: 96),
+            error: (e, _) => ErrorState(
+                message: '$e',
+                onRetry: () => ref.invalidate(vendorOrdersProvider)),
             data: (list) => TabBarView(
               controller: _tabs,
               children: _filters.map((f) {
@@ -86,11 +97,17 @@ class _VendorOrdersScreenState extends ConsumerState<VendorOrdersScreen>
                     ),
                   ])
                       : ListView.separated(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(AppSpacing.sm + 4),
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppSpacing.sm),
                     itemBuilder: (_, i) =>
-                        _VendorOrderCard(order: filtered[i]),
+                        _VendorOrderCard(order: filtered[i])
+                            .animate()
+                            .fadeIn(
+                            delay: (40 * (i % 12)).ms,
+                            duration: 280.ms)
+                            .slideY(begin: 0.05, end: 0),
                   ),
                 );
               }).toList(),
@@ -114,199 +131,199 @@ class _VendorOrderCard extends ConsumerWidget {
     final next = _nextStatuses[order.status] ?? [];
     final scheme = Theme.of(context).colorScheme;
 
-    return Card(
-      child: ExpansionTile(
-        shape: const Border(),
-        collapsedShape: const Border(),
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.15),
-          child: Icon(orderStatusIcon(order.status), color: color, size: 20),
-        ),
-        title: Text(order.studentName ?? 'Customer',
-            style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(
-            '#$_shortId · ${order.itemCount} item(s) · ${Formatters.dateTime(order.createdAt)}'),
-        trailing: StatusPill(label: order.status.label, color: color),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-        children: [
-          // ---- WHAT to prepare ------------------------------------------
-          _sectionLabel(context, 'Items to prepare'),
-          ...order.items.map((it) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    color: scheme.surfaceContainerHighest,
-                    child: it.productImage != null
-                        ? Image.network(it.productImage!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.fastfood_outlined, size: 18))
-                        : const Icon(Icons.fastfood_outlined, size: 18),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text('×${it.quantity}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: scheme.primary)),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                    child: Text(it.productName ?? 'Item',
-                        style:
-                        const TextStyle(fontWeight: FontWeight.w500))),
-                Text(Formatters.money(it.lineTotal)),
-              ],
-            ),
-          )),
-
-          const Divider(height: 22),
-
-          // ---- WHO + WHERE ----------------------------------------------
-          _sectionLabel(context, 'Customer & delivery'),
-          _detailRow(
-            context,
-            icon: Icons.person_outline,
-            label: 'Name',
-            value: order.studentName ?? 'Customer',
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          shape: const Border(),
+          collapsedShape: const Border(),
+          leading: CircleAvatar(
+            backgroundColor: color.withValues(alpha: 0.15),
+            child: Icon(orderStatusIcon(order.status), color: color, size: 20),
           ),
-          if (_has(order.contactPhone))
-            _detailRow(
-              context,
-              icon: Icons.phone_outlined,
-              label: 'Phone',
-              value: order.contactPhone!,
-              actions: [
-                _MiniAction(
-                  icon: Icons.call,
-                  tooltip: 'Call',
-                  onTap: () => _launch(context, 'tel:${order.contactPhone}'),
-                ),
-                _MiniAction(
-                  icon: Icons.sms_outlined,
-                  tooltip: 'Text',
-                  onTap: () => _launch(context, 'sms:${order.contactPhone}'),
-                ),
-                _MiniAction(
-                  icon: Icons.copy,
-                  tooltip: 'Copy',
-                  onTap: () => _copy(context, order.contactPhone!, 'Phone'),
-                ),
-              ],
-            ),
-          if (_has(order.deliveryAddress))
-            _detailRow(
-              context,
-              icon: Icons.location_on_outlined,
-              label: 'Address',
-              value: order.deliveryAddress!,
-              actions: [
-                _MiniAction(
-                  icon: Icons.map_outlined,
-                  tooltip: 'Open in Maps',
-                  onTap: () => _launch(
-                    context,
-                    'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(order.deliveryAddress!)}',
+          title: Text(order.studentName ?? 'Customer',
+              style: AppTextStyles.titleSmall.copyWith(color: scheme.onSurface)),
+          subtitle: Text(
+              '#$_shortId · ${order.itemCount} item(s) · ${Formatters.dateTime(order.createdAt)}',
+              style: AppTextStyles.bodySmall),
+          trailing: StatusPill(label: order.status.label, color: color),
+          childrenPadding: const EdgeInsets.fromLTRB(
+              AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm + 4),
+          children: [
+            // ---- WHAT to prepare ------------------------------------------
+            _sectionLabel(context, 'Items to prepare'),
+            ...order.items.map((it) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: AppRadius.brSm,
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: AppNetworkImage(
+                          url: it.productImage,
+                          fallbackIcon: AppIcons.image,
+                          iconSize: 18),
+                    ),
                   ),
-                ),
-                _MiniAction(
-                  icon: Icons.copy,
-                  tooltip: 'Copy',
-                  onTap: () =>
-                      _copy(context, order.deliveryAddress!, 'Address'),
-                ),
-              ],
-            ),
-          if (_has(order.note))
+                  const SizedBox(width: AppSpacing.sm + 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                      borderRadius: AppRadius.brSm,
+                    ),
+                    child: Text('×${it.quantity}',
+                        style: AppTextStyles.labelMedium
+                            .copyWith(color: scheme.primary)),
+                  ),
+                  const SizedBox(width: AppSpacing.sm + 2),
+                  Expanded(
+                      child: Text(it.productName ?? 'Item',
+                          style: AppTextStyles.bodyMedium)),
+                  Text(Formatters.money(it.lineTotal),
+                      style: AppTextStyles.bodyMedium),
+                ],
+              ),
+            )),
+
+            const Divider(height: 22),
+
+            // ---- WHO + WHERE ----------------------------------------------
+            _sectionLabel(context, 'Customer & delivery'),
             _detailRow(
               context,
-              icon: Icons.sticky_note_2_outlined,
-              label: 'Note',
-              value: order.note!,
-              highlight: true,
+              icon: AppIcons.user,
+              label: 'Name',
+              value: order.studentName ?? 'Customer',
             ),
+            if (_has(order.contactPhone))
+              _detailRow(
+                context,
+                icon: AppIcons.phone,
+                label: 'Phone',
+                value: order.contactPhone!,
+                actions: [
+                  _MiniAction(
+                    icon: AppIcons.call,
+                    tooltip: 'Call',
+                    onTap: () => _launch(context, 'tel:${order.contactPhone}'),
+                  ),
+                  _MiniAction(
+                    icon: AppIcons.sms,
+                    tooltip: 'Text',
+                    onTap: () => _launch(context, 'sms:${order.contactPhone}'),
+                  ),
+                  _MiniAction(
+                    icon: AppIcons.copy,
+                    tooltip: 'Copy',
+                    onTap: () => _copy(context, order.contactPhone!, 'Phone'),
+                  ),
+                ],
+              ),
+            if (_has(order.deliveryAddress))
+              _detailRow(
+                context,
+                icon: AppIcons.mapPin,
+                label: 'Address',
+                value: order.deliveryAddress!,
+                actions: [
+                  _MiniAction(
+                    icon: AppIcons.map,
+                    tooltip: 'Open in Maps',
+                    onTap: () => _launch(
+                      context,
+                      'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(order.deliveryAddress!)}',
+                    ),
+                  ),
+                  _MiniAction(
+                    icon: AppIcons.copy,
+                    tooltip: 'Copy',
+                    onTap: () =>
+                        _copy(context, order.deliveryAddress!, 'Address'),
+                  ),
+                ],
+              ),
+            if (_has(order.note))
+              _detailRow(
+                context,
+                icon: AppIcons.note,
+                label: 'Note',
+                value: order.note!,
+                highlight: true,
+              ),
 
-          const Divider(height: 22),
+            const Divider(height: 22),
 
-          // ---- HOW they pay ---------------------------------------------
-          _sectionLabel(context, 'Payment'),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Icon(Icons.payments_outlined,
-                    size: 18, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(order.paymentMethodLabel,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                ),
-                _PaymentBadge(order: order),
-              ],
-            ),
-          ),
-          if (order.paymentMethod == 'momo' && order.vendorMomoNumber != null)
+            // ---- HOW they pay ---------------------------------------------
+            _sectionLabel(context, 'Payment'),
             Padding(
-              padding: const EdgeInsets.only(left: 28, top: 2),
-              child: Text(
-                'Paid to your MoMo: ${order.vendorMomoNumber}'
-                    '${order.vendorMomoNetwork != null ? ' (${order.vendorMomoNetwork})' : ''}',
-                style: Theme.of(context).textTheme.bodySmall,
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+              child: Row(
+                children: [
+                  Icon(AppIcons.wallet,
+                      size: 18, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: AppSpacing.sm + 2),
+                  Expanded(
+                    child: Text(order.paymentMethodLabel,
+                        style: AppTextStyles.titleSmall),
+                  ),
+                  _PaymentBadge(order: order),
+                ],
               ),
             ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Order total',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              Text(Formatters.money(order.totalAmount),
-                  style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18,
-                      color: scheme.primary)),
-            ],
-          ),
-
-          // ---- Actions --------------------------------------------------
-          if (next.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: next.map((s) {
-                final isCancel = s == OrderStatus.cancelled;
-                return isCancel
-                    ? OutlinedButton(
-                  onPressed: () => _update(context, ref, s),
-                  style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.redAccent,
-                      minimumSize: const Size(0, 40)),
-                  child: const Text('Cancel'),
-                )
-                    : FilledButton.icon(
-                  onPressed: () => _update(context, ref, s),
-                  style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 40)),
-                  icon: Icon(orderStatusIcon(s), size: 18),
-                  label: Text('Mark ${s.label}'),
-                );
-              }).toList(),
+            if (order.paymentMethod == 'momo' && order.vendorMomoNumber != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 28, top: 2),
+                child: Text(
+                  'Paid to your MoMo: ${order.vendorMomoNumber}'
+                      '${order.vendorMomoNetwork != null ? ' (${order.vendorMomoNetwork})' : ''}',
+                  style: AppTextStyles.bodySmall,
+                ),
+              ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Order total', style: AppTextStyles.titleSmall),
+                Text(Formatters.money(order.totalAmount),
+                    style: AppTextStyles.titleLarge.copyWith(
+                        fontWeight: FontWeight.w800, color: scheme.primary)),
+              ],
             ),
+
+            // ---- Actions --------------------------------------------------
+            if (next.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm + 4),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: next.map((s) {
+                  final isCancel = s == OrderStatus.cancelled;
+                  return isCancel
+                      ? OutlinedButton(
+                    onPressed: () => _update(context, ref, s),
+                    style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                        minimumSize: const Size(0, 44)),
+                    child: const Text('Cancel'),
+                  )
+                      : FilledButton.icon(
+                    onPressed: () => _update(context, ref, s),
+                    style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 44)),
+                    icon: Icon(orderStatusIcon(s), size: 18),
+                    label: Text('Mark ${s.label}'),
+                  );
+                }).toList(),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -315,10 +332,10 @@ class _VendorOrderCard extends ConsumerWidget {
 
   Widget _sectionLabel(BuildContext context, String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6, top: 2),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs + 2, top: 2),
       child: Text(
         text.toUpperCase(),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        style: AppTextStyles.labelSmall.copyWith(
           color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
@@ -342,35 +359,35 @@ class _VendorOrderCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 18, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.sm + 2),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant)),
+                    style: AppTextStyles.labelSmall
+                        .copyWith(color: scheme.onSurfaceVariant)),
                 const SizedBox(height: 1),
                 Container(
                   decoration: highlight
                       ? BoxDecoration(
-                    color: scheme.tertiaryContainer
-                        .withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(6),
+                    color:
+                    scheme.tertiaryContainer.withValues(alpha: 0.4),
+                    borderRadius: AppRadius.brSm,
                   )
                       : null,
                   padding: highlight
                       ? const EdgeInsets.symmetric(horizontal: 6, vertical: 3)
                       : EdgeInsets.zero,
                   child: Text(value,
-                      style: const TextStyle(
+                      style: AppTextStyles.bodyMedium.copyWith(
                           fontWeight: FontWeight.w600, height: 1.3)),
                 ),
               ],
             ),
           ),
           if (actions.isNotEmpty) ...[
-            const SizedBox(width: 6),
+            const SizedBox(width: AppSpacing.xs + 2),
             Row(mainAxisSize: MainAxisSize.min, children: actions),
           ],
         ],
@@ -441,7 +458,7 @@ class _MiniAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.only(left: AppSpacing.xs),
       child: Material(
         color: scheme.primary.withValues(alpha: 0.10),
         shape: const CircleBorder(),
@@ -468,11 +485,11 @@ class _PaymentBadge extends StatelessWidget {
     final isCod =
         order.paymentMethod == 'cash_on_delivery' || order.paymentMethod == null;
     if (isCod) {
-      return const StatusPill(label: 'Collect on delivery', color: Colors.orange);
+      return StatusPill(label: 'Collect on delivery', color: AppColors.warning);
     }
     return StatusPill(
       label: order.isPaid ? 'Paid' : 'Awaiting payment',
-      color: order.isPaid ? Colors.green : Colors.orange,
+      color: order.isPaid ? AppColors.success : AppColors.warning,
     );
   }
 }

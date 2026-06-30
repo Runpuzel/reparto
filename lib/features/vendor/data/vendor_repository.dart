@@ -61,6 +61,71 @@ class VendorRepository {
     await supabase.from('products').delete().eq('product_id', productId);
   }
 
+  // ---- Services -------------------------------------------------------------
+  Future<List<Service>> fetchMyServices(String vendorId) async {
+    final rows = await supabase
+        .from('services')
+        .select('*, vendors(business_name), service_images(image_url, position)')
+        .eq('vendor_id', vendorId)
+        .order('created_at', ascending: false);
+    return (rows as List)
+        .map((e) => Service.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  /// Count of a seller's currently-available services (for the 2-active limit).
+  Future<int> activeServiceCount(String vendorId) async {
+    final rows = await supabase
+        .from('services')
+        .select('service_id')
+        .eq('vendor_id', vendorId)
+        .eq('status', 'available');
+    return (rows as List).length;
+  }
+
+  Future<void> upsertService(
+      Map<String, dynamic> data, {
+        String? serviceId,
+        List<String>? imageUrls,
+      }) async {
+    final cover = (imageUrls != null && imageUrls.isNotEmpty)
+        ? imageUrls.first
+        : data['image_url'];
+    final payload = {...data, 'image_url': cover};
+
+    String id;
+    if (serviceId == null) {
+      final inserted = await supabase
+          .from('services')
+          .insert(payload)
+          .select('service_id')
+          .single();
+      id = inserted['service_id'] as String;
+    } else {
+      await supabase.from('services').update(payload).eq('service_id', serviceId);
+      id = serviceId;
+    }
+
+    if (imageUrls != null) {
+      await supabase.from('service_images').delete().eq('service_id', id);
+      if (imageUrls.isNotEmpty) {
+        final rows = <Map<String, dynamic>>[];
+        for (var i = 0; i < imageUrls.length; i++) {
+          rows.add({
+            'service_id': id,
+            'image_url': imageUrls[i],
+            'position': i,
+          });
+        }
+        await supabase.from('service_images').insert(rows);
+      }
+    }
+  }
+
+  Future<void> deleteService(String serviceId) async {
+    await supabase.from('services').delete().eq('service_id', serviceId);
+  }
+
   Future<List<AppOrder>> fetchOrders(String vendorId) async {
     final rows = await supabase
         .from('orders')

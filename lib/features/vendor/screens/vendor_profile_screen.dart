@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/developer_info_card.dart';
 import '../../../core/widgets/notifications_diagnostic_tile.dart';
@@ -16,77 +23,97 @@ class VendorProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final vendor = ref.watch(currentVendorProvider);
     final user = ref.watch(currentUserProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return AsyncView<Vendor?>(
       value: vendor,
       data: (v) {
         if (v == null) return const SizedBox();
         return ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm + 4),
             Center(
               child: CircleAvatar(
                 radius: 48,
-                backgroundColor:
-                Theme.of(context).colorScheme.primaryContainer,
-                backgroundImage:
-                (v.logoUrl != null && v.logoUrl!.isNotEmpty)
+                backgroundColor: scheme.primaryContainer,
+                foregroundColor: scheme.onPrimaryContainer,
+                backgroundImage: (v.logoUrl != null && v.logoUrl!.isNotEmpty)
                     ? NetworkImage(v.logoUrl!)
                     : null,
                 child: (v.logoUrl == null || v.logoUrl!.isEmpty)
-                    ? const Icon(Icons.storefront, size: 42)
+                    ? Icon(AppIcons.storefrontFill, size: 42)
                     : null,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             Center(
-                child: Text(v.businessName,
-                    style: Theme.of(context).textTheme.titleLarge)),
-            const SizedBox(height: 6),
+              child: Text(v.businessName,
+                  style: AppTextStyles.titleLarge
+                      .copyWith(color: scheme.onSurface)),
+            ),
+            const SizedBox(height: AppSpacing.xs + 2),
             Center(
-                child: StatusPill(
-                    label: v.approvalStatus.label,
-                    color: v.isApproved ? Colors.green : Colors.orange)),
-            const SizedBox(height: 24),
-            _tile(context, Icons.person_outline, 'Owner', v.ownerName ?? '—'),
-            _tile(context, Icons.phone_outlined, 'Personal Phone',
+              child: StatusPill(
+                label: v.approvalStatus.label,
+                color: v.isApproved ? AppColors.success : AppColors.warning,
+                icon: v.isApproved ? AppIcons.check : AppIcons.pending,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _tile(context, AppIcons.user, 'Owner', v.ownerName ?? '—'),
+            _tile(context, AppIcons.phone, 'Personal Phone',
                 v.phoneNumber ?? '—'),
-            _tile(context, Icons.call_outlined, 'Business Phone',
+            _tile(context, AppIcons.phoneBusiness, 'Business Phone',
                 v.businessPhone ?? '—'),
-            _tile(context, Icons.account_balance_wallet_outlined, 'Mobile Money',
+            _tile(context, AppIcons.wallet, 'Mobile Money',
                 v.momoNumber == null
                     ? '—'
                     : '${v.momoNumber} (${v.momoNetwork ?? ''})'),
-            _tile(context, Icons.badge_outlined, 'Ghana Card',
+            _tile(context, AppIcons.badge, 'Ghana Card',
                 v.ghanaCardNumber ?? '—'),
-            _tile(context, Icons.mail_outline, 'Email',
+            _tile(context, AppIcons.email, 'Email',
                 user.valueOrNull?.email ?? '—'),
-            const SizedBox(height: 12),
-            const ThemeModeTile(),
-            const SizedBox(height: 12),
-            const NotificationsDiagnosticTile(),
-            const SizedBox(height: 12),
-            Card(
+            const SizedBox(height: AppSpacing.sm + 4),
+            AppCard(
+              onTap: () => context.push('/referrals'),
+              padding: EdgeInsets.zero,
               child: ListTile(
-                leading: const Icon(Icons.lock_reset),
-                title: const Text('Forgot / Reset passcode'),
-                subtitle: const Text('Contact support to reset your passcode'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/forgot-passcode'),
+                leading: Icon(AppIcons.tag),
+                title: const Text('Referral Hub'),
+                subtitle: const Text('Invite friends & earn tokens'),
+                trailing: Icon(AppIcons.caretRight, size: 18),
               ),
             ),
-            const SizedBox(height: 12),
-            const DeveloperInfoCard(),
-            const SizedBox(height: 24),
-            OutlinedButton.icon(
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
-              icon: const Icon(Icons.logout),
-              label: const Text('Sign Out'),
-              style:
-              OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+            const SizedBox(height: AppSpacing.sm + 4),
+            const ThemeModeTile(),
+            const SizedBox(height: AppSpacing.sm + 4),
+            const NotificationsDiagnosticTile(),
+            const SizedBox(height: AppSpacing.sm + 4),
+            AppCard(
+              onTap: () => context.push('/forgot-passcode'),
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                leading: Icon(AppIcons.lockReset),
+                title: const Text('Forgot / Reset passcode'),
+                subtitle:
+                const Text('Contact support to reset your passcode'),
+                trailing: Icon(AppIcons.caretRight, size: 18),
+              ),
             ),
-          ],
+            const SizedBox(height: AppSpacing.sm + 4),
+            const DeveloperInfoCard(),
+            const SizedBox(height: AppSpacing.lg),
+            AppButton(
+              label: 'Sign Out',
+              icon: AppIcons.logout,
+              variant: AppButtonVariant.secondary,
+              onPressed: () => ref.read(authRepositoryProvider).signOut(),
+            ),
+          ]
+              .animate(interval: 35.ms)
+              .fadeIn(duration: 300.ms)
+              .slideY(begin: 0.03, end: 0),
         );
       },
     );
@@ -94,13 +121,28 @@ class VendorProfileScreen extends ConsumerWidget {
 
   Widget _tile(
       BuildContext context, IconData icon, String label, String value) {
-    return Card(
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(label, style: Theme.of(context).textTheme.bodySmall),
-        subtitle: Text(value,
-            style:
-            const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: AppCard(
+        child: Row(
+          children: [
+            Icon(icon, color: scheme.onSurfaceVariant),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: AppTextStyles.bodySmall),
+                  const SizedBox(height: 2),
+                  Text(value,
+                      style: AppTextStyles.titleSmall
+                          .copyWith(color: scheme.onSurface)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

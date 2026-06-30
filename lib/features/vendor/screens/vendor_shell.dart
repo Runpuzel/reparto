@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../models/models.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../shared/providers/shared_providers.dart';
+import 'sell_chooser.dart';
 import 'vendor_dashboard_screen.dart';
 import 'vendor_products_screen.dart';
 import 'vendor_orders_screen.dart';
@@ -57,7 +60,7 @@ class _VendorShellState extends ConsumerState<VendorShell> {
                 icon: Badge(
                   isLabelVisible: unread > 0,
                   label: Text('$unread'),
-                  child: const Icon(Icons.notifications_outlined),
+                  child: Icon(AppIcons.notification),
                 ),
               ),
               const SizedBox(width: 4),
@@ -66,34 +69,34 @@ class _VendorShellState extends ConsumerState<VendorShell> {
           body: IndexedStack(index: _index, children: pages),
           floatingActionButton: _index == 1
               ? FloatingActionButton.extended(
-            onPressed: () => context.push('/vendor/product-form'),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Product'),
+            onPressed: () => showSellChooser(context, ref),
+            icon: Icon(AppIcons.add),
+            label: const Text('Post'),
           )
               : null,
           bottomNavigationBar: NavigationBar(
             selectedIndex: _index,
             onDestinationSelected: (i) => setState(() => _index = i),
-            destinations: const [
+            destinations: [
               NavigationDestination(
-                  icon: Icon(Icons.dashboard_outlined),
-                  selectedIcon: Icon(Icons.dashboard),
+                  icon: Icon(AppIcons.dashboard),
+                  selectedIcon: Icon(AppIcons.dashboardFill),
                   label: 'Dashboard'),
               NavigationDestination(
-                  icon: Icon(Icons.inventory_2_outlined),
-                  selectedIcon: Icon(Icons.inventory_2),
+                  icon: Icon(AppIcons.package),
+                  selectedIcon: Icon(AppIcons.packageFill),
                   label: 'Products'),
               NavigationDestination(
-                  icon: Icon(Icons.receipt_long_outlined),
-                  selectedIcon: Icon(Icons.receipt_long),
+                  icon: Icon(AppIcons.receipt),
+                  selectedIcon: Icon(AppIcons.receiptFill),
                   label: 'Orders'),
               NavigationDestination(
-                  icon: Icon(Icons.bar_chart_outlined),
-                  selectedIcon: Icon(Icons.bar_chart),
+                  icon: Icon(AppIcons.reports),
+                  selectedIcon: Icon(AppIcons.reportsFill),
                   label: 'Reports'),
               NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
+                  icon: Icon(AppIcons.person),
+                  selectedIcon: Icon(AppIcons.personFill),
                   label: 'Profile'),
             ],
           ),
@@ -113,28 +116,30 @@ class _ApprovalPending extends StatelessWidget {
     final suspended = vendor.approvalStatus == ApprovalStatus.suspended;
     final rejected = vendor.approvalStatus == ApprovalStatus.rejected;
     return Scaffold(
-      appBar: AppBar(title: const Text('Vendor')),
+      appBar: AppBar(title: const Text('Student Seller')),
       body: EmptyState(
         icon: suspended
-            ? Icons.block
+            ? AppIcons.block
             : rejected
-            ? Icons.cancel_outlined
-            : Icons.hourglass_top,
+            ? AppIcons.cancel
+            : AppIcons.pending,
         title: suspended
             ? 'Account Suspended'
             : rejected
             ? 'Application Rejected'
             : 'Awaiting Approval',
         subtitle: suspended
-            ? 'Your vendor account has been suspended. Contact the administrator.'
+            ? 'Your Student Seller account has been suspended. Contact the administrator.'
             : rejected
             ? 'Your application was not approved. Contact the administrator.'
             : 'An administrator is reviewing your business application. '
             'You will be notified once approved.',
-        action: OutlinedButton.icon(
+        action: AppButton(
+          label: 'Sign Out',
+          icon: AppIcons.logout,
+          variant: AppButtonVariant.secondary,
+          expand: false,
           onPressed: () => ref.read(authRepositoryProvider).signOut(),
-          icon: const Icon(Icons.logout),
-          label: const Text('Sign Out'),
         ),
       ),
     );
@@ -150,18 +155,21 @@ class _VendorMissingRecord extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Vendor')),
+      appBar: AppBar(title: const Text('Student Seller')),
       body: EmptyState(
-        icon: Icons.store_mall_directory_outlined,
-        title: 'Complete your business profile',
+        icon: AppIcons.store,
+        title: 'Complete your seller profile',
         subtitle:
-        'We could not find your business details. Please register as a vendor.',
+        'We could not find your seller details. Please apply to become a '
+            'Student Seller.',
         action: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            FilledButton(
+            AppButton(
+              label: 'Apply as Student Seller',
+              icon: AppIcons.storefront,
+              expand: false,
               onPressed: () => context.go('/register/vendor'),
-              child: const Text('Register Business'),
             ),
             TextButton(
               onPressed: () => ref.read(authRepositoryProvider).signOut(),

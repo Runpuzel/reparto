@@ -18,8 +18,8 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.7.0" apply false
-    id("org.jetbrains.kotlin.android") version "1.9.25" apply false
+    id("com.android.application") version "8.11.1" apply false
+    id("org.jetbrains.kotlin.android") version "2.2.20" apply false
     // Firebase Cloud Messaging (push). Declared here; applied in app/build.gradle.kts
     // only when google-services.json is present, so debug builds without it still work.
     id("com.google.gms.google-services") version "4.4.2" apply false

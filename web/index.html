@@ -1,36 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="JustBUY">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="UjustBUY">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- iOS meta tags & icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="JustBUY">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <!-- Passkeys Web SDK (Corbado) - Required for the passkeys_web plugin -->
+  <script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js" type="text/javascript"></script>
 
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>JustBUY</title>
+  <title>UjustBUY</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="app_icon.png"/>
+
   <style>
-    body { margin: 0; background: #F5F8FE; }
-    .loading {
+    body { margin: 0; background: #FFFFFF; overflow: hidden; }
+    #loading {
       position: fixed; inset: 0; display: flex; align-items: center;
       justify-content: center; flex-direction: column; font-family: sans-serif;
-      color: #2563EB;
+      color: #0E6E74; background: white; z-index: 9999;
     }
+    #loading img { width: 80px; height: auto; margin-bottom: 20px; }
   </style>
 </head>
 <body>
-<div class="loading" id="loading">
-  <h1>JustBUY</h1>
-  <p>Loading…</p>
-</div>
-<script src="flutter_bootstrap.js" async></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a0b183f95c1b9340',t:'MTc4MTM1ODExNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+  <div id="loading">
+    <img src="app_icon.png" alt="UjustBUY" />
+    <p>Loading UjustBUY…</p>
+  </div>
+
+  <script src="flutter_bootstrap.js" async></script>
+
+  <script>
+    // Flutter 3.22+ bootstrap: Hide loader once the app is rendered
+    window.addEventListener('load', function() {
+      const observer = new MutationObserver(function(mutations) {
+        if (document.querySelector('flutter-view')) {
+          const loader = document.getElementById('loading');
+          if (loader) loader.style.display = 'none';
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      // Fallback: Force hide after 12 seconds
+      setTimeout(function() {
+        const loader = document.getElementById('loading');
+        if (loader && loader.style.display !== 'none') {
+          loader.style.display = 'none';
+        }
+      }, 12000);
+    });
+  </script>
+</body>
 </html>

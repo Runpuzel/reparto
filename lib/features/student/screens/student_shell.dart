@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_icons.dart';
+import '../../../core/widgets/sign_in_prompt.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../../shared/providers/shared_providers.dart';
 import '../providers/student_providers.dart';
 import 'browse_screen.dart';
@@ -33,64 +36,85 @@ class _StudentShellState extends ConsumerState<StudentShell> {
   Widget build(BuildContext context) {
     final unread = ref.watch(unreadNotificationsProvider).valueOrNull ?? 0;
     final cartCount = ref.watch(cartCountProvider);
+    final isGuest = ref.watch(isGuestProvider);
     final titles = ['Browse', 'Shops', 'Favorites', 'My Cart', 'My Orders'];
+
+    // Tabs that require an account (Favorites, Cart, Orders).
+    const guarded = {2: 'save listings', 3: 'use your cart', 4: 'view orders'};
 
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[_index]),
         actions: [
           IconButton(
-            tooltip: 'Notifications',
-            onPressed: () => context.push('/notifications'),
-            icon: Badge(
-              isLabelVisible: unread > 0,
-              label: Text('$unread'),
-              child: const Icon(Icons.notifications_outlined),
-            ),
+            tooltip: 'Services',
+            onPressed: () => context.push('/student/services'),
+            icon: Icon(AppIcons.services),
           ),
-          IconButton(
-            tooltip: 'Profile',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => const _ProfilePage()),
+          if (isGuest)
+            TextButton(
+              onPressed: () => context.push('/login'),
+              child: const Text('Sign In'),
+            )
+          else ...[
+            IconButton(
+              tooltip: 'Notifications',
+              onPressed: () => context.push('/notifications'),
+              icon: Badge(
+                isLabelVisible: unread > 0,
+                label: Text('$unread'),
+                child: Icon(AppIcons.notification),
+              ),
             ),
-            icon: const Icon(Icons.account_circle_outlined),
-          ),
+            IconButton(
+              tooltip: 'Profile',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const _ProfilePage()),
+              ),
+              icon: Icon(AppIcons.account),
+            ),
+          ],
           const SizedBox(width: 4),
         ],
       ),
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: (i) {
+          if (isGuest && guarded.containsKey(i)) {
+            SignInPrompt.show(context, action: guarded[i]!);
+            return;
+          }
+          setState(() => _index = i);
+        },
         destinations: [
-          const NavigationDestination(
-              icon: Icon(Icons.grid_view_outlined),
-              selectedIcon: Icon(Icons.grid_view),
+          NavigationDestination(
+              icon: Icon(AppIcons.grid),
+              selectedIcon: Icon(AppIcons.gridFill),
               label: 'Browse'),
-          const NavigationDestination(
-              icon: Icon(Icons.storefront_outlined),
-              selectedIcon: Icon(Icons.storefront),
+          NavigationDestination(
+              icon: Icon(AppIcons.storefront),
+              selectedIcon: Icon(AppIcons.storefrontFill),
               label: 'Shops'),
-          const NavigationDestination(
-              icon: Icon(Icons.favorite_border),
-              selectedIcon: Icon(Icons.favorite),
+          NavigationDestination(
+              icon: Icon(AppIcons.heart),
+              selectedIcon: Icon(AppIcons.heartFill),
               label: 'Favorites'),
           NavigationDestination(
               icon: Badge(
                 isLabelVisible: cartCount > 0,
                 label: Text('$cartCount'),
-                child: const Icon(Icons.shopping_cart_outlined),
+                child: Icon(AppIcons.cart),
               ),
               selectedIcon: Badge(
                 isLabelVisible: cartCount > 0,
                 label: Text('$cartCount'),
-                child: const Icon(Icons.shopping_cart),
+                child: Icon(AppIcons.cartFill),
               ),
               label: 'Cart'),
-          const NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long),
+          NavigationDestination(
+              icon: Icon(AppIcons.receipt),
+              selectedIcon: Icon(AppIcons.receiptFill),
               label: 'Orders'),
         ],
       ),

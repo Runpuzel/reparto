@@ -30,6 +30,12 @@ final currentUserProvider = FutureProvider<AppUser?>((ref) async {
   return profile;
 });
 
+/// True when there is no signed-in user (guest / unauthenticated browsing).
+final isGuestProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return user.valueOrNull == null;
+});
+
 /// The vendor business record for the current user (null if not a vendor).
 final currentVendorProvider = FutureProvider<Vendor?>((ref) async {
   final user = await ref.watch(currentUserProvider.future);

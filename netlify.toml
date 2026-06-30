@@ -1,0 +1,48 @@
+# Netlify configuration for the UjustBUY Flutter web app.
+#
+# IMPORTANT: Netlify must serve the COMPILED output in build/web, NOT the raw
+# web/ source folder. If you publish web/ directly (or the build fails) you get
+# "Unexpected token '<'" — because main.dart.js / flutter_bootstrap.js are
+# missing and the SPA redirect returns index.html (HTML) in their place.
+
+[build]
+# Clone the Flutter SDK into ./flutter (kept inside the repo root the whole
+# time), put it on PATH, then build the web release into build/web.
+# Config is read from the bundled .env asset (see pubspec.yaml assets).
+command = """
+    if [ ! -d flutter ]; then
+      git clone https://github.com/flutter/flutter.git -b stable --depth 1
+    fi
+    export PATH="$PATH:$PWD/flutter/bin"
+    flutter --version
+    flutter pub get
+    flutter build web --release
+  """
+publish = "build/web"
+
+[build.environment]
+# Avoid Flutter's analytics/telemetry prompts on CI.
+FLUTTER_SUPPRESS_ANALYTICS = "true"
+
+# Single Page App fallback: every route serves index.html so Flutter's
+# client-side router (GoRouter) handles it instead of Netlify returning 404.
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+
+# Never cache the bootstrap HTML/JS so new deploys appear immediately.
+[[headers]]
+for = "/index.html"
+[headers.values]
+Cache-Control = "no-cache"
+
+[[headers]]
+for = "/flutter_bootstrap.js"
+[headers.values]
+Cache-Control = "no-cache"
+
+[[headers]]
+for = "/flutter_service_worker.js"
+[headers.values]
+Cache-Control = "no-cache"

@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/stat_card.dart';
@@ -21,122 +29,127 @@ class AdminReportsScreen extends ConsumerWidget {
         value: report,
         onRetry: () => ref.invalidate(platformReportProvider),
         data: (r) => ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           children: [
             // Funds highlight card.
-            Card(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2563EB), Color(0xFF0EA5E9)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Gross Merchandise Value',
-                        style: TextStyle(color: Colors.white70)),
-                    const SizedBox(height: 6),
-                    Text(Formatters.money(r.gmv),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 6),
-                    Text(
-                        'Funds in active orders: ${Formatters.money(r.pendingFunds)}',
-                        style: const TextStyle(color: Colors.white70)),
-                  ],
-                ),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: AppRadius.brLg,
+                gradient: AppTheme.brandGradient,
+                boxShadow: AppShadows.brand,
               ),
-            ),
-            const SizedBox(height: 20),
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(AppIcons.revenue,
+                          color: Colors.white.withValues(alpha: 0.9), size: 20),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text('Gross Merchandise Value',
+                          style: AppTextStyles.bodyMedium
+                              .copyWith(color: Colors.white70)),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(Formatters.money(r.gmv),
+                      style: AppTextStyles.displayLarge
+                          .copyWith(color: Colors.white)),
+                  const SizedBox(height: AppSpacing.xs + 2),
+                  Text(
+                      'Funds in active orders: ${Formatters.money(r.pendingFunds)}',
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(color: Colors.white70)),
+                ],
+              ),
+            )
+                .animate()
+                .fadeIn(duration: 350.ms)
+                .slideY(begin: 0.06, end: 0),
+            const SizedBox(height: AppSpacing.lg),
             _section(context, 'People'),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm + 4),
             _grid([
               StatCard(
-                  icon: Icons.school,
+                  icon: AppIcons.campus,
                   label: 'Campuses',
                   value: '${r.campuses}',
-                  color: Colors.indigo),
+                  color: AppColors.primary),
               StatCard(
-                  icon: Icons.people,
+                  icon: AppIcons.people,
                   label: 'Students',
                   value: '${r.students}',
-                  color: Colors.blue),
+                  color: AppColors.info),
               StatCard(
-                  icon: Icons.storefront,
+                  icon: AppIcons.storefront,
                   label: 'Shops',
                   value: '${r.vendors}',
-                  color: Colors.deepPurple),
+                  color: AppColors.secondary),
               StatCard(
-                  icon: Icons.inventory_2_outlined,
+                  icon: AppIcons.package,
                   label: 'Products',
                   value: '${r.products}',
-                  color: Colors.brown),
+                  color: AppColors.tertiary),
             ]),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
             _section(context, 'Shops'),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm + 4),
             _grid([
               StatCard(
-                  icon: Icons.verified,
+                  icon: AppIcons.approved,
                   label: 'Approved',
                   value: '${r.approvedVendors}',
-                  color: Colors.teal),
+                  color: AppColors.success),
               StatCard(
-                  icon: Icons.hourglass_top,
+                  icon: AppIcons.pending,
                   label: 'Pending',
                   value: '${r.pendingVendors}',
-                  color: Colors.orange),
+                  color: AppColors.warning),
               StatCard(
-                  icon: Icons.block,
+                  icon: AppIcons.block,
                   label: 'Suspended',
                   value: '${r.suspendedVendors}',
-                  color: Colors.redAccent),
+                  color: AppColors.error),
             ]),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
             _section(context, 'Orders'),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm + 4),
             _grid([
               StatCard(
-                  icon: Icons.receipt_long,
+                  icon: AppIcons.receipt,
                   label: 'Total Orders',
                   value: '${r.totalOrders}',
-                  color: Colors.blueGrey),
+                  color: AppColors.neutral700),
               StatCard(
-                  icon: Icons.local_shipping_outlined,
+                  icon: AppIcons.truck,
                   label: 'Active',
                   value: '${r.activeOrders}',
-                  color: Colors.orange),
+                  color: AppColors.warning),
               StatCard(
-                  icon: Icons.check_circle,
+                  icon: AppIcons.checkFill,
                   label: 'Delivered',
                   value: '${r.completedOrders}',
-                  color: Colors.green),
+                  color: AppColors.success),
             ]),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),
     );
   }
 
-  Widget _section(BuildContext context, String title) => Text(title,
-      style: Theme.of(context).textTheme.titleMedium);
+  Widget _section(BuildContext context, String title) =>
+      Text(title, style: AppTextStyles.titleMedium);
 
   Widget _grid(List<Widget> children) => GridView.count(
     crossAxisCount: 2,
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
-    mainAxisSpacing: 12,
-    crossAxisSpacing: 12,
-    childAspectRatio: 1.5,
+    mainAxisSpacing: AppSpacing.sm + 4,
+    crossAxisSpacing: AppSpacing.sm + 4,
+    childAspectRatio: 1.35,
     children: children,
   );
 }

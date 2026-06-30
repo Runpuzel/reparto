@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/stat_card.dart';
 import '../../../models/models.dart';
@@ -26,10 +32,10 @@ class VendorReportsScreen extends ConsumerWidget {
         ref.invalidate(myShopReviewsProvider);
       },
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          _heading(context, 'Sales overview', Icons.insights_outlined),
-          const SizedBox(height: 12),
+          _heading(context, 'Sales overview', AppIcons.insights),
+          const SizedBox(height: AppSpacing.sm + 4),
           AsyncView<SalesSummary>(
             value: summary,
             onRetry: () => ref.invalidate(salesSummaryProvider),
@@ -37,151 +43,125 @@ class VendorReportsScreen extends ConsumerWidget {
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.5,
+              mainAxisSpacing: AppSpacing.sm + 4,
+              crossAxisSpacing: AppSpacing.sm + 4,
+              childAspectRatio: 1.35,
               children: [
                 StatCard(
-                    icon: Icons.payments_outlined,
+                    icon: AppIcons.revenue,
                     label: 'Total Revenue',
                     value: Formatters.money(s.revenue),
-                    color: Colors.green),
+                    color: AppColors.success),
                 StatCard(
-                    icon: Icons.receipt_long,
+                    icon: AppIcons.receipt,
                     label: 'Total Orders',
                     value: '${s.totalOrders}',
-                    color: Colors.blue),
+                    color: AppColors.info),
                 StatCard(
-                    icon: Icons.hourglass_top,
+                    icon: AppIcons.pending,
                     label: 'Pending',
                     value: '${s.pendingOrders}',
-                    color: Colors.orange),
+                    color: AppColors.warning),
                 StatCard(
-                    icon: Icons.local_shipping_outlined,
+                    icon: AppIcons.truck,
                     label: 'Delivered',
                     value: '${s.completedOrders}',
-                    color: Colors.teal),
+                    color: AppColors.primary),
               ],
             ),
           ),
 
-          const SizedBox(height: 24),
-          _heading(context, 'Product performance', Icons.leaderboard_outlined),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.lg),
+          _heading(context, 'Product performance', AppIcons.leaderboard),
+          const SizedBox(height: AppSpacing.sm + 4),
           AsyncView<List<ProductStat>>(
             value: stats,
             onRetry: () => ref.invalidate(productStatsProvider),
             data: (list) {
               if (list.isEmpty) {
-                return const Card(
+                return AppCard(
+                  padding: EdgeInsets.zero,
                   child: ListTile(
-                    leading: Icon(Icons.inventory_2_outlined),
-                    title: Text('No products yet'),
+                    leading: Icon(AppIcons.package),
+                    title: const Text('No products yet'),
                   ),
                 );
               }
               final maxUnits = list
                   .map((e) => e.unitsSold)
                   .fold<int>(0, (a, b) => a > b ? a : b);
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    children: list
-                        .map((p) => _ProductStatRow(stat: p, maxUnits: maxUnits))
-                        .toList(),
-                  ),
+              return AppCard(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                child: Column(
+                  children: list
+                      .map((p) =>
+                      _ProductStatRow(stat: p, maxUnits: maxUnits))
+                      .toList(),
                 ),
               );
             },
           ),
 
-          const SizedBox(height: 24),
-          _heading(context, 'Customer reviews', Icons.reviews_outlined),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.lg),
+          _heading(context, 'Customer reviews', AppIcons.reviews),
+          const SizedBox(height: AppSpacing.sm + 4),
           AsyncView<List<Review>>(
             value: reviews,
             onRetry: () => ref.invalidate(myShopReviewsProvider),
             data: (list) {
               if (list.isEmpty) {
-                return const Card(
+                return AppCard(
+                  padding: EdgeInsets.zero,
                   child: ListTile(
-                    leading: Icon(Icons.rate_review_outlined),
-                    title: Text('No reviews yet'),
+                    leading: Icon(AppIcons.reviews),
+                    title: const Text('No reviews yet'),
                   ),
                 );
               }
               final avg =
-                  list.map((r) => r.rating).reduce((a, b) => a + b) / list.length;
+                  list.map((r) => r.rating).reduce((a, b) => a + b) /
+                      list.length;
               return Column(
                 children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Text(avg.toStringAsFixed(1),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .displaySmall
-                                  ?.copyWith(fontWeight: FontWeight.w800)),
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: List.generate(
-                                  5,
-                                      (i) => Icon(
-                                      i < avg.round()
-                                          ? Icons.star
-                                          : Icons.star_border,
-                                      color: Colors.amber,
-                                      size: 20),
-                                ),
+                  AppCard(
+                    child: Row(
+                      children: [
+                        Text(avg.toStringAsFixed(1),
+                            style: AppTextStyles.displayMedium
+                                .copyWith(fontWeight: FontWeight.w800)),
+                        const SizedBox(width: AppSpacing.md),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: List.generate(
+                                5,
+                                    (i) => Icon(
+                                    i < avg.round()
+                                        ? AppIcons.starFill
+                                        : AppIcons.star,
+                                    color: Colors.amber,
+                                    size: 20),
                               ),
-                              const SizedBox(height: 4),
-                              Text('${list.length} review(s)',
-                                  style:
-                                  Theme.of(context).textTheme.bodySmall),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text('${list.length} review(s)',
+                                style: AppTextStyles.bodySmall),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  ...list.map((r) => Card(
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        child: Text(
-                            (r.studentName ?? '?')[0].toUpperCase()),
-                      ),
-                      title: Row(
-                        children: List.generate(
-                          5,
-                              (i) => Icon(
-                              i < r.rating
-                                  ? Icons.star
-                                  : Icons.star_border,
-                              size: 15,
-                              color: Colors.amber),
-                        ),
-                      ),
-                      subtitle: (r.comment != null && r.comment!.isNotEmpty)
-                          ? Text(r.comment!)
-                          : null,
-                      trailing: Text(Formatters.dateTime(r.createdAt),
-                          style: Theme.of(context).textTheme.bodySmall),
-                      isThreeLine:
-                      r.comment != null && r.comment!.isNotEmpty,
-                    ),
+                  const SizedBox(height: AppSpacing.sm),
+                  ...list.map((r) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: _ReviewTile(review: r),
                   )),
                 ],
               );
             },
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
         ],
       ),
     );
@@ -191,9 +171,62 @@ class VendorReportsScreen extends ConsumerWidget {
     return Row(
       children: [
         Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 8),
-        Text(text, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(width: AppSpacing.sm),
+        Text(text, style: AppTextStyles.titleLarge),
       ],
+    );
+  }
+}
+
+class _ReviewTile extends StatelessWidget {
+  final Review review;
+  const _ReviewTile({required this.review});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final hasComment = review.comment != null && review.comment!.isNotEmpty;
+    return AppCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            backgroundColor: scheme.primaryContainer,
+            foregroundColor: scheme.onPrimaryContainer,
+            child: Text((review.studentName ?? '?')[0].toUpperCase()),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ...List.generate(
+                      5,
+                          (i) => Icon(
+                          i < review.rating
+                              ? AppIcons.starFill
+                              : AppIcons.star,
+                          size: 15,
+                          color: Colors.amber),
+                    ),
+                    const Spacer(),
+                    Text(Formatters.dateTime(review.createdAt),
+                        style: AppTextStyles.bodySmall),
+                  ],
+                ),
+                if (hasComment) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(review.comment!,
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(color: scheme.onSurface)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -208,7 +241,8 @@ class _ProductStatRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final fraction = maxUnits == 0 ? 0.0 : stat.unitsSold / maxUnits;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -218,19 +252,18 @@ class _ProductStatRow extends StatelessWidget {
                 child: Text(stat.productName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                    style: AppTextStyles.titleSmall),
               ),
-              Text('${stat.unitsSold} sold',
-                  style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(width: 10),
+              Text('${stat.unitsSold} sold', style: AppTextStyles.bodySmall),
+              const SizedBox(width: AppSpacing.sm + 2),
               Text(Formatters.money(stat.revenue),
-                  style: TextStyle(
+                  style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w700, color: scheme.primary)),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.xs + 2),
           ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: AppRadius.brSm,
             child: LinearProgressIndicator(
               value: fraction == 0 ? null : fraction,
               minHeight: 6,

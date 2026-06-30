@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_network_image.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/confirm_actions.dart';
 import '../../../models/models.dart';
@@ -52,9 +60,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
           ],
         ),
         Expanded(
-          child: AsyncView<List<AppOrder>>(
-            value: orders,
-            onRetry: () => ref.invalidate(myOrdersProvider),
+          child: orders.when(
+            loading: () => const SkeletonList(itemCount: 5, itemHeight: 110),
+            error: (e, _) => ErrorState(
+                message: '$e',
+                onRetry: () => ref.invalidate(myOrdersProvider)),
             data: (list) => TabBarView(
               controller: _tabs,
               children: List.generate(3, (tab) {
@@ -71,10 +81,15 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
                     ),
                   ])
                       : ListView.separated(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(AppSpacing.sm + 4),
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) => _OrderCard(order: filtered[i]),
+                    separatorBuilder: (_, __) =>
+                    const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (_, i) => _OrderCard(order: filtered[i])
+                        .animate()
+                        .fadeIn(
+                        delay: (40 * (i % 12)).ms, duration: 280.ms)
+                        .slideY(begin: 0.05, end: 0),
                   ),
                 );
               }),
@@ -96,79 +111,72 @@ class _OrderCard extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final firstItem = order.items.isNotEmpty ? order.items.first : null;
 
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => context.push('/student/order/${order.orderId}'),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      onTap: () => context.push('/student/order/${order.orderId}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      color: scheme.surfaceContainerHighest,
-                      child: firstItem?.productImage != null
-                          ? Image.network(firstItem!.productImage!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.storefront_outlined))
-                          : const Icon(Icons.storefront_outlined),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(order.vendorName ?? 'Shop',
-                            style:
-                            const TextStyle(fontWeight: FontWeight.w700)),
-                        Text(
-                            '${order.itemCount} item(s) · ${Formatters.dateTime(order.createdAt)}',
-                            style: Theme.of(context).textTheme.bodySmall),
-                      ],
-                    ),
-                  ),
-                  StatusPill(label: order.status.label, color: color),
-                ],
+              ClipRRect(
+                borderRadius: AppRadius.brMd,
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: AppNetworkImage(
+                      url: firstItem?.productImage,
+                      fallbackIcon: AppIcons.storefront,
+                      iconSize: 22),
+                ),
               ),
-              const Divider(height: 20),
+              const SizedBox(width: AppSpacing.sm + 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(order.vendorName ?? 'Shop',
+                        style: AppTextStyles.titleSmall
+                            .copyWith(color: scheme.onSurface)),
+                    Text(
+                        '${order.itemCount} item(s) · ${Formatters.dateTime(order.createdAt)}',
+                        style: AppTextStyles.bodySmall),
+                  ],
+                ),
+              ),
+              StatusPill(
+                  label: order.status.label,
+                  color: color,
+                  icon: orderStatusIcon(order.status)),
+            ],
+          ),
+          const Divider(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(Formatters.money(order.totalAmount),
+                  style: AppTextStyles.titleSmall.copyWith(
+                      fontWeight: FontWeight.w800, color: scheme.primary)),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(Formatters.money(order.totalAmount),
-                      style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          color: scheme.primary)),
-                  Row(
-                    children: [
-                      if (order.status == OrderStatus.pending)
-                        TextButton(
-                          onPressed: () => _cancel(context, ref),
-                          child: const Text('Cancel',
-                              style: TextStyle(color: Colors.redAccent)),
-                        ),
-                      if (order.status.isFulfilled)
-                        TextButton.icon(
-                          onPressed: () => _reviewDialog(context, ref),
-                          icon: const Icon(Icons.star_outline, size: 18),
-                          label: const Text('Rate'),
-                        ),
-                      const Icon(Icons.chevron_right),
-                    ],
-                  ),
+                  if (order.status == OrderStatus.pending)
+                    TextButton(
+                      onPressed: () => _cancel(context, ref),
+                      child: Text('Cancel',
+                          style: TextStyle(color: scheme.error)),
+                    ),
+                  if (order.status.isFulfilled)
+                    TextButton.icon(
+                      onPressed: () => _reviewDialog(context, ref),
+                      icon: Icon(AppIcons.star, size: 18),
+                      label: const Text('Rate'),
+                    ),
+                  Icon(AppIcons.caretRight,
+                      size: 18, color: scheme.onSurfaceVariant),
                 ],
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -209,8 +217,6 @@ class _OrderCard extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Stars: use a FittedBox so 5 tappable stars never overflow on
-                // narrow dialogs.
                 Center(
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
@@ -223,7 +229,7 @@ class _OrderCard extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 2),
                           constraints: const BoxConstraints(),
                           icon: Icon(
-                              i < rating ? Icons.star : Icons.star_border,
+                              i < rating ? AppIcons.starFill : AppIcons.star,
                               color: Colors.amber,
                               size: 32),
                           onPressed: () => setState(() => rating = i + 1),
@@ -232,7 +238,7 @@ class _OrderCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 TextField(
                   controller: commentCtrl,
                   minLines: 2,
@@ -248,8 +254,7 @@ class _OrderCard extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-                onPressed:
-                submitting ? null : () => Navigator.pop(ctx),
+                onPressed: submitting ? null : () => Navigator.pop(ctx),
                 child: const Text('Cancel')),
             FilledButton(
               onPressed: submitting

@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/developer_info_card.dart';
 import '../../../core/widgets/notifications_diagnostic_tile.dart';
@@ -17,6 +23,7 @@ class StudentProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final campuses = ref.watch(campusesProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return AsyncView<AppUser?>(
       value: user,
@@ -29,14 +36,14 @@ class StudentProfileScreen extends ConsumerWidget {
         )
             .campusName;
         return ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm + 4),
             Center(
               child: CircleAvatar(
                 radius: 44,
-                backgroundColor:
-                Theme.of(context).colorScheme.primaryContainer,
+                backgroundColor: scheme.primaryContainer,
+                foregroundColor: scheme.onPrimaryContainer,
                 child: Text(
                   u.fullName.isNotEmpty ? u.fullName[0].toUpperCase() : '?',
                   style: const TextStyle(
@@ -44,45 +51,62 @@ class StudentProfileScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             Center(
               child: Text(u.fullName,
-                  style: Theme.of(context).textTheme.titleLarge),
+                  style: AppTextStyles.titleLarge
+                      .copyWith(color: scheme.onSurface)),
             ),
-            Center(child: Text(u.email)),
-            const SizedBox(height: 24),
+            Center(
+              child: Text(u.email,
+                  style: AppTextStyles.bodyMedium
+                      .copyWith(color: scheme.onSurfaceVariant)),
+            ),
+            const SizedBox(height: AppSpacing.lg),
             _InfoTile(
-                icon: Icons.school_outlined,
-                label: 'Campus',
-                value: campusName ?? '—'),
-            _InfoTile(
-                icon: Icons.badge_outlined,
-                label: 'Role',
-                value: 'Student'),
-            const SizedBox(height: 12),
-            const ThemeModeTile(),
-            const SizedBox(height: 12),
-            const NotificationsDiagnosticTile(),
-            const SizedBox(height: 12),
-            Card(
+                icon: AppIcons.campus, label: 'Campus', value: campusName ?? '—'),
+            const SizedBox(height: AppSpacing.sm),
+            _InfoTile(icon: AppIcons.role, label: 'Role', value: 'Student'),
+            const SizedBox(height: AppSpacing.sm + 4),
+            AppCard(
+              onTap: () => context.push('/referrals'),
+              padding: EdgeInsets.zero,
               child: ListTile(
-                leading: const Icon(Icons.lock_reset),
-                title: const Text('Forgot / Reset passcode'),
-                subtitle: const Text('Contact support to reset your passcode'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/forgot-passcode'),
+                leading: Icon(AppIcons.tag),
+                title: const Text('Referral Hub'),
+                subtitle: const Text('Invite friends & earn tokens'),
+                trailing: Icon(AppIcons.caretRight, size: 18),
               ),
             ),
-            const SizedBox(height: 12),
-            const DeveloperInfoCard(),
-            const SizedBox(height: 24),
-            OutlinedButton.icon(
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
-              icon: const Icon(Icons.logout),
-              label: const Text('Sign Out'),
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+            const SizedBox(height: AppSpacing.sm + 4),
+            const ThemeModeTile(),
+            const SizedBox(height: AppSpacing.sm + 4),
+            const NotificationsDiagnosticTile(),
+            const SizedBox(height: AppSpacing.sm + 4),
+            AppCard(
+              onTap: () => context.push('/forgot-passcode'),
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                leading: Icon(AppIcons.lockReset),
+                title: const Text('Forgot / Reset passcode'),
+                subtitle:
+                const Text('Contact support to reset your passcode'),
+                trailing: Icon(AppIcons.caretRight, size: 18),
+              ),
             ),
-          ],
+            const SizedBox(height: AppSpacing.sm + 4),
+            const DeveloperInfoCard(),
+            const SizedBox(height: AppSpacing.lg),
+            AppButton(
+              label: 'Sign Out',
+              icon: AppIcons.logout,
+              variant: AppButtonVariant.secondary,
+              onPressed: () => ref.read(authRepositoryProvider).signOut(),
+            ),
+          ]
+              .animate(interval: 40.ms)
+              .fadeIn(duration: 300.ms)
+              .slideY(begin: 0.03, end: 0),
         );
       },
     );
@@ -98,14 +122,23 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(label,
-            style: Theme.of(context).textTheme.bodySmall),
-        subtitle: Text(value,
-            style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w600)),
+    final scheme = Theme.of(context).colorScheme;
+    return AppCard(
+      child: Row(
+        children: [
+          Icon(icon, color: scheme.onSurfaceVariant),
+          const SizedBox(width: AppSpacing.md),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: AppTextStyles.bodySmall),
+              const SizedBox(height: 2),
+              Text(value,
+                  style: AppTextStyles.titleSmall
+                      .copyWith(color: scheme.onSurface)),
+            ],
+          ),
+        ],
       ),
     );
   }

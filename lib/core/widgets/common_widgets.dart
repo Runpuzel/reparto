@@ -28,21 +28,41 @@ class ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: scheme.error.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.error_outline_rounded,
+                  size: 36, color: scheme.error),
+            ),
+            const SizedBox(height: 16),
+            Text('Something went wrong',
+                style: Theme.of(context).textTheme.titleMedium,
+                textAlign: TextAlign.center),
+            const SizedBox(height: 6),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.onSurfaceVariant)),
             if (onRetry != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               OutlinedButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Try again'),
+                style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 20)),
               ),
             ],
           ],
@@ -67,24 +87,40 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final scheme = Theme.of(context).colorScheme;
+    final muted = scheme.onSurfaceVariant;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: muted),
-            const SizedBox(height: 16),
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 44, color: scheme.primary),
+            ),
+            const SizedBox(height: 20),
             Text(title,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center),
             if (subtitle != null) ...[
-              const SizedBox(height: 6),
-              Text(subtitle!,
-                  style: TextStyle(color: muted), textAlign: TextAlign.center),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 300),
+                child: Text(subtitle!,
+                    style: TextStyle(color: muted, height: 1.5),
+                    textAlign: TextAlign.center),
+              ),
             ],
-            if (action != null) ...[const SizedBox(height: 20), action!],
+            if (action != null) ...[const SizedBox(height: 24), action!],
           ],
         ),
       ),
@@ -93,10 +129,10 @@ class EmptyState extends StatelessWidget {
 }
 
 /// Brand logo lockup used in headers / auth screens.
-class JustBuyLogo extends StatelessWidget {
+class RepartoLogo extends StatelessWidget {
   final double size;
   final bool showText;
-  const JustBuyLogo({super.key, this.size = 48, this.showText = true});
+  const RepartoLogo({super.key, this.size = 48, this.showText = true});
 
   @override
   Widget build(BuildContext context) {
@@ -215,19 +251,32 @@ class _GoogleGPainter extends CustomPainter {
 class StatusPill extends StatelessWidget {
   final String label;
   final Color color;
-  const StatusPill({super.key, required this.label, required this.color});
+  final IconData? icon;
+  const StatusPill(
+      {super.key, required this.label, required this.color, this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.fromLTRB(icon != null ? 7 : 10, 4, 10, 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: 0.13),
+        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+                color: color, fontWeight: FontWeight.w700, fontSize: 11.5),
+          ),
+        ],
       ),
     );
   }
@@ -236,20 +285,22 @@ class StatusPill extends StatelessWidget {
 Color orderStatusColor(OrderStatus s, BuildContext ctx) {
   switch (s) {
     case OrderStatus.pending:
-      return Colors.orange;
+      return AppTheme.warning;
     case OrderStatus.confirmed:
     case OrderStatus.accepted:
-      return Colors.blue;
+      return AppTheme.info;
     case OrderStatus.preparing:
-      return Colors.indigo;
+      return const Color(0xFF6D5BD0); // calm violet
     case OrderStatus.dispatched:
     case OrderStatus.readyForPickup:
-      return Colors.teal;
+      return const Color(0xFF0E8A8A); // teal
     case OrderStatus.delivered:
     case OrderStatus.completed:
-      return Colors.green;
+      return AppTheme.success;
     case OrderStatus.cancelled:
-      return Colors.redAccent;
+      return AppTheme.danger;
+    case OrderStatus.disputed:
+      return const Color(0xFFB7791F); // amber — needs attention
   }
 }
 
@@ -271,5 +322,7 @@ IconData orderStatusIcon(OrderStatus s) {
       return Icons.inventory_2_outlined;
     case OrderStatus.cancelled:
       return Icons.cancel_outlined;
+    case OrderStatus.disputed:
+      return Icons.gavel_outlined;
   }
 }

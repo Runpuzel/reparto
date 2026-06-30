@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../models/models.dart';
 import '../providers/student_providers.dart';
@@ -24,7 +30,8 @@ class ShopDetailScreen extends ConsumerWidget {
         error: (e, _) => Scaffold(
           appBar: AppBar(),
           body: ErrorState(
-              message: '$e', onRetry: () => ref.invalidate(shopProvider(vendorId))),
+              message: '$e',
+              onRetry: () => ref.invalidate(shopProvider(vendorId))),
         ),
         data: (v) {
           if (v == null) {
@@ -37,7 +44,8 @@ class ShopDetailScreen extends ConsumerWidget {
           final revs = reviews.valueOrNull ?? [];
           final avg = revs.isEmpty
               ? 0.0
-              : revs.map((r) => r.rating).reduce((a, b) => a + b) / revs.length;
+              : revs.map((r) => r.rating).reduce((a, b) => a + b) /
+              revs.length;
           final productList = products.valueOrNull ?? [];
 
           return RefreshIndicator(
@@ -48,17 +56,17 @@ class ShopDetailScreen extends ConsumerWidget {
             child: CustomScrollView(
               slivers: [
                 _ShopHeader(shop: v, avg: avg, reviewCount: revs.length),
-                // Products section header
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md, AppSpacing.lg, AppSpacing.md,
+                        AppSpacing.sm),
                     child: Row(
                       children: [
-                        Text('Products',
-                            style: Theme.of(context).textTheme.titleLarge),
-                        const SizedBox(width: 8),
+                        Text('Products', style: AppTextStyles.titleLarge),
+                        const SizedBox(width: AppSpacing.sm),
                         Text('(${productList.length})',
-                            style: TextStyle(
+                            style: AppTextStyles.bodyMedium.copyWith(
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurfaceVariant)),
@@ -90,13 +98,15 @@ class ShopDetailScreen extends ConsumerWidget {
                       );
                     }
                     return SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.sm + 4, 0, AppSpacing.sm + 4,
+                          AppSpacing.sm + 4),
                       sliver: SliverGrid(
                         gridDelegate:
                         const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 220,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
+                          mainAxisSpacing: AppSpacing.sm + 4,
+                          crossAxisSpacing: AppSpacing.sm + 4,
                           childAspectRatio: 0.66,
                         ),
                         delegate: SliverChildBuilderDelegate(
@@ -108,32 +118,39 @@ class ShopDetailScreen extends ConsumerWidget {
                     );
                   },
                 ),
-                // Reviews
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    child: Text('Reviews',
-                        style: Theme.of(context).textTheme.titleLarge),
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md, AppSpacing.sm + 4, AppSpacing.md,
+                        AppSpacing.sm),
+                    child: Text('Reviews', style: AppTextStyles.titleLarge),
                   ),
                 ),
                 if (revs.isEmpty)
-                  const SliverToBoxAdapter(
+                  SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
-                      child: Text('No reviews yet.'),
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.md, 0, AppSpacing.md, AppSpacing.lg),
+                      child: Text('No reviews yet.',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
                     ),
                   )
                 else
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
                           (context, i) => Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.sm + 4, 0, AppSpacing.sm + 4,
+                            AppSpacing.sm),
                         child: _ReviewCard(review: revs[i]),
                       ),
                       childCount: revs.length,
                     ),
                   ),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
               ],
             ),
           );
@@ -169,7 +186,6 @@ class _ShopHeader extends StatelessWidget {
             const DecoratedBox(
               decoration: BoxDecoration(gradient: AppTheme.brandGradient),
             ),
-            // subtle pattern via gradient overlay
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -191,18 +207,15 @@ class _ShopHeader extends StatelessWidget {
                     width: 72,
                     height: 72,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: AppRadius.brLg,
                       color: Colors.white,
-                      image: hasLogo
-                          ? DecorationImage(
-                          image: NetworkImage(shop.logoUrl!),
-                          fit: BoxFit.cover)
-                          : null,
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: hasLogo
-                        ? null
-                        : const Icon(Icons.storefront,
+                        ? AppNetworkImage(
+                        url: shop.logoUrl,
+                        fallbackIcon: AppIcons.storefront)
+                        : Icon(AppIcons.storefrontFill,
                         color: AppTheme.primary, size: 36),
                   ),
                   const SizedBox(width: 14),
@@ -217,12 +230,12 @@ class _ShopHeader extends StatelessWidget {
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: AppRadius.brFull,
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.star,
+                                Icon(AppIcons.starFill,
                                     color: Colors.amber, size: 16),
                                 const SizedBox(width: 4),
                                 Text(
@@ -254,21 +267,42 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          child: Text((review.studentName ?? '?')[0].toUpperCase()),
-        ),
-        title: Row(
-          children: List.generate(
-            5,
-                (i) => Icon(i < review.rating ? Icons.star : Icons.star_border,
-                size: 16, color: Colors.amber),
+    final scheme = Theme.of(context).colorScheme;
+    return AppCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            backgroundColor: scheme.primaryContainer,
+            foregroundColor: scheme.onPrimaryContainer,
+            child: Text((review.studentName ?? '?')[0].toUpperCase()),
           ),
-        ),
-        subtitle: (review.comment != null && review.comment!.isNotEmpty)
-            ? Text(review.comment!)
-            : null,
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: List.generate(
+                    5,
+                        (i) => Icon(
+                        i < review.rating
+                            ? AppIcons.starFill
+                            : AppIcons.star,
+                        size: 16,
+                        color: Colors.amber),
+                  ),
+                ),
+                if (review.comment != null && review.comment!.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(review.comment!,
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(color: scheme.onSurface)),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/supabase_client.dart';
+import '../../../core/utils/commission.dart';
 import '../../../models/models.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../data/tokens_repository.dart';
 
 /// All active campuses (used in registration / campus selection).
 final campusesProvider = FutureProvider<List<Campus>>((ref) async {
@@ -14,6 +16,24 @@ final campusesProvider = FutureProvider<List<Campus>>((ref) async {
   return (rows as List)
       .map((e) => Campus.fromMap(Map<String, dynamic>.from(e)))
       .toList();
+});
+
+/// Commission tiers (global + per-campus). Falls back to the spec defaults if
+/// the table can't be read, so the platform fee always renders.
+final commissionTiersProvider =
+FutureProvider<List<CommissionTier>>((ref) async {
+  try {
+    final rows = await supabase
+        .from('commission_tiers')
+        .select()
+        .order('price_from');
+    final list = (rows as List)
+        .map((e) => CommissionTier.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
+    return list.isEmpty ? Commission.defaults : list;
+  } catch (_) {
+    return Commission.defaults;
+  }
 });
 
 /// Product categories.
@@ -59,3 +79,19 @@ Future<void> markNotificationRead(String id) async {
       .from('notifications')
       .update({'is_read': true}).eq('notification_id', id);
 }
+
+// ---- Referral tokens (spec F7) ---------------------------------------------
+final tokensRepositoryProvider =
+Provider<TokensRepository>((ref) => TokensRepository());
+
+final tokenBalanceProvider = FutureProvider<int>((ref) async {
+  ref.watch(authStateProvider);
+  if (currentAuthUser == null) return 0;
+  return ref.watch(tokensRepositoryProvider).balance();
+});
+
+final tokenHistoryProvider = FutureProvider<List<TokenTransaction>>((ref) async {
+  ref.watch(authStateProvider);
+  if (currentAuthUser == null) return [];
+  return ref.watch(tokensRepositoryProvider).history();
+});

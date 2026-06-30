@@ -6,9 +6,17 @@ import 'package:go_router/go_router.dart';
 import '../../../core/config/env.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/payment_service.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_actions.dart';
+import '../../../models/models.dart';
 import '../providers/student_providers.dart';
 
 /// Collects delivery address, contact phone and payment method, shows an order
@@ -144,18 +152,26 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.check_circle, color: Colors.green, size: 56),
+        icon: Container(
+          width: 64,
+          height: 64,
+          decoration: const BoxDecoration(
+            color: AppTheme.successContainer,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(AppIcons.checkFill, color: AppTheme.success, size: 36),
+        ),
         title: const Text('Order placed!'),
         content: const Text(
             'Your order has been placed and the shop has been notified. '
                 'Track its progress under My Orders.'),
         actions: [
-          FilledButton(
+          AppButton(
+            label: 'Done',
             onPressed: () {
               Navigator.pop(ctx);
               context.go('/student');
             },
-            child: const Text('Done'),
           ),
         ],
       ),
@@ -166,6 +182,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider).valueOrNull ?? [];
     final total = ref.watch(cartTotalProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Checkout')),
@@ -173,49 +190,41 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             children: [
-              _sectionTitle(
-                  context, 'Delivery details', Icons.local_shipping_outlined),
-              const SizedBox(height: 12),
-              TextFormField(
+              _sectionTitle(context, 'Delivery details', AppIcons.truck),
+              const SizedBox(height: AppSpacing.sm + 4),
+              AppTextField(
                 controller: _address,
+                label: 'Delivery address *',
+                hint: 'Hall / hostel, room number, landmark…',
+                prefixIcon: AppIcons.mapPin,
                 minLines: 2,
                 maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Delivery address *',
-                  hintText: 'Hall / hostel, room number, landmark…',
-                  prefixIcon: Icon(Icons.location_on_outlined),
-                ),
                 validator: (v) => Validators.required(v, 'Delivery address'),
               ),
-              const SizedBox(height: 14),
-              TextFormField(
+              const SizedBox(height: AppSpacing.sm + 4),
+              AppTextField(
                 controller: _phone,
+                label: 'Contact phone *',
+                hint: '0208223626',
+                prefixIcon: AppIcons.phone,
                 keyboardType: TextInputType.phone,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(10),
                 ],
-                decoration: const InputDecoration(
-                  labelText: 'Contact phone *',
-                  hintText: '0208223626',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                ),
                 validator: Validators.phone,
               ),
-              const SizedBox(height: 14),
-              TextFormField(
+              const SizedBox(height: AppSpacing.sm + 4),
+              AppTextField(
                 controller: _note,
-                decoration: const InputDecoration(
-                  labelText: 'Note for the shop (optional)',
-                  prefixIcon: Icon(Icons.sticky_note_2_outlined),
-                ),
+                label: 'Note for the shop (optional)',
+                prefixIcon: AppIcons.note,
               ),
-              const SizedBox(height: 24),
-              _sectionTitle(context, 'Payment method', Icons.payment_outlined),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.lg),
+              _sectionTitle(context, 'Payment method', AppIcons.wallet),
+              const SizedBox(height: AppSpacing.sm + 4),
               ..._methods.map((m) => _PaymentOption(
                 method: m,
                 selected: _method == m,
@@ -223,54 +232,49 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               )),
               if (!Env.paymentsEnabled)
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
                   child: Text(
                     'Online payment is currently unavailable.',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: AppTextStyles.bodySmall,
                   ),
                 ),
-              const SizedBox(height: 24),
-              _sectionTitle(
-                  context, 'Order summary', Icons.receipt_long_outlined),
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    children: [
-                      ...cart.map((item) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            Text('${item.quantity}× ',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600)),
-                            Expanded(
-                                child: Text(
-                                    item.product?.productName ?? 'Item',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis)),
-                            Text(Formatters.money(item.lineTotal)),
-                          ],
-                        ),
-                      )),
-                      const Divider(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              const SizedBox(height: AppSpacing.lg),
+              _sectionTitle(context, 'Order summary', AppIcons.receipt),
+              const SizedBox(height: AppSpacing.sm + 4),
+              AppCard(
+                padding: const EdgeInsets.all(AppSpacing.sm + 4),
+                child: Column(
+                  children: [
+                    ...cart.map((item) => Padding(
+                      padding:
+                      const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                      child: Row(
                         children: [
-                          const Text('Total',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700, fontSize: 16)),
-                          Text(Formatters.money(total),
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 18,
-                                  color:
-                                  Theme.of(context).colorScheme.primary)),
+                          Text('${item.quantity}× ',
+                              style: AppTextStyles.labelLarge),
+                          Expanded(
+                              child: Text(
+                                  item.product?.productName ?? 'Item',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.bodyMedium)),
+                          Text(Formatters.money(item.lineTotal),
+                              style: AppTextStyles.bodyMedium),
                         ],
                       ),
-                    ],
-                  ),
+                    )),
+                    const Divider(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total', style: AppTextStyles.titleMedium),
+                        Text(Formatters.money(total),
+                            style: AppTextStyles.titleLarge.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: scheme.primary)),
+                      ],
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 80),
@@ -283,21 +287,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         child: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: FilledButton.icon(
-              onPressed: (_loading || cart.isEmpty) ? null : _submit,
-              icon: _loading
-                  ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.2, color: Colors.white))
-                  : Icon(_method.isOnline
-                  ? Icons.lock_outline
-                  : Icons.check_circle_outline),
-              label: Text(_loading
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: AppButton(
+              label: _loading
                   ? 'Processing…'
-                  : '${_method.isOnline ? 'Pay' : 'Place Order'} · ${Formatters.money(total)}'),
+                  : '${_method.isOnline ? 'Pay' : 'Place Order'} · ${Formatters.money(total)}',
+              icon: _loading
+                  ? null
+                  : (_method.isOnline ? AppIcons.lock : AppIcons.checkFill),
+              loading: _loading,
+              onPressed: cart.isEmpty ? null : _submit,
             ),
           ),
         ),
@@ -309,8 +308,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     return Row(
       children: [
         Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 8),
-        Text(text, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(width: AppSpacing.sm),
+        Text(text, style: AppTextStyles.titleMedium),
       ],
     );
   }
@@ -330,49 +329,45 @@ class _PaymentOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: AppCard(
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? scheme.primary : scheme.outlineVariant,
-              width: selected ? 2 : 1,
-            ),
-            color: selected
-                ? scheme.primary.withValues(alpha: 0.06)
-                : Colors.transparent,
-          ),
-          child: Row(
-            children: [
-              Icon(method.icon,
-                  color: selected ? scheme.primary : scheme.onSurfaceVariant),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(method.label,
-                        style: TextStyle(
-                            fontWeight:
-                            selected ? FontWeight.w700 : FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text(method.subtitle,
-                        style: Theme.of(context).textTheme.bodySmall),
-                  ],
-                ),
+        padding: const EdgeInsets.all(AppSpacing.sm + 4),
+        color: selected
+            ? scheme.primary.withValues(alpha: 0.06)
+            : scheme.surfaceContainerLowest,
+        border: Border.all(
+          color: selected ? scheme.primary : scheme.outlineVariant,
+          width: selected ? 2 : 1,
+        ),
+        shadows: const [],
+        child: Row(
+          children: [
+            Icon(method.icon,
+                color: selected ? scheme.primary : scheme.onSurfaceVariant),
+            const SizedBox(width: AppSpacing.sm + 4),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(method.label,
+                      style: AppTextStyles.titleSmall.copyWith(
+                          fontWeight:
+                          selected ? FontWeight.w700 : FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(method.subtitle, style: AppTextStyles.bodySmall),
+                ],
               ),
-              Icon(
-                selected
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_unchecked,
+            ),
+            AnimatedScale(
+              scale: selected ? 1 : 0.8,
+              duration: const Duration(milliseconds: 160),
+              child: Icon(
+                selected ? AppIcons.checkFill : AppIcons.circle,
                 color: selected ? scheme.primary : scheme.onSurfaceVariant,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

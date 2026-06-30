@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_icons.dart';
 import '../../../core/widgets/theme_mode_tile.dart';
 import '../../auth/providers/auth_providers.dart';
 import 'admin_reports_screen.dart';
 import 'admin_campuses_screen.dart';
 import 'admin_categories_screen.dart';
+import 'admin_commission_screen.dart';
+import 'admin_disputes_screen.dart';
 import 'admin_vendors_screen.dart';
 import 'admin_users_screen.dart';
 
@@ -23,21 +26,39 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     AdminReportsScreen(),
     AdminVendorsScreen(),
     AdminCategoriesScreen(),
+    AdminCommissionScreen(),
     AdminCampusesScreen(),
     AdminUsersScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final titles = ['Reports', 'Vendors', 'Categories', 'Campuses', 'Users'];
+    final titles = [
+      'Reports',
+      'Sellers',
+      'Categories',
+      'Commission',
+      'Campuses',
+      'Users'
+    ];
     return Scaffold(
       appBar: AppBar(
         title: Text('Admin · ${titles[_index]}'),
         actions: [
+          IconButton(
+            tooltip: 'Disputes',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => Scaffold(
+                appBar: AppBar(title: const Text('Disputes')),
+                body: const AdminDisputesScreen(),
+              ),
+            )),
+            icon: const Icon(Icons.gavel_outlined),
+          ),
           const ThemeToggleButton(),
           IconButton(
             onPressed: () => ref.read(authRepositoryProvider).signOut(),
-            icon: const Icon(Icons.logout),
+            icon: Icon(AppIcons.logout),
             tooltip: 'Sign out',
           ),
         ],
@@ -46,26 +67,30 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-              icon: Icon(Icons.insights_outlined),
-              selectedIcon: Icon(Icons.insights),
+              icon: Icon(AppIcons.insightsOutline),
+              selectedIcon: Icon(AppIcons.insights),
               label: 'Reports'),
           NavigationDestination(
-              icon: Icon(Icons.verified_user_outlined),
-              selectedIcon: Icon(Icons.verified_user),
-              label: 'Vendors'),
+              icon: Icon(AppIcons.verified),
+              selectedIcon: Icon(AppIcons.verifiedFill),
+              label: 'Sellers'),
           NavigationDestination(
-              icon: Icon(Icons.category_outlined),
-              selectedIcon: Icon(Icons.category),
+              icon: Icon(AppIcons.category),
+              selectedIcon: Icon(AppIcons.categoryFill),
               label: 'Categories'),
           NavigationDestination(
-              icon: Icon(Icons.school_outlined),
-              selectedIcon: Icon(Icons.school),
+              icon: Icon(AppIcons.price),
+              selectedIcon: Icon(AppIcons.revenue),
+              label: 'Commission'),
+          NavigationDestination(
+              icon: Icon(AppIcons.campus),
+              selectedIcon: Icon(AppIcons.campusFill),
               label: 'Campuses'),
           NavigationDestination(
-              icon: Icon(Icons.group_outlined),
-              selectedIcon: Icon(Icons.group),
+              icon: Icon(AppIcons.users),
+              selectedIcon: Icon(AppIcons.usersFill),
               label: 'Users'),
         ],
       ),

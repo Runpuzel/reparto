@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/config/supabase_client.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/app_error.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/image_upload_field.dart';
 import '../../../models/models.dart';
@@ -132,19 +139,21 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
       content: Text(msg),
       behavior: SnackBarBehavior.floating,
       showCloseIcon: true,
-      backgroundColor: success ? Colors.green.shade700 : Theme.of(context).colorScheme.error,
+      backgroundColor:
+      success ? Colors.green.shade700 : Theme.of(context).colorScheme.error,
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     final campuses = ref.watch(campusesProvider);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Vendor Registration')),
+      appBar: AppBar(title: const Text('Student Seller Application')),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: Form(
@@ -152,11 +161,11 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _InfoBanner(),
-                    const SizedBox(height: 20),
+                    const _InfoBanner(),
+                    const SizedBox(height: AppSpacing.lg),
 
-                    _SectionLabel('Business identity'),
-                    const SizedBox(height: 12),
+                    const _SectionLabel('Business identity'),
+                    const SizedBox(height: AppSpacing.sm + 4),
                     Center(
                       child: SizedBox(
                         width: 130,
@@ -169,35 +178,30 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
                       controller: _business,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Business Name',
-                        prefixIcon: Icon(Icons.storefront_outlined),
-                      ),
-                      validator: (v) => Validators.required(v, 'Business name'),
+                      label: 'Business Name',
+                      prefixIcon: AppIcons.storefront,
+                      validator: (v) =>
+                          Validators.required(v, 'Business name'),
                     ),
-                    const SizedBox(height: 14),
-                    TextFormField(
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
                       controller: _owner,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Owner Name',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
+                      label: 'Owner Name',
+                      prefixIcon: AppIcons.user,
                       validator: (v) => Validators.required(v, 'Owner name'),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.md),
                     AsyncView<List<Campus>>(
                       value: campuses,
                       data: (list) => DropdownButtonFormField<String>(
                         value: _campusId,
                         isExpanded: true,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Campus',
-                          prefixIcon: Icon(Icons.school_outlined),
+                          prefixIcon: Icon(AppIcons.campus, size: 20),
                         ),
                         items: list
                             .map((c) => DropdownMenuItem(
@@ -207,42 +211,37 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 24),
-                    _SectionLabel('Contact numbers'),
-                    const SizedBox(height: 12),
-                    TextFormField(
+                    const SizedBox(height: AppSpacing.lg),
+                    const _SectionLabel('Contact numbers'),
+                    const SizedBox(height: AppSpacing.sm + 4),
+                    AppTextField(
                       controller: _phone,
+                      label: 'Personal Phone Number',
+                      prefixIcon: AppIcons.phone,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Personal Phone Number',
-                        prefixIcon: Icon(Icons.phone_outlined),
-                      ),
                       validator: Validators.phone,
                     ),
-                    const SizedBox(height: 14),
-                    TextFormField(
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
                       controller: _businessPhone,
+                      label: 'Business Phone Number',
+                      prefixIcon: AppIcons.phoneBusiness,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Business Phone Number',
-                        prefixIcon: Icon(Icons.call_outlined),
-                      ),
                       validator: Validators.phone,
                     ),
 
-                    const SizedBox(height: 24),
-                    _SectionLabel('Mobile money (for payouts)'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.lg),
+                    const _SectionLabel('Mobile money (for payouts)'),
+                    const SizedBox(height: AppSpacing.sm + 4),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(
-                          width: 120,
+                          width: 130,
                           child: DropdownButtonFormField<String>(
                             value: _momoNetwork,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                                labelText: 'Network'),
+                            decoration:
+                            const InputDecoration(labelText: 'Network'),
                             items: const [
                               DropdownMenuItem(
                                   value: 'MTN', child: Text('MTN')),
@@ -250,96 +249,88 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                                   value: 'Vodafone', child: Text('Telecel')),
                               DropdownMenuItem(
                                   value: 'AirtelTigo',
-                                  child: Text('AirtelTigo', overflow: TextOverflow.ellipsis)),
+                                  child: Text('AirtelTigo')),
                             ],
                             onChanged: (v) =>
                                 setState(() => _momoNetwork = v ?? 'MTN'),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: AppSpacing.md),
                         Expanded(
-                          child: TextFormField(
+                          child: AppTextField(
                             controller: _momo,
+                            label: 'MoMo Number',
+                            prefixIcon: AppIcons.wallet,
                             keyboardType: TextInputType.phone,
-                            decoration: const InputDecoration(
-                              labelText: 'MoMo Number',
-                              prefixIcon: Icon(Icons.account_balance_wallet_outlined),
-                            ),
                             validator: Validators.momo,
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 24),
-                    _SectionLabel('Identity verification (Ghana Card)'),
-                    const SizedBox(height: 12),
-                    TextFormField(
+                    const SizedBox(height: AppSpacing.lg),
+                    const _SectionLabel('Identity verification (Ghana Card)'),
+                    const SizedBox(height: AppSpacing.sm + 4),
+                    AppTextField(
                       controller: _ghanaCard,
-                      textCapitalization: TextCapitalization.characters,
-                      inputFormatters: [
-                        UpperCaseTextFormatter(),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Ghana Card Number',
-                        hintText: 'GHA-123456789-0',
-                        prefixIcon: Icon(Icons.badge_outlined),
-                      ),
+                      label: 'Ghana Card Number',
+                      hint: 'GHA-123456789-0',
+                      prefixIcon: AppIcons.badge,
+                      inputFormatters: [UpperCaseTextFormatter()],
                       validator: Validators.ghanaCard,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.md),
                     ImageUploadField(
                       label: 'Ghana Card photo',
                       icon: Icons.badge_outlined,
                       onPicked: (p) => _ghanaCardImage = p,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.xs + 2),
                     Text(
-                      'Your card photo is stored privately and only visible to administrators for verification.',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      'Your card photo is stored privately and only visible to '
+                          'administrators for verification.',
+                      style: AppTextStyles.bodySmall,
                     ),
 
-                    const SizedBox(height: 24),
-                    _SectionLabel('Account'),
-                    const SizedBox(height: 12),
-                    TextFormField(
+                    const SizedBox(height: AppSpacing.lg),
+                    const _SectionLabel('Account'),
+                    const SizedBox(height: AppSpacing.sm + 4),
+                    AppTextField(
                       controller: _email,
+                      label: 'Email',
+                      prefixIcon: AppIcons.email,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.mail_outline),
-                      ),
                       validator: Validators.email,
                     ),
-                    const SizedBox(height: 14),
-                    TextFormField(
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
                       controller: _password,
+                      label: 'Password',
+                      helper: '8+ chars, 1 number, 1 uppercase',
+                      prefixIcon: AppIcons.lock,
                       obscureText: _obscure,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        helperText: '8+ chars, 1 number, 1 uppercase',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscure
-                              ? Icons.visibility_off
-                              : Icons.visibility),
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                        ),
-                      ),
+                      suffixIcon: _obscure ? AppIcons.eyeOff : AppIcons.eye,
+                      onSuffixTap: () => setState(() => _obscure = !_obscure),
                       validator: Validators.password,
                     ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: _loading ? null : _submit,
-                      child: _loading
-                          ? const _BtnSpinner()
-                          : const Text('Submit Application'),
+                    const SizedBox(height: AppSpacing.lg),
+                    AppButton(
+                      label: _loading
+                          ? 'Submitting…'
+                          : 'Submit Application',
+                      icon: _loading ? null : AppIcons.shield,
+                      loading: _loading,
+                      onPressed: _submit,
                     ),
+                    const SizedBox(height: AppSpacing.xs),
                     TextButton(
                       onPressed: () => context.go('/login'),
                       child: const Text('Already have an account? Sign in'),
                     ),
-                  ],
+                  ]
+                      .animate(interval: 40.ms)
+                      .fadeIn(duration: 300.ms)
+                      .slideY(begin: 0.03, end: 0),
                 ),
               ),
             ),
@@ -357,7 +348,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+      style: AppTextStyles.labelMedium.copyWith(
         color: Theme.of(context).colorScheme.primary,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.6,
@@ -367,40 +358,30 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _InfoBanner extends StatelessWidget {
+  const _InfoBanner();
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .secondaryContainer
-            .withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14),
+        color: scheme.secondaryContainer.withValues(alpha: 0.5),
+        borderRadius: AppRadius.brLg,
       ),
-      child: const Row(children: [
-        Icon(Icons.info_outline, size: 20),
-        SizedBox(width: 10),
+      child: Row(children: [
+        Icon(AppIcons.info, size: 20, color: scheme.onSecondaryContainer),
+        const SizedBox(width: AppSpacing.sm + 2),
         Expanded(
           child: Text(
-            'Vendor accounts require admin approval before you can list products.',
-            style: TextStyle(fontSize: 13),
+            'Student Seller accounts require admin approval before you can '
+                'list products.',
+            style: AppTextStyles.bodySmall
+                .copyWith(color: scheme.onSecondaryContainer),
           ),
         ),
       ]),
     );
   }
-}
-
-class _BtnSpinner extends StatelessWidget {
-  const _BtnSpinner();
-  @override
-  Widget build(BuildContext context) => const SizedBox(
-    height: 22,
-    width: 22,
-    child:
-    CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
-  );
 }
 
 /// Forces text input to uppercase (for the Ghana Card field).

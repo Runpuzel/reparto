@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Static, app-wide constants used across JustBUY.
+/// Static, app-wide constants used across UjustBUY.
 class AppConstants {
-  static const String appName = 'JustBUY';
+  static const String appName = 'UjustBUY';
 
   /// OAuth redirect used for Google sign-in (configure in Supabase dashboard).
   static const String oauthRedirect = 'io.reparto.app://login-callback/';
@@ -36,6 +36,7 @@ enum OrderStatus {
   dispatched,
   delivered,
   cancelled,
+  disputed,
   // legacy
   accepted,
   preparing,
@@ -63,6 +64,8 @@ enum OrderStatus {
         return 'Delivered';
       case OrderStatus.cancelled:
         return 'Cancelled';
+      case OrderStatus.disputed:
+        return 'Disputed';
       case OrderStatus.accepted:
         return 'Accepted';
       case OrderStatus.preparing:
@@ -78,11 +81,12 @@ enum OrderStatus {
   bool get isFulfilled =>
       this == OrderStatus.delivered || this == OrderStatus.completed;
 
-  /// Whether the order is still active (not delivered/cancelled).
+  /// Whether the order is still active (not delivered/cancelled/disputed).
   bool get isActive =>
       this != OrderStatus.delivered &&
           this != OrderStatus.completed &&
-          this != OrderStatus.cancelled;
+          this != OrderStatus.cancelled &&
+          this != OrderStatus.disputed;
 
   static OrderStatus fromDb(String value) {
     switch (value) {
@@ -94,6 +98,8 @@ enum OrderStatus {
         return OrderStatus.delivered;
       case 'cancelled':
         return OrderStatus.cancelled;
+      case 'disputed':
+        return OrderStatus.disputed;
       case 'accepted':
         return OrderStatus.accepted;
       case 'preparing':

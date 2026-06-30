@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common_widgets.dart';
-import '../../../models/models.dart';
 import '../../shared/providers/shared_providers.dart';
 import '../providers/student_providers.dart';
 import '../widgets/product_card.dart';
@@ -35,16 +38,17 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md, AppSpacing.sm + 4, AppSpacing.md, AppSpacing.sm),
               child: TextField(
                 controller: _searchCtrl,
                 decoration: InputDecoration(
                   hintText: 'Search products on your campus...',
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: Icon(AppIcons.search, size: 20),
                   suffixIcon: _searchCtrl.text.isEmpty
                       ? null
                       : IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: Icon(AppIcons.close, size: 20),
                     onPressed: () {
                       _searchCtrl.clear();
                       ref.read(productSearchProvider.notifier).state = '';
@@ -61,11 +65,13 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
           ),
           SliverToBoxAdapter(
             child: SizedBox(
-              height: 44,
+              height: 48,
               child: categories.when(
                 data: (cats) => ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.sm + 4, AppSpacing.xs, AppSpacing.sm + 4,
+                      AppSpacing.xs),
                   children: [
                     _chip(
                       label: 'All',
@@ -88,7 +94,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
               ),
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xs)),
           products.when(
             data: (list) {
               if (list.isEmpty) {
@@ -102,24 +108,29 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                 );
               }
               return SliverPadding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.sm + 4),
                 sliver: SliverGrid(
                   gridDelegate:
                   const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 220,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
+                    mainAxisSpacing: AppSpacing.sm + 4,
+                    crossAxisSpacing: AppSpacing.sm + 4,
                     childAspectRatio: 0.66,
                   ),
                   delegate: SliverChildBuilderDelegate(
-                        (context, i) => ProductCard(product: list[i]),
+                        (context, i) => ProductCard(product: list[i])
+                        .animate()
+                        .fadeIn(
+                        delay: (40 * (i % 8)).ms, duration: 300.ms)
+                        .slideY(begin: 0.06, end: 0),
                     childCount: list.length,
                   ),
                 ),
               );
             },
-            loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator())),
+            loading: () => const SliverToBoxAdapter(
+              child: SkeletonGrid(itemCount: 6),
+            ),
             error: (e, _) => SliverFillRemaining(
               child: ErrorState(
                   message: '$e',
@@ -137,12 +148,20 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: FilterChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+      child: Builder(builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
+        return FilterChip(
+          label: Text(label),
+          selected: selected,
+          onSelected: (_) => onTap(),
+          labelStyle: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+          ),
+        );
+      }),
     );
   }
 }

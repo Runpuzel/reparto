@@ -1,4 +1,5 @@
 import '../../../core/config/supabase_client.dart';
+import '../../../core/utils/commission.dart';
 import '../../../models/models.dart';
 
 /// Data access for administrator tooling: campuses, vendor approvals,
@@ -71,6 +72,67 @@ class AdminRepository {
   }
 
   // ---- Users ----------------------------------------------------------------
+  // ---- Commission tiers -----------------------------------------------------
+  Future<List<CommissionTier>> fetchCommissionTiers() async {
+    final rows = await supabase
+        .from('commission_tiers')
+        .select()
+        .order('price_from');
+    return (rows as List)
+        .map((e) => CommissionTier.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<void> upsertCommissionTier({
+    String? tierId,
+    String? campusId,
+    required int priceFrom,
+    int? priceTo,
+    int? flatPesewas,
+    int? percentBps,
+  }) async {
+    final data = <String, dynamic>{
+      'campus_id': campusId,
+      'price_from': priceFrom,
+      'price_to': priceTo,
+      'flat_pesewas': flatPesewas,
+      'percent_bps': percentBps,
+    };
+    if (tierId != null) {
+      await supabase
+          .from('commission_tiers')
+          .update(data)
+          .eq('tier_id', tierId);
+    } else {
+      await supabase.from('commission_tiers').insert(data);
+    }
+  }
+
+  Future<void> deleteCommissionTier(String tierId) async {
+    await supabase.from('commission_tiers').delete().eq('tier_id', tierId);
+  }
+
+  // ---- Disputes (spec G4) ---------------------------------------------------
+  Future<List<Dispute>> fetchDisputes({String? status}) async {
+    var q = supabase.from('disputes').select(
+        '*, users(full_name), orders(total_amount, vendors(business_name))');
+    if (status != null) q = q.eq('status', status);
+    final rows = await q.order('created_at', ascending: false);
+    return (rows as List)
+        .map((e) => Dispute.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  /// outcome ∈ {refund_buyer, partial_refund, release_seller}
+  Future<void> resolveDispute(
+      String disputeId, String outcome, String? note) async {
+    await supabase.rpc('resolve_dispute', params: {
+      'p_dispute': disputeId,
+      'p_outcome': outcome,
+      'p_note': note,
+    });
+  }
+
   Future<List<AppUser>> fetchUsers() async {
     final rows =
     await supabase.from('users').select().order('created_at', ascending: false);

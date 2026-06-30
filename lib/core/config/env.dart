@@ -1,6 +1,6 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Centralised access to environment configuration loaded from `.env`.
+/// Centralised access to environment configuration loaded from `env.txt` or `.env`.
 class Env {
   static String _get(String key) =>
       dotenv.maybeGet(key) ?? String.fromEnvironment(key);
@@ -17,6 +17,10 @@ class Env {
   /// Whether Paystack checkout is enabled (else fall back to free checkout).
   static bool get paymentsEnabled =>
       _get('ENABLE_PAYMENTS').toLowerCase() == 'true';
+
+  /// Paystack Secret Key (Note: In production, secret keys should ideally be 
+  /// kept in the backend/Supabase secrets, not the frontend).
+  static String get paystackSecretKey => _get('PAYSTACK_SECRET_KEY');
 
   static bool get isConfigured =>
       supabaseUrl.isNotEmpty &&

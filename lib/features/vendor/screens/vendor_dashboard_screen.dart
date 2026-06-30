@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/stat_card.dart';
@@ -15,6 +20,7 @@ class VendorDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summary = ref.watch(salesSummaryProvider);
     final vendor = ref.watch(currentVendorProvider).valueOrNull;
+    final scheme = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -22,12 +28,13 @@ class VendorDashboardScreen extends ConsumerWidget {
         ref.invalidate(vendorOrdersProvider);
       },
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
           if (vendor != null)
             Text('Welcome, ${vendor.businessName}',
-                style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 16),
+                style: AppTextStyles.titleLarge
+                    .copyWith(color: scheme.onSurface)),
+          const SizedBox(height: AppSpacing.md),
           AsyncView<SalesSummary>(
             value: summary,
             onRetry: () => ref.invalidate(salesSummaryProvider),
@@ -35,31 +42,34 @@ class VendorDashboardScreen extends ConsumerWidget {
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.5,
+              mainAxisSpacing: AppSpacing.sm + 4,
+              crossAxisSpacing: AppSpacing.sm + 4,
+              childAspectRatio: 1.35,
               children: [
                 StatCard(
-                    icon: Icons.payments_outlined,
+                    icon: AppIcons.revenue,
                     label: 'Revenue',
                     value: Formatters.money(s.revenue),
-                    color: Colors.green),
+                    color: AppColors.success),
                 StatCard(
-                    icon: Icons.receipt_long,
+                    icon: AppIcons.receipt,
                     label: 'Total Orders',
                     value: '${s.totalOrders}',
-                    color: Colors.blue),
+                    color: AppColors.info),
                 StatCard(
-                    icon: Icons.hourglass_top,
+                    icon: AppIcons.pending,
                     label: 'Pending',
                     value: '${s.pendingOrders}',
-                    color: Colors.orange),
+                    color: AppColors.warning),
                 StatCard(
-                    icon: Icons.check_circle_outline,
+                    icon: AppIcons.check,
                     label: 'Delivered',
                     value: '${s.completedOrders}',
-                    color: Colors.teal),
-              ],
+                    color: AppColors.primary),
+              ]
+                  .animate(interval: 60.ms)
+                  .fadeIn(duration: 320.ms)
+                  .slideY(begin: 0.08, end: 0),
             ),
           ),
         ],

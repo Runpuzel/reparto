@@ -1,5 +1,5 @@
 name: reparto
-description: "JustBUY — A Multi-Campus Marketplace System for Students and Vendors."
+description: "UjustBUY - A Multi-Campus Marketplace for Students and Vendors."
 publish_to: "none"
 version: 1.0.0+1
 
@@ -30,6 +30,11 @@ dependencies:
   intl: ^0.19.0
   google_fonts: ^6.2.1
 
+  # UI / design system
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.1
+
   # Image upload (logos, product photos, KYC)
   image_picker: ^1.1.2
 
@@ -49,8 +54,41 @@ dev_dependencies:
   flutter_lints: ^4.0.0
   flutter_test:
     sdk: flutter
+  # Generates Android/iOS/web launcher icons from a single source image.
+  flutter_launcher_icons: ^0.14.1
+  # Generates the native launch (splash) screen showing the logo.
+  flutter_native_splash: ^2.4.1
+
+# Run:  dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  remove_alpha_ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 23
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    background_color: "#FFFFFF"
+    theme_color: "#0E6E74"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+
+# Run:  dart run flutter_native_splash:create
+# Shows the UjustBUY logo on a white background while the app starts (Android + web).
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/icon/app_icon.png
+  android_12:
+    image: assets/icon/app_icon.png
+    color: "#FFFFFF"
+  web: true
 
 flutter:
   uses-material-design: true
   assets:
-    - .env
+    # Config file. `env.txt` (no leading dot) is what Netlify serves on web,
+    # since hosts hide dotfiles like `.env`. `.env` is kept for local dev.
+    - env.txt
+    - assets/ujustbuy_logo.jpeg
+    - assets/icon/app_icon.png

@@ -13,6 +13,12 @@ final myProductsProvider = FutureProvider<List<Product>>((ref) async {
   return ref.watch(vendorRepositoryProvider).fetchMyProducts(vendor.vendorId);
 });
 
+final myServicesProvider = FutureProvider<List<Service>>((ref) async {
+  final vendor = await ref.watch(currentVendorProvider.future);
+  if (vendor == null) return [];
+  return ref.watch(vendorRepositoryProvider).fetchMyServices(vendor.vendorId);
+});
+
 final vendorOrdersProvider = FutureProvider<List<AppOrder>>((ref) async {
   final vendor = await ref.watch(currentVendorProvider.future);
   if (vendor == null) return [];

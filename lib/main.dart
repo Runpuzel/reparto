@@ -17,10 +17,16 @@ import 'core/theme/theme_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load .env (ignore if missing in some build configs).
+  // Load config. We use `env.txt` (no leading dot) because web hosts like
+  // Netlify don't serve dotfiles such as `.env`. Fall back to `.env` for
+  // local dev, then to --dart-define if neither is present.
   try {
-    await dotenv.load(fileName: '.env');
-  } catch (_) {/* fall back to --dart-define */}
+    await dotenv.load(fileName: 'env.txt');
+  } catch (_) {
+    try {
+      await dotenv.load(fileName: '.env');
+    } catch (_) {/* fall back to --dart-define */}
+  }
 
   if (Env.isConfigured) {
     await Supabase.initialize(
@@ -89,12 +95,12 @@ class _MisconfiguredApp extends StatelessWidget {
               children: const [
                 Icon(Icons.settings_suggest, size: 64, color: Colors.orange),
                 SizedBox(height: 16),
-                Text('JustBUY is not configured',
+                Text('UjustBUY is not configured',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 SizedBox(height: 8),
                 Text(
-                  'Add SUPABASE_URL and SUPABASE_ANON_KEY to your .env file '
-                      '(copy from .env.example) and restart the app.',
+                  'Add SUPABASE_URL and SUPABASE_ANON_KEY to your env.txt file '
+                      '(copy from .env.example) and rebuild the app.',
                   textAlign: TextAlign.center,
                 ),
               ],

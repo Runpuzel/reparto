@@ -21,15 +21,41 @@ final cartProvider = FutureProvider<List<CartItem>>((ref) async {
   return ref.watch(studentRepositoryProvider).fetchCart();
 });
 
-final cartTotalProvider = Provider<double>((ref) {
+/// Cart total in exact integer pesewas (computed with integer math to avoid
+/// floating-point accumulation; this is the source of truth for totals).
+final cartTotalPesewasProvider = Provider<int>((ref) {
   final cart = ref.watch(cartProvider).valueOrNull ?? [];
-  return cart.fold(0.0, (sum, item) => sum + item.lineTotal);
+  return cart.fold<int>(0, (sum, item) => sum + item.lineTotalPesewas);
+});
+
+/// Cart total in cedis (derived from the exact pesewa total). Kept for widgets
+/// that still expect a double.
+final cartTotalProvider = Provider<double>((ref) {
+  return ref.watch(cartTotalPesewasProvider) / 100;
 });
 
 /// Total number of units currently in the cart (for the badge count).
 final cartCountProvider = Provider<int>((ref) {
   final cart = ref.watch(cartProvider).valueOrNull ?? [];
   return cart.fold<int>(0, (sum, item) => sum + item.quantity);
+});
+
+// ---- Services ---------------------------------------------------------------
+
+/// Search + category filter state for the Services tab.
+final serviceSearchProvider = StateProvider<String>((ref) => '');
+final serviceCategoryProvider = StateProvider<ServiceCategory?>((ref) => null);
+
+final servicesProvider = FutureProvider<List<Service>>((ref) async {
+  final repo = ref.watch(studentRepositoryProvider);
+  final search = ref.watch(serviceSearchProvider);
+  final category = ref.watch(serviceCategoryProvider);
+  return repo.fetchServices(category: category?.db, search: search);
+});
+
+final serviceProvider =
+FutureProvider.family<Service?, String>((ref, serviceId) async {
+  return ref.watch(studentRepositoryProvider).fetchService(serviceId);
 });
 
 final myOrdersProvider = FutureProvider<List<AppOrder>>((ref) async {

@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_network_image.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../models/models.dart';
 import '../providers/student_providers.dart';
@@ -31,16 +39,17 @@ class _ShopsScreenState extends ConsumerState<ShopsScreen> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md, AppSpacing.sm + 4, AppSpacing.md, AppSpacing.sm),
             child: TextField(
               controller: _searchCtrl,
               decoration: InputDecoration(
                 hintText: 'Search shops...',
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: Icon(AppIcons.search, size: 20),
                 suffixIcon: _searchCtrl.text.isEmpty
                     ? null
                     : IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(AppIcons.close, size: 20),
                   onPressed: () {
                     _searchCtrl.clear();
                     ref.read(shopSearchProvider.notifier).state = '';
@@ -55,9 +64,10 @@ class _ShopsScreenState extends ConsumerState<ShopsScreen> {
             ),
           ),
           Expanded(
-            child: AsyncView<List<Vendor>>(
-              value: shops,
-              onRetry: () => ref.invalidate(shopsProvider),
+            child: shops.when(
+              loading: () => const SkeletonList(itemCount: 6, itemHeight: 88),
+              error: (e, _) => ErrorState(
+                  message: '$e', onRetry: () => ref.invalidate(shopsProvider)),
               data: (list) {
                 if (list.isEmpty) {
                   return ListView(children: const [
@@ -70,10 +80,16 @@ class _ShopsScreenState extends ConsumerState<ShopsScreen> {
                   ]);
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.sm + 4, AppSpacing.xs, AppSpacing.sm + 4,
+                      AppSpacing.md),
                   itemCount: list.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) => _ShopCard(shop: list[i]),
+                  separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppSpacing.sm + 2),
+                  itemBuilder: (_, i) => _ShopCard(shop: list[i])
+                      .animate()
+                      .fadeIn(delay: (40 * (i % 12)).ms, duration: 300.ms)
+                      .slideY(begin: 0.05, end: 0),
                 );
               },
             ),
@@ -92,66 +108,57 @@ class _ShopCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final hasLogo = shop.logoUrl != null && shop.logoUrl!.isNotEmpty;
-    return Card(
-      child: InkWell(
-        onTap: () => context.push('/student/shop/${shop.vendorId}'),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  color: scheme.primaryContainer,
-                  image: hasLogo
-                      ? DecorationImage(
-                      image: NetworkImage(shop.logoUrl!),
-                      fit: BoxFit.cover)
-                      : null,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: hasLogo
-                    ? null
-                    : Icon(Icons.storefront,
+    return AppCard(
+      onTap: () => context.push('/student/shop/${shop.vendorId}'),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: AppRadius.brLg,
+            child: SizedBox(
+              width: 60,
+              height: 60,
+              child: hasLogo
+                  ? AppNetworkImage(
+                  url: shop.logoUrl, fallbackIcon: AppIcons.storefront)
+                  : Container(
+                color: scheme.primaryContainer,
+                child: Icon(AppIcons.storefrontFill,
                     color: scheme.onPrimaryContainer, size: 28),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(shop.businessName,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 16)),
-                    if (shop.description != null &&
-                        shop.description!.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(shop.description!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 13, color: scheme.onSurfaceVariant)),
-                    ] else if (shop.businessPhone != null) ...[
-                      const SizedBox(height: 4),
-                      Row(children: [
-                        Icon(Icons.call_outlined,
-                            size: 14, color: scheme.onSurfaceVariant),
-                        const SizedBox(width: 4),
-                        Text(shop.businessPhone!,
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: scheme.onSurfaceVariant)),
-                      ]),
-                    ],
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(shop.businessName,
+                    style: AppTextStyles.titleMedium
+                        .copyWith(color: scheme.onSurface)),
+                if (shop.description != null &&
+                    shop.description!.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(shop.description!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: scheme.onSurfaceVariant)),
+                ] else if (shop.businessPhone != null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Row(children: [
+                    Icon(AppIcons.phoneBusiness,
+                        size: 14, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(shop.businessPhone!,
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: scheme.onSurfaceVariant)),
+                  ]),
+                ],
+              ],
+            ),
+          ),
+          Icon(AppIcons.caretRight, color: scheme.onSurfaceVariant, size: 18),
+        ],
       ),
     );
   }

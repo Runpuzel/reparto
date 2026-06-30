@@ -1,45 +1,15 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
 .dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
+.packages
+build/
+*.iml
+.idea/
+.vscode/
+ios/Pods/
+android/.gradle/
 
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# NOTE: env.txt and .env are intentionally NOT ignored.
+# `env.txt` is bundled as a Flutter web asset (web hosts like Netlify hide
+# dotfiles such as `.env`, so we use env.txt instead). It only contains PUBLIC
+# client config (Supabase URL + anon key, Google web client id, feature flags).
+# Row Level Security protects your data. Never put server secrets (service_role
+# key, Paystack secret key, FCM server key) in this file.

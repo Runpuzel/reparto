@@ -3,9 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/config/supabase_client.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/commission.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/money.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/widgets/confirm_actions.dart';
+import '../../../core/widgets/sign_in_prompt.dart';
 import '../../../models/models.dart';
+import '../../auth/providers/auth_providers.dart';
+import '../../shared/providers/shared_providers.dart';
 import '../providers/student_providers.dart';
 import '../widgets/favorite_button.dart';
 
@@ -42,6 +55,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   Future<void> _addToCart(Product p) async {
+    if (ref.read(isGuestProvider)) {
+      await SignInPrompt.show(context, action: 'use your cart');
+      return;
+    }
     final confirmed = await ConfirmActions.confirm(
       context,
       title: 'Add to cart?',
@@ -69,7 +86,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       onUndo: () {},
     );
     if (undone) {
-      // Undo: subtract the quantity we just added (or remove the line).
       await ref
           .read(studentRepositoryProvider)
           .decrementCartItem(p.productId, _qty);
@@ -78,6 +94,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   Future<void> _buyNow(Product p) async {
+    if (ref.read(isGuestProvider)) {
+      await SignInPrompt.show(context, action: 'buy items');
+      return;
+    }
     final confirmed = await ConfirmActions.confirm(
       context,
       title: 'Buy now?',
@@ -119,7 +139,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             icon: Badge(
               isLabelVisible: cartCount > 0,
               label: Text('$cartCount'),
-              child: const Icon(Icons.shopping_cart_outlined),
+              child: Icon(AppIcons.cart),
             ),
           ),
           FavoriteButton(productId: widget.productId),
@@ -139,122 +159,104 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               Expanded(
                 child: ListView(
                   children: [
-                    _Gallery(
-                      images: gallery,
-                      controller: _pageController,
-                      currentIndex: _imageIndex,
-                      onChanged: (i) => setState(() => _imageIndex = i),
+                    Hero(
+                      tag: 'product-image-${p.productId}',
+                      child: _Gallery(
+                        images: gallery,
+                        controller: _pageController,
+                        currentIndex: _imageIndex,
+                        onChanged: (i) => setState(() => _imageIndex = i),
+                      ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(AppSpacing.lg),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (p.categoryName != null)
                             Container(
-                              margin: const EdgeInsets.only(bottom: 10),
+                              margin: const EdgeInsets.only(
+                                  bottom: AppSpacing.sm + 2),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: scheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: AppRadius.brFull,
                               ),
                               child: Text(p.categoryName!,
-                                  style: TextStyle(
+                                  style: AppTextStyles.labelSmall.copyWith(
                                       fontSize: 12,
-                                      fontWeight: FontWeight.w600,
                                       color: scheme.onSecondaryContainer)),
                             ),
                           Text(p.productName,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall),
-                          const SizedBox(height: 10),
-                          // Price + stock pill row
+                              style: AppTextStyles.headlineSmall
+                                  .copyWith(color: scheme.onSurface)),
+                          const SizedBox(height: AppSpacing.sm + 2),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(Formatters.money(p.price),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium
-                                      ?.copyWith(
+                                  style: AppTextStyles.headlineMedium.copyWith(
                                       color: scheme.primary,
                                       fontWeight: FontWeight.w800)),
                               const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: (p.quantityAvailable > 0
-                                      ? Colors.green
-                                      : Colors.red)
-                                      .withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      p.quantityAvailable > 0
-                                          ? Icons.check_circle
-                                          : Icons.cancel,
-                                      size: 15,
-                                      color: p.quantityAvailable > 0
-                                          ? Colors.green.shade700
-                                          : Colors.red.shade700,
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      p.quantityAvailable > 0
-                                          ? '${p.quantityAvailable} in stock'
-                                          : 'Out of stock',
-                                      style: TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w600,
-                                          color: p.quantityAvailable > 0
-                                              ? Colors.green.shade700
-                                              : Colors.red.shade700),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              _StockPill(
+                                  inStock: p.quantityAvailable > 0,
+                                  quantity: p.quantityAvailable),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          // Visit shop card
+                          const SizedBox(height: AppSpacing.md),
                           if (p.vendorName != null)
-                            Card(
-                              margin: EdgeInsets.zero,
-                              child: ListTile(
-                                onTap: () => context
-                                    .push('/student/shop/${p.vendorId}'),
-                                leading: CircleAvatar(
-                                  backgroundColor: scheme.primaryContainer,
-                                  child: Icon(Icons.storefront,
-                                      color: scheme.onPrimaryContainer,
-                                      size: 20),
-                                ),
-                                title: Text(p.vendorName!,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600)),
-                                subtitle: const Text('Visit shop'),
-                                trailing: const Icon(Icons.chevron_right),
+                            AppCard(
+                              onTap: () =>
+                                  context.push('/student/shop/${p.vendorId}'),
+                              padding: const EdgeInsets.all(AppSpacing.sm + 4),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: scheme.primaryContainer,
+                                    child: Icon(AppIcons.storefrontFill,
+                                        color: scheme.onPrimaryContainer,
+                                        size: 20),
+                                  ),
+                                  const SizedBox(width: AppSpacing.md),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                      children: [
+                                        Text(p.vendorName!,
+                                            style: AppTextStyles.titleSmall
+                                                .copyWith(
+                                                color: scheme.onSurface)),
+                                        Text('Visit shop',
+                                            style: AppTextStyles.bodySmall
+                                                .copyWith(
+                                                color: scheme
+                                                    .onSurfaceVariant)),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(AppIcons.caretRight,
+                                      size: 18,
+                                      color: scheme.onSurfaceVariant),
+                                ],
                               ),
                             ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppSpacing.lg),
                           Text('Description',
-                              style:
-                              Theme.of(context).textTheme.titleMedium),
-                          const SizedBox(height: 6),
+                              style: AppTextStyles.titleMedium
+                                  .copyWith(color: scheme.onSurface)),
+                          const SizedBox(height: AppSpacing.xs + 2),
                           Text(
                               (p.description != null &&
                                   p.description!.isNotEmpty)
                                   ? p.description!
                                   : 'No description provided.',
-                              style: TextStyle(
-                                  color: scheme.onSurfaceVariant,
-                                  height: 1.5)),
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                  color: scheme.onSurfaceVariant)),
+                          const SizedBox(height: AppSpacing.lg),
+                          _PlatformFee(pricePesewas: p.pricePesewas),
                         ],
                       ),
                     ),
@@ -280,6 +282,39 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 }
 
+class _StockPill extends StatelessWidget {
+  final bool inStock;
+  final int quantity;
+  const _StockPill({required this.inStock, required this.quantity});
+
+  @override
+  Widget build(BuildContext context) {
+    final container =
+    inStock ? AppColors.successContainer : AppColors.errorContainer;
+    final fg = inStock ? AppColors.onSuccessContainer : AppColors.onErrorContainer;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: container,
+        borderRadius: AppRadius.brFull,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(inStock ? AppIcons.checkFill : AppIcons.cancelFill,
+              size: 15, color: fg),
+          const SizedBox(width: 5),
+          Text(
+            inStock ? '$quantity in stock' : 'Out of stock',
+            style: AppTextStyles.labelSmall
+                .copyWith(fontSize: 12.5, color: fg),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Gallery extends StatelessWidget {
   final List<String> images;
   final PageController controller;
@@ -300,7 +335,7 @@ class _Gallery extends StatelessWidget {
         aspectRatio: 1,
         child: Container(
           color: scheme.surfaceContainerHighest,
-          child: Icon(Icons.fastfood_outlined,
+          child: Icon(AppIcons.image,
               size: 60, color: scheme.onSurfaceVariant),
         ),
       );
@@ -317,15 +352,8 @@ class _Gallery extends StatelessWidget {
                 onPageChanged: onChanged,
                 itemBuilder: (_, i) => GestureDetector(
                   onTap: () => _openFullscreen(context, images, i),
-                  child: Container(
-                    color: scheme.surfaceContainerHighest,
-                    child: Image.network(images[i],
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(
-                            Icons.image_outlined,
-                            size: 60,
-                            color: scheme.onSurfaceVariant)),
-                  ),
+                  child: AppNetworkImage(
+                      url: images[i], fallbackIcon: AppIcons.image),
                 ),
               ),
               if (images.length > 1)
@@ -360,9 +388,9 @@ class _Gallery extends StatelessWidget {
             height: 72,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               itemCount: images.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
               itemBuilder: (_, i) => GestureDetector(
                 onTap: () => controller.animateToPage(i,
                     duration: const Duration(milliseconds: 300),
@@ -371,7 +399,7 @@ class _Gallery extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: AppRadius.brSm,
                     border: Border.all(
                       color: i == currentIndex
                           ? scheme.primary
@@ -380,10 +408,8 @@ class _Gallery extends StatelessWidget {
                     ),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: Image.network(images[i],
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.image_outlined)),
+                  child: AppNetworkImage(
+                      url: images[i], fallbackIcon: AppIcons.image),
                 ),
               ),
             ),
@@ -417,8 +443,7 @@ class _Gallery extends StatelessWidget {
                 top: 40,
                 right: 16,
                 child: IconButton(
-                  style: IconButton.styleFrom(
-                      backgroundColor: Colors.black54),
+                  style: IconButton.styleFrom(backgroundColor: Colors.black54),
                   icon: const Icon(Icons.close, color: Colors.white),
                   onPressed: () => Navigator.pop(ctx),
                 ),
@@ -457,13 +482,13 @@ class _AddBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (busy)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm + 4),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -474,17 +499,17 @@ class _AddBar extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Text('Adding to cart, please wait…',
-                          style: Theme.of(context).textTheme.bodySmall),
+                          style: AppTextStyles.bodySmall),
                     ],
                   ),
                 ),
               Row(
                 children: [
-                  // Quantity stepper.
                   Container(
                     decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(12),
+                      color: scheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      borderRadius: AppRadius.brMd,
                       border: Border.all(color: scheme.outlineVariant),
                     ),
                     child: Row(
@@ -493,46 +518,86 @@ class _AddBar extends StatelessWidget {
                         IconButton(
                             visualDensity: VisualDensity.compact,
                             onPressed: busy ? null : onDec,
-                            icon: const Icon(Icons.remove)),
+                            icon: Icon(AppIcons.minus)),
                         Text('$qty',
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700)),
+                            style: AppTextStyles.titleMedium),
                         IconButton(
                             visualDensity: VisualDensity.compact,
                             onPressed: busy ? null : onInc,
-                            icon: const Icon(Icons.add)),
+                            icon: Icon(AppIcons.plus)),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.sm + 4),
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: AppButton(
+                      label:
+                      product.isAvailable ? 'Add to Cart' : 'Out of Stock',
+                      icon: AppIcons.addToCart,
+                      variant: AppButtonVariant.secondary,
+                      loading: busy,
                       onPressed: onAdd,
-                      icon: busy
-                          ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child:
-                          CircularProgressIndicator(strokeWidth: 2.2))
-                          : const Icon(Icons.add_shopping_cart, size: 18),
-                      label: Text(
-                          product.isAvailable ? 'Add to Cart' : 'Out of Stock'),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: onBuyNow,
-                  icon: const Icon(Icons.flash_on),
-                  label: Text(product.isAvailable ? 'Buy Now' : 'Unavailable'),
-                ),
+              const SizedBox(height: AppSpacing.sm + 2),
+              AppButton(
+                label: product.isAvailable ? 'Buy Now' : 'Unavailable',
+                icon: AppIcons.flash,
+                onPressed: onBuyNow,
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Transparent platform-fee row shown on the product detail (spec C1).
+class _PlatformFee extends ConsumerWidget {
+  final int pricePesewas;
+  const _PlatformFee({required this.pricePesewas});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final tiers =
+        ref.watch(commissionTiersProvider).valueOrNull ?? Commission.defaults;
+    final campusId = ref.watch(currentUserProvider).valueOrNull?.campusId;
+    final fee =
+    Commission.forPrice(pricePesewas, campusId: campusId, tiers: tiers);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: AppRadius.brMd,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(AppIcons.info, size: 18, color: scheme.onSurfaceVariant),
+              const SizedBox(width: AppSpacing.sm),
+              Text('Platform fee',
+                  style: AppTextStyles.titleSmall
+                      .copyWith(color: scheme.onSurface)),
+              const Spacer(),
+              Text(Money.format(fee),
+                  style: AppTextStyles.titleSmall
+                      .copyWith(color: scheme.onSurface)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'This fee is included in the total and goes toward running the '
+                'marketplace.',
+            style: AppTextStyles.bodySmall,
+          ),
+        ],
       ),
     );
   }

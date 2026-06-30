@@ -261,4 +261,51 @@ class StudentRepository {
       'order_id': orderId,
     });
   }
+
+  // ---- Services -------------------------------------------------------------
+  /// Available services of approved sellers (RLS scopes by campus / guest).
+  Future<List<Service>> fetchServices({String? category, String? search}) async {
+    var query = supabase
+        .from('services')
+        .select('*, vendors(business_name), service_images(image_url, position)')
+        .eq('status', 'available');
+    if (category != null) query = query.eq('category', category);
+    if (search != null && search.trim().isNotEmpty) {
+      query = query.ilike('title', '%${search.trim()}%');
+    }
+    final rows = await query.order('created_at', ascending: false);
+    return (rows as List)
+        .map((e) => Service.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<Service?> fetchService(String serviceId) async {
+    final data = await supabase
+        .from('services')
+        .select('*, vendors(business_name), service_images(image_url, position)')
+        .eq('service_id', serviceId)
+        .maybeSingle();
+    return data == null ? null : Service.fromMap(Map<String, dynamic>.from(data));
+  }
+
+  // ---- Escrow / disputes (spec Section C) -----------------------------------
+  /// Buyer confirms receipt → releases payment to the seller (status completed).
+  Future<void> confirmReceipt(String orderId) async {
+    await supabase.rpc('confirm_receipt', params: {'p_order': orderId});
+  }
+
+  /// Raise a dispute on an order.
+  Future<void> raiseDispute({
+    required String orderId,
+    required String category,
+    required String description,
+    List<String>? evidence,
+  }) async {
+    await supabase.rpc('raise_dispute', params: {
+      'p_order': orderId,
+      'p_category': category,
+      'p_description': description,
+      'p_evidence': evidence,
+    });
+  }
 }

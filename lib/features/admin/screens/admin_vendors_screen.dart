@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_network_image.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/confirm_actions.dart';
 import '../../../models/models.dart';
@@ -19,23 +28,27 @@ class AdminVendorsScreen extends ConsumerWidget {
         ref.invalidate(allVendorsProvider);
         ref.invalidate(pendingVendorsProvider);
       },
-      child: AsyncView<List<Vendor>>(
-        value: vendors,
-        onRetry: () => ref.invalidate(allVendorsProvider),
+      child: vendors.when(
+        loading: () => const SkeletonList(itemCount: 5, itemHeight: 150),
+        error: (e, _) => ErrorState(
+            message: '$e', onRetry: () => ref.invalidate(allVendorsProvider)),
         data: (list) {
           if (list.isEmpty) {
             return ListView(children: const [
               SizedBox(height: 120),
               EmptyState(
                   icon: Icons.storefront_outlined,
-                  title: 'No vendor applications'),
+                  title: 'No seller applications'),
             ]);
           }
           return ListView.separated(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.sm + 4),
             itemCount: list.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) => _VendorTile(vendor: list[i]),
+            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+            itemBuilder: (_, i) => _VendorTile(vendor: list[i])
+                .animate()
+                .fadeIn(delay: (40 * (i % 12)).ms, duration: 280.ms)
+                .slideY(begin: 0.05, end: 0),
           );
         },
       ),
@@ -50,18 +63,19 @@ class _VendorTile extends ConsumerWidget {
   Color _color(ApprovalStatus s) {
     switch (s) {
       case ApprovalStatus.approved:
-        return Colors.green;
+        return AppColors.success;
       case ApprovalStatus.rejected:
-        return Colors.redAccent;
+        return AppColors.error;
       case ApprovalStatus.suspended:
-        return Colors.grey;
+        return AppColors.neutral500;
       case ApprovalStatus.pending:
-        return Colors.orange;
+        return AppColors.warning;
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final repo = ref.read(adminRepositoryProvider);
     Future<void> set(String status) async {
       const labels = {
@@ -78,7 +92,9 @@ class _VendorTile extends ConsumerWidget {
         'Are you sure you want to $verb "${vendor.businessName}"? The owner will be notified.',
         confirmLabel: verb[0].toUpperCase() + verb.substring(1),
         destructive: destructive,
-        icon: destructive ? Icons.warning_amber_rounded : Icons.verified_outlined,
+        icon: destructive
+            ? Icons.warning_amber_rounded
+            : Icons.verified_outlined,
       );
       if (!confirmed) return;
       try {
@@ -93,115 +109,121 @@ class _VendorTile extends ConsumerWidget {
       }
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor:
-                  Theme.of(context).colorScheme.primaryContainer,
-                  backgroundImage:
-                  (vendor.logoUrl != null && vendor.logoUrl!.isNotEmpty)
-                      ? NetworkImage(vendor.logoUrl!)
-                      : null,
-                  child: (vendor.logoUrl == null || vendor.logoUrl!.isEmpty)
-                      ? const Icon(Icons.storefront, size: 22)
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(vendor.businessName,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700)),
-                      Text('${vendor.ownerName ?? '—'} · ${vendor.phoneNumber ?? '—'}',
-                          style: Theme.of(context).textTheme.bodySmall),
-                    ],
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.sm + 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ClipOval(
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: (vendor.logoUrl != null &&
+                      vendor.logoUrl!.isNotEmpty)
+                      ? AppNetworkImage(
+                      url: vendor.logoUrl,
+                      fallbackIcon: AppIcons.storefront)
+                      : Container(
+                    color: scheme.primaryContainer,
+                    child: Icon(AppIcons.storefrontFill,
+                        size: 22, color: scheme.onPrimaryContainer),
                   ),
                 ),
-                StatusPill(
-                    label: vendor.approvalStatus.label,
-                    color: _color(vendor.approvalStatus)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // KYC details
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(10),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _kv(context, 'Business phone', vendor.businessPhone ?? '—'),
-                  _kv(context, 'Mobile money',
-                      vendor.momoNumber == null
-                          ? '—'
-                          : '${vendor.momoNumber} (${vendor.momoNetwork ?? ''})'),
-                  _kv(context, 'Ghana Card', vendor.ghanaCardNumber ?? '—'),
-                  if (vendor.ghanaCardImageUrl != null)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () => _viewCard(context, vendor),
-                        icon: const Icon(Icons.image_search, size: 18),
-                        label: const Text('View Ghana Card photo'),
-                      ),
-                    ),
-                ],
+              const SizedBox(width: AppSpacing.sm + 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(vendor.businessName,
+                        style: AppTextStyles.titleMedium
+                            .copyWith(color: scheme.onSurface)),
+                    Text(
+                        '${vendor.ownerName ?? '—'} · ${vendor.phoneNumber ?? '—'}',
+                        style: AppTextStyles.bodySmall),
+                  ],
+                ),
               ),
+              StatusPill(
+                  label: vendor.approvalStatus.label,
+                  color: _color(vendor.approvalStatus)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm + 2),
+          // KYC details
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm + 2),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              borderRadius: AppRadius.brMd,
             ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (vendor.approvalStatus != ApprovalStatus.approved)
-                  FilledButton(
-                      onPressed: () => set('approved'),
-                      style:
-                      FilledButton.styleFrom(minimumSize: const Size(0, 38)),
-                      child: const Text('Approve')),
-                if (vendor.approvalStatus == ApprovalStatus.pending)
-                  OutlinedButton(
-                      onPressed: () => set('rejected'),
-                      style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 38),
-                          foregroundColor: Colors.redAccent),
-                      child: const Text('Reject')),
-                if (vendor.approvalStatus == ApprovalStatus.approved)
-                  OutlinedButton(
-                      onPressed: () => set('suspended'),
-                      style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 38),
-                          foregroundColor: Colors.redAccent),
-                      child: const Text('Suspend')),
-                if (vendor.approvalStatus == ApprovalStatus.suspended)
-                  FilledButton.tonal(
-                      onPressed: () => set('approved'),
-                      style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 38)),
-                      child: const Text('Reinstate')),
+                _kv(context, 'Business phone', vendor.businessPhone ?? '—'),
+                _kv(
+                    context,
+                    'Mobile money',
+                    vendor.momoNumber == null
+                        ? '—'
+                        : '${vendor.momoNumber} (${vendor.momoNetwork ?? ''})'),
+                _kv(context, 'Ghana Card', vendor.ghanaCardNumber ?? '—'),
+                if (vendor.ghanaCardImageUrl != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => _viewCard(context, vendor),
+                      icon: Icon(AppIcons.imageSearch, size: 18),
+                      label: const Text('View Ghana Card photo'),
+                    ),
+                  ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: AppSpacing.sm + 2),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              if (vendor.approvalStatus != ApprovalStatus.approved)
+                FilledButton(
+                    onPressed: () => set('approved'),
+                    style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 40)),
+                    child: const Text('Approve')),
+              if (vendor.approvalStatus == ApprovalStatus.pending)
+                OutlinedButton(
+                    onPressed: () => set('rejected'),
+                    style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error)),
+                    child: const Text('Reject')),
+              if (vendor.approvalStatus == ApprovalStatus.approved)
+                OutlinedButton(
+                    onPressed: () => set('suspended'),
+                    style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error)),
+                    child: const Text('Suspend')),
+              if (vendor.approvalStatus == ApprovalStatus.suspended)
+                FilledButton.tonal(
+                    onPressed: () => set('approved'),
+                    style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 40)),
+                    child: const Text('Reinstate')),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _kv(BuildContext context, String k, String v) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -210,12 +232,13 @@ class _VendorTile extends ConsumerWidget {
           SizedBox(
             width: 110,
             child: Text(k,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: scheme.onSurfaceVariant)),
           ),
           Expanded(
             child: Text(v,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                style: AppTextStyles.bodyMedium
+                    .copyWith(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -240,7 +263,7 @@ class _VendorTile extends ConsumerWidget {
                 actions: [
                   IconButton(
                       onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close)),
+                      icon: Icon(AppIcons.close)),
                 ],
               ),
               Flexible(

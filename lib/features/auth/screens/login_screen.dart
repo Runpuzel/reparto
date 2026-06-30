@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/app_error.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../providers/auth_providers.dart';
 
@@ -73,11 +78,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Form(
@@ -85,64 +91,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 16),
-                    // Hero header
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 28),
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.brandGradient,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: const Column(
-                        children: [
-                          Text(
-                            AppConstants.appName,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 34,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: AppSpacing.md),
+                    // Brand logo on a soft card for a polished first impression.
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerLowest,
+                          borderRadius: AppRadius.brXl,
+                          border: Border.all(color: scheme.outlineVariant),
+                        ),
+                        child: Image.asset(
+                          'assets/ujustbuy_logo.jpeg',
+                          height: 72,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 28),
-                    Text('Welcome back',
-                        style: Theme.of(context).textTheme.headlineSmall),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xl),
+                    Text('Welcome back 👋',
+                        style: AppTextStyles.headlineMedium
+                            .copyWith(color: scheme.onSurface)),
+                    const SizedBox(height: AppSpacing.xs + 2),
                     Text('Sign in to your campus marketplace',
-                        style: TextStyle(color: scheme.onSurfaceVariant)),
-                    const SizedBox(height: 24),
-                    TextFormField(
+                        style: AppTextStyles.bodyLarge
+                            .copyWith(color: scheme.onSurfaceVariant)),
+                    const SizedBox(height: AppSpacing.xl),
+                    AppTextField(
                       controller: _email,
+                      label: 'Email',
+                      prefixIcon: AppIcons.email,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.mail_outline),
-                      ),
                       validator: (v) => (v == null || !v.contains('@'))
                           ? 'Enter a valid email'
                           : null,
                     ),
-                    const SizedBox(height: 14),
-                    TextFormField(
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
                       controller: _password,
+                      label: 'Password',
+                      prefixIcon: AppIcons.lock,
                       obscureText: _obscure,
-                      onFieldSubmitted: (_) => _signIn(),
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscure
-                              ? Icons.visibility_off
-                              : Icons.visibility),
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                        ),
-                      ),
-                      validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Enter your password' : null,
+                      textInputAction: TextInputAction.done,
+                      suffixIcon: _obscure ? AppIcons.eyeOff : AppIcons.eye,
+                      onSuffixTap: () => setState(() => _obscure = !_obscure),
+                      onSubmitted: (_) => _signIn(),
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'Enter your password'
+                          : null,
                     ),
                     Align(
                       alignment: Alignment.centerRight,
@@ -151,30 +149,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: const Text('Forgot passcode?'),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: _loading ? null : _signIn,
-                      child: _loading
-                          ? const _Spinner()
-                          : const Text('Sign In'),
+                    const SizedBox(height: AppSpacing.sm),
+                    AppButton(
+                      label: _loading ? 'Signing in…' : 'Sign in',
+                      icon: _loading ? null : AppIcons.signIn,
+                      loading: _loading,
+                      onPressed: _signIn,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AppSpacing.lg),
                     Row(children: [
                       Expanded(child: Divider(color: scheme.outlineVariant)),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md),
                         child: Text('or',
-                            style: TextStyle(color: scheme.onSurfaceVariant)),
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(color: scheme.onSurfaceVariant)),
                       ),
                       Expanded(child: Divider(color: scheme.outlineVariant)),
                     ]),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AppSpacing.md),
                     _googleLoading
                         ? const Center(child: _Spinner(dark: true))
                         : GoogleButton(onPressed: _google),
-                    const SizedBox(height: 28),
-                    _SignupRow(),
-                  ],
+                    const SizedBox(height: AppSpacing.xl),
+                    const _SignupRow(),
+                  ]
+                      .animate(interval: 60.ms)
+                      .fadeIn(duration: 350.ms)
+                      .slideY(begin: 0.04, end: 0),
                 ),
               ),
             ),
@@ -186,6 +189,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 }
 
 class _SignupRow extends StatelessWidget {
+  const _SignupRow();
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -194,17 +199,19 @@ class _SignupRow extends StatelessWidget {
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const Text("New here? "),
+            const Text('New here? '),
             TextButton(
               onPressed: () => context.push('/register/student'),
               child: const Text('Create student account'),
             ),
           ],
         ),
-        OutlinedButton.icon(
+        const SizedBox(height: AppSpacing.sm),
+        AppButton(
+          label: 'Become a Student Seller',
+          icon: AppIcons.storefront,
+          variant: AppButtonVariant.secondary,
           onPressed: () => context.push('/register/vendor'),
-          icon: const Icon(Icons.storefront_outlined, size: 18),
-          label: const Text('Register as a vendor'),
         ),
       ],
     );

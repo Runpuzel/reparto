@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_skeleton.dart';
+import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/confirm_actions.dart';
 import '../../../models/models.dart';
@@ -15,12 +23,15 @@ class AdminCategoriesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(adminCategoriesProvider);
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(adminCategoriesProvider),
-        child: AsyncView<List<Category>>(
-          value: categories,
-          onRetry: () => ref.invalidate(adminCategoriesProvider),
+        child: categories.when(
+          loading: () => const SkeletonList(itemCount: 6, itemHeight: 72),
+          error: (e, _) => ErrorState(
+              message: '$e',
+              onRetry: () => ref.invalidate(adminCategoriesProvider)),
           data: (list) {
             if (list.isEmpty) {
               return ListView(children: const [
@@ -33,35 +44,78 @@ class AdminCategoriesScreen extends ConsumerWidget {
               ]);
             }
             return ListView.separated(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.sm + 4),
               itemCount: list.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, __) =>
+              const SizedBox(height: AppSpacing.sm),
               itemBuilder: (_, i) {
                 final c = list[i];
-                return Card(
-                  child: ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.label_outline)),
-                    title: Text(c.categoryName,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: (c.description != null &&
-                        c.description!.isNotEmpty)
-                        ? Text(c.description!)
-                        : null,
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (v) {
-                        if (v == 'edit') {
-                          _editDialog(context, ref, category: c);
-                        } else if (v == 'delete') {
-                          _delete(context, ref, c);
-                        }
-                      },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('Edit')),
-                        PopupMenuItem(value: 'delete', child: Text('Remove')),
-                      ],
-                    ),
+                final hasDesc =
+                    c.description != null && c.description!.isNotEmpty;
+                return AppCard(
+                  padding: const EdgeInsets.all(AppSpacing.sm + 4),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: scheme.primaryContainer,
+                        foregroundColor: scheme.onPrimaryContainer,
+                        child: Icon(AppIcons.tag, size: 20),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(c.categoryName,
+                                style: AppTextStyles.titleSmall
+                                    .copyWith(color: scheme.onSurface)),
+                            if (hasDesc) ...[
+                              const SizedBox(height: 2),
+                              Text(c.description!,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.bodySmall),
+                            ],
+                          ],
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert_rounded,
+                            color: scheme.onSurfaceVariant),
+                        onSelected: (v) {
+                          if (v == 'edit') {
+                            _editDialog(context, ref, category: c);
+                          } else if (v == 'delete') {
+                            _delete(context, ref, c);
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(children: [
+                              Icon(AppIcons.edit, size: 18),
+                              const SizedBox(width: AppSpacing.sm + 4),
+                              const Text('Edit'),
+                            ]),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(children: [
+                              Icon(AppIcons.trash,
+                                  size: 18, color: AppColors.error),
+                              const SizedBox(width: AppSpacing.sm + 4),
+                              Text('Remove',
+                                  style: TextStyle(color: AppColors.error)),
+                            ]),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                );
+                )
+                    .animate()
+                    .fadeIn(delay: (30 * (i % 14)).ms, duration: 260.ms)
+                    .slideY(begin: 0.04, end: 0);
               },
             );
           },
@@ -69,7 +123,7 @@ class AdminCategoriesScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _editDialog(context, ref),
-        icon: const Icon(Icons.add),
+        icon: Icon(AppIcons.add),
         label: const Text('Add Category'),
       ),
     );
@@ -120,16 +174,15 @@ class AdminCategoriesScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
+              AppTextField(
                 controller: name,
-                decoration: const InputDecoration(labelText: 'Category name'),
+                label: 'Category name',
                 validator: (v) => Validators.required(v, 'Name'),
               ),
-              const SizedBox(height: 12),
-              TextFormField(
+              const SizedBox(height: AppSpacing.sm + 4),
+              AppTextField(
                 controller: desc,
-                decoration:
-                const InputDecoration(labelText: 'Description (optional)'),
+                label: 'Description (optional)',
                 maxLines: 2,
               ),
             ],
@@ -137,7 +190,8 @@ class AdminCategoriesScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
           FilledButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;

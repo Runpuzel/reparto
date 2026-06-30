@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/storage_service.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/commission.dart';
+import '../../../core/utils/money.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/confirm_actions.dart';
 import '../../../core/widgets/multi_image_field.dart';
@@ -113,6 +120,30 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     }
   }
 
+  /// Live "Platform fee for this price" line under the price field (spec E2a).
+  Widget _liveFee() {
+    final scheme = Theme.of(context).colorScheme;
+    final pesewas = Money.parse(_price.text) ?? 0;
+    final tiers =
+        ref.watch(commissionTiersProvider).valueOrNull ?? Commission.defaults;
+    final campusId = ref.watch(currentUserProvider).valueOrNull?.campusId;
+    final fee = Commission.forPrice(pesewas, campusId: campusId, tiers: tiers);
+    return Row(
+      children: [
+        Icon(AppIcons.info, size: 15, color: scheme.onSurfaceVariant),
+        const SizedBox(width: AppSpacing.xs + 2),
+        Expanded(
+          child: Text(
+            pesewas <= 0
+                ? 'Free items have no platform fee.'
+                : 'Platform fee for this price: ${Money.format(fee)}',
+            style: AppTextStyles.bodySmall,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final categories = ref.watch(categoriesProvider);
@@ -121,7 +152,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: Form(
@@ -133,23 +164,23 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                       initialUrls: widget.product?.gallery ?? const [],
                       onChanged: (entries) => _gallery = entries,
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
                       controller: _name,
-                      decoration: const InputDecoration(
-                          labelText: 'Product Name',
-                          prefixIcon: Icon(Icons.label_outline)),
+                      label: 'Product Name',
+                      prefixIcon: AppIcons.label,
                       validator: (v) => Validators.required(v, 'Name'),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.md),
                     AsyncView<List<Category>>(
                       value: categories,
                       data: (cats) => DropdownButtonFormField<String>(
                         value: _categoryId,
                         isExpanded: true,
-                        decoration: const InputDecoration(
-                            labelText: 'Category',
-                            prefixIcon: Icon(Icons.category_outlined)),
+                        decoration: InputDecoration(
+                          labelText: 'Category',
+                          prefixIcon: Icon(AppIcons.category, size: 20),
+                        ),
                         items: cats
                             .map((c) => DropdownMenuItem(
                             value: c.categoryId,
@@ -158,16 +189,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         onChanged: (v) => setState(() => _categoryId = v),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.md),
                     Row(children: [
                       Expanded(
-                        child: TextFormField(
+                        child: AppTextField(
                           controller: _price,
+                          label: 'Price',
+                          prefixIcon: AppIcons.price,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
-                          decoration: const InputDecoration(
-                              labelText: 'Price',
-                              prefixIcon: Icon(Icons.attach_money)),
+                          onChanged: (_) => setState(() {}),
                           validator: (v) {
                             final d = double.tryParse(v ?? '');
                             return (d == null || d < 0)
@@ -176,14 +207,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           },
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.sm + 4),
                       Expanded(
-                        child: TextFormField(
+                        child: AppTextField(
                           controller: _quantity,
+                          label: 'Quantity',
+                          prefixIcon: AppIcons.numbers,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                              labelText: 'Quantity',
-                              prefixIcon: Icon(Icons.numbers)),
                           validator: (v) {
                             final n = int.tryParse(v ?? '');
                             return (n == null || n < 0)
@@ -193,24 +223,20 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         ),
                       ),
                     ]),
-                    const SizedBox(height: 14),
-                    TextFormField(
+                    const SizedBox(height: AppSpacing.sm),
+                    _liveFee(),
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
                       controller: _description,
+                      label: 'Description (optional)',
                       maxLines: 4,
-                      decoration: const InputDecoration(
-                          labelText: 'Description (optional)',
-                          alignLabelWithHint: true),
                     ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: _loading ? null : _save,
-                      child: _loading
-                          ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2.4, color: Colors.white))
-                          : Text(_isEdit ? 'Save Changes' : 'Add Product'),
+                    const SizedBox(height: AppSpacing.lg),
+                    AppButton(
+                      label: _isEdit ? 'Save Changes' : 'Add Product',
+                      icon: _isEdit ? AppIcons.save : AppIcons.addBox,
+                      loading: _loading,
+                      onPressed: _save,
                     ),
                   ],
                 ),

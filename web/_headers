@@ -1,0 +1,30 @@
+## Netlify response headers for the UjustBUY web app.
+## (Netlify copies web/_headers into the deployed site root.)
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+## Never cache the bootstrap HTML/JS so new deploys appear immediately.
+/index.html
+  Cache-Control: no-cache
+/flutter_bootstrap.js
+  Cache-Control: no-cache
+/flutter_service_worker.js
+  Cache-Control: no-cache
+
+## Don't cache the icons/manifest so logo updates appear without a hard refresh.
+/app_icon.png
+  Cache-Control: no-cache
+/favicon.png
+  Cache-Control: no-cache
+/manifest.json
+  Cache-Control: no-cache
+/icons/*
+  Cache-Control: no-cache
+
+## Long-cache immutable, content-hashed build assets for speed.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+/canvaskit/*
+  Cache-Control: public, max-age=31536000, immutable
