@@ -39,14 +39,19 @@ class VendorReportsScreen extends ConsumerWidget {
           AsyncView<SalesSummary>(
             value: summary,
             onRetry: () => ref.invalidate(salesSummaryProvider),
-            data: (s) => GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: AppSpacing.sm + 4,
-              crossAxisSpacing: AppSpacing.sm + 4,
-              childAspectRatio: 1.35,
-              children: [
+            data: (s) => LayoutBuilder(
+              builder: (context, constraints) => GridView.count(
+                crossAxisCount: constraints.maxWidth >= 900
+                    ? 3
+                    : constraints.maxWidth >= 520
+                        ? 2
+                        : 1,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: AppSpacing.sm + 4,
+                crossAxisSpacing: AppSpacing.sm + 4,
+                mainAxisExtent: 132,
+                children: [
                 StatCard(
                     icon: AppIcons.revenue,
                     label: 'Total Revenue',
@@ -59,15 +64,26 @@ class VendorReportsScreen extends ConsumerWidget {
                     color: AppColors.info),
                 StatCard(
                     icon: AppIcons.pending,
-                    label: 'Pending',
-                    value: '${s.pendingOrders}',
+                    label: 'Active',
+                    value: '${s.activeOrders}',
                     color: AppColors.warning),
                 StatCard(
                     icon: AppIcons.truck,
                     label: 'Delivered',
                     value: '${s.completedOrders}',
                     color: AppColors.primary),
+                StatCard(
+                    icon: Icons.cancel_outlined,
+                    label: 'Cancelled',
+                    value: '${s.cancelledOrders}',
+                    color: AppColors.error),
+                StatCard(
+                    icon: Icons.analytics_outlined,
+                    label: 'Average Order',
+                    value: Formatters.money(s.averageCompletedOrder),
+                    color: AppColors.secondary),
               ],
+              ),
             ),
           ),
 
@@ -265,7 +281,7 @@ class _ProductStatRow extends StatelessWidget {
           ClipRRect(
             borderRadius: AppRadius.brSm,
             child: LinearProgressIndicator(
-              value: fraction == 0 ? null : fraction,
+              value: fraction,
               minHeight: 6,
               backgroundColor: scheme.surfaceContainerHighest,
               color: scheme.primary,

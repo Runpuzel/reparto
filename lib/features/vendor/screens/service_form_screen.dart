@@ -77,29 +77,40 @@ class ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
     if (!formKey.currentState!.validate()) return;
     final vendor = await ref.read(currentVendorProvider.future);
     if (vendor == null) return;
+    if (!isEdit && !vendor.isVerified) {
+      final products = await ref.read(myProductsProvider.future);
+      final services = await ref.read(myServicesProvider.future);
+      if (products.length + services.length >= 5) {
+        if (mounted) {
+          ConfirmActions.showError(context,
+              'Identity verification is required to publish more than 5 listings. '
+              'Submit your Ghana Card or Student ID and wait for admin approval.');
+        }
+        return;
+      }
+    }
 
     // v1.0 – consent dialog BEFORE confirm (new services only)
     if (!isEdit && !_consentChecked) {
       final consented = await showConsentDialog(
         context,
         type: ConsentType.servicePost,
-        policyVersion: 'v1.0-2025-07',
+        policyVersion: 'v2.0-2026-07',
         title: 'Service Listing Policy',
         bodyMarkdown: '''
-Service Listing Policy – v1.0 – July 2025
+Service Listing Policy - v2.0 - July 2026
 
-• Listings are FREE for 14 days.
-• After 14 days: services auto-hide unless authorization fee is paid.
-• Authorization: GHS 30 / 30 days – priority search + "Authorized" badge.
-• LAUNCH NOTICE: Free Mode is currently ON – no expiration at launch.
-• Authorization fees are non-refundable.
-• You are liable for service delivery per Seller Agreement v1.0.
-• Prohibited: exam malpractice, alcohol to minors, illegal services.
+- Your first 5 combined product and service listings do not require identity verification.
+- An admin-approved Ghana Card or Student ID is required for listing 6 and beyond.
+- Duration and authorization fees follow the current Platform Settings shown before posting.
+- Authorization fees already consumed by a listing period are non-refundable.
+- You are responsible for accurate descriptions, availability, pricing, and delivery.
+- Prohibited: exam malpractice, alcohol to minors, illegal or unsafe services.
 ''',
         requiredCheckboxes: [
-          'I agree to the Service Listing Policy v1.0',
-          'I understand listings expire in 14 days unless authorized',
-          'I accept the GHS 30 authorization terms',
+          'I agree to the Service Listing Policy v2.0',
+          'I understand identity approval is required after 5 combined listings',
+          'I accept the current duration and authorization terms shown in the app',
         ],
         scrollToAccept: true,
         ref: ref,

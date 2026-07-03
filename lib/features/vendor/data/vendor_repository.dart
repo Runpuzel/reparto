@@ -4,6 +4,40 @@ import '../../../models/models.dart';
 
 /// Data access for the vendor experience: products, inventory, orders, sales.
 class VendorRepository {
+  Future<VendorWallet> fetchWallet(String vendorId) async {
+    final wallet = await supabase
+        .from('vendor_wallets')
+        .select()
+        .eq('vendor_id', vendorId)
+        .maybeSingle();
+    final rows = await supabase
+        .from('wallet_transactions')
+        .select()
+        .eq('vendor_id', vendorId)
+        .order('created_at', ascending: false)
+        .limit(50);
+    return VendorWallet(
+      availablePesewas: (wallet?['available_pesewas'] as num?)?.toInt() ?? 0,
+      reservedPesewas: (wallet?['reserved_pesewas'] as num?)?.toInt() ?? 0,
+      transactions: (rows as List)
+          .map((row) => WalletTransaction.fromMap(
+              Map<String, dynamic>.from(row)))
+          .toList(),
+    );
+  }
+
+  Future<PlatformSetting> fetchPlatformSettings() async {
+    final row = await supabase
+        .from('platform_settings')
+        .select()
+        .order('updated_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    return row == null
+        ? PlatformSetting.freeMode
+        : PlatformSetting.fromMap(Map<String, dynamic>.from(row));
+  }
+
   Future<List<Product>> fetchMyProducts(String vendorId) async {
     final rows = await supabase
         .from('products')
@@ -172,21 +206,24 @@ class VendorRepository {
         .select('total_amount, order_status')
         .eq('vendor_id', vendorId);
     double revenue = 0;
-    int completed = 0, pending = 0, total = 0;
+    int completed = 0, active = 0, cancelled = 0, total = 0;
     for (final r in rows as List) {
       total++;
       final status = r['order_status'] as String;
       if (status == 'completed' || status == 'delivered') {
         completed++;
         revenue += (r['total_amount'] as num).toDouble();
-      } else if (status == 'pending') {
-        pending++;
+      } else if (status == 'cancelled') {
+        cancelled++;
+      } else {
+        active++;
       }
     }
     return SalesSummary(
       totalOrders: total,
       completedOrders: completed,
-      pendingOrders: pending,
+      activeOrders: active,
+      cancelledOrders: cancelled,
       revenue: revenue,
     );
   }
@@ -229,12 +266,52 @@ class VendorRepository {
 class SalesSummary {
   final int totalOrders;
   final int completedOrders;
-  final int pendingOrders;
+  final int activeOrders;
+  final int cancelledOrders;
   final double revenue;
   SalesSummary({
     required this.totalOrders,
     required this.completedOrders,
-    required this.pendingOrders,
+    required this.activeOrders,
+    required this.cancelledOrders,
     required this.revenue,
   });
+
+  double get averageCompletedOrder =>
+      completedOrders == 0 ? 0 : revenue / completedOrders;
+
+  double get completionRate =>
+      totalOrders == 0 ? 0 : completedOrders / totalOrders;
+}
+
+class VendorWallet {
+  const VendorWallet({
+    required this.availablePesewas,
+    required this.reservedPesewas,
+    required this.transactions,
+  });
+  final int availablePesewas;
+  final int reservedPesewas;
+  final List<WalletTransaction> transactions;
+}
+
+class WalletTransaction {
+  const WalletTransaction({
+    required this.kind,
+    required this.amountPesewas,
+    required this.description,
+    required this.createdAt,
+  });
+  final String kind;
+  final int amountPesewas;
+  final String description;
+  final DateTime createdAt;
+
+  factory WalletTransaction.fromMap(Map<String, dynamic> map) =>
+      WalletTransaction(
+        kind: map['kind'] as String,
+        amountPesewas: (map['amount_pesewas'] as num).toInt(),
+        description: map['description'] as String,
+        createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
+      );
 }

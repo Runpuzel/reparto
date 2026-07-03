@@ -663,7 +663,9 @@ class Dispute {
   final List<String> evidence;
   final String status;
   final String? resolution;
+  final String? resolutionOutcome;
   final DateTime createdAt;
+  final DateTime? resolvedAt;
   final String? studentName;
   final double? orderTotal;
   final String? vendorName;
@@ -671,7 +673,8 @@ class Dispute {
     required this.disputeId, required this.orderId, required this.studentId,
     required this.category, required this.description,
     this.evidence = const [], this.status = 'open', this.resolution,
-    required this.createdAt, this.studentName, this.orderTotal, this.vendorName,
+    this.resolutionOutcome,
+    required this.createdAt, this.resolvedAt, this.studentName, this.orderTotal, this.vendorName,
   });
   bool get isResolved => status == 'resolved';
   String get statusLabel {
@@ -692,7 +695,11 @@ class Dispute {
       evidence: (m['evidence'] is List) ? List<String>.from((m['evidence'] as List).whereType<String>()) : const [],
       status: (m['status'] as String?) ?? 'open',
       resolution: m['resolution'] as String?,
+      resolutionOutcome: m['resolution_outcome'] as String?,
       createdAt: DateTime.tryParse('${m['created_at']}')?.toLocal() ?? DateTime.now(),
+      resolvedAt: m['resolved_at'] == null
+          ? null
+          : DateTime.tryParse('${m['resolved_at']}')?.toLocal(),
       studentName: m['users'] is Map ? m['users']['full_name'] as String? : null,
       orderTotal: order != null && order['total_amount'] != null ? toDouble(order['total_amount']) : null,
       vendorName: order != null && order['vendors'] is Map ? order['vendors']['business_name'] as String? : null,

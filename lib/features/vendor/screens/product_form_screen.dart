@@ -81,6 +81,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     final vendor = await ref.read(currentVendorProvider.future);
     if (vendor == null) return;
+    if (!_isEdit && !vendor.isVerified) {
+      final products = await ref.read(myProductsProvider.future);
+      final services = await ref.read(myServicesProvider.future);
+      if (products.length + services.length >= 5) {
+        if (mounted) {
+          ConfirmActions.showError(context,
+              'Identity verification is required to publish more than 5 listings. '
+              'Submit your Ghana Card or Student ID and wait for admin approval.');
+        }
+        return;
+      }
+    }
     
     setState(() => _loading = true);
     try {

@@ -51,7 +51,8 @@ class _AppCardState extends State<AppCard> {
         color: bg,
         borderRadius: radius,
         boxShadow: widget.shadows ?? AppShadows.level1,
-        border: widget.border,
+        border: widget.border ??
+            Border.all(color: scheme.outlineVariant.withValues(alpha: 0.8)),
       ),
       child: ClipRRect(
         borderRadius: radius,
@@ -82,7 +83,9 @@ class _AppCardState extends State<AppCard> {
               color: bg,
               borderRadius: radius,
               boxShadow: widget.shadows ?? AppShadows.level1,
-              border: widget.border,
+              border: widget.border ??
+                  Border.all(
+                      color: scheme.outlineVariant.withValues(alpha: 0.8)),
             ),
             child: Padding(padding: widget.padding, child: widget.child),
           ),

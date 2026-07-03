@@ -15,6 +15,7 @@ import 'vendor_products_screen.dart';
 import 'vendor_orders_screen.dart';
 import 'vendor_reports_screen.dart';
 import 'vendor_profile_screen.dart';
+import 'vendor_wallet_screen.dart';
 
 class VendorShell extends ConsumerStatefulWidget {
   const VendorShell({super.key});
@@ -38,24 +39,25 @@ class _VendorShellState extends ConsumerState<VendorShell> {
         if (vendor == null) {
           return _VendorMissingRecord(ref: ref);
         }
-        if (!vendor.isApproved) {
+        if (vendor.approvalStatus == ApprovalStatus.suspended ||
+            vendor.approvalStatus == ApprovalStatus.rejected) {
           return _ApprovalPending(vendor: vendor, ref: ref);
         }
 
-        final pages = const [
-          VendorDashboardScreen(),
-          VendorProductsScreen(),
-          VendorOrdersScreen(),
-          VendorReportsScreen(),
-          VendorProfileScreen(),
+        final pages = [
+          const VendorDashboardScreen(),
+          const VendorProductsScreen(),
+          const VendorOrdersScreen(),
+          _VendorMoreScreen(openPage: _openPage),
         ];
-        final titles = ['Dashboard', 'Products', 'Orders', 'Reports', 'Profile'];
+        final titles = ['Dashboard', 'Catalog', 'Orders', 'More'];
 
         return Scaffold(
           appBar: AppBar(
             title: Text(titles[_index]),
             actions: [
               IconButton(
+                tooltip: 'Notifications',
                 onPressed: () => context.push('/notifications'),
                 icon: Badge(
                   isLabelVisible: unread > 0,
@@ -91,19 +93,115 @@ class _VendorShellState extends ConsumerState<VendorShell> {
                   selectedIcon: Icon(AppIcons.receiptFill),
                   label: 'Orders'),
               NavigationDestination(
-                  icon: Icon(AppIcons.reports),
-                  selectedIcon: Icon(AppIcons.reportsFill),
-                  label: 'Reports'),
-              NavigationDestination(
-                  icon: Icon(AppIcons.person),
-                  selectedIcon: Icon(AppIcons.personFill),
-                  label: 'Profile'),
+                  icon: Icon(Icons.grid_view_outlined),
+                  selectedIcon: Icon(Icons.grid_view),
+                  label: 'More'),
             ],
           ),
         );
       },
     );
   }
+
+  void _openPage(String title, Widget page) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: Text(title)),
+          body: SafeArea(child: page),
+        ),
+      ),
+    );
+  }
+}
+
+class _VendorMoreScreen extends StatelessWidget {
+  const _VendorMoreScreen({required this.openPage});
+  final void Function(String title, Widget page) openPage;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      _VendorMoreItem(
+        title: 'COD commission wallet',
+        subtitle: 'Fund and review Cash on Delivery fees',
+        icon: Icons.account_balance_wallet_outlined,
+        onTap: () => openPage('COD wallet', const VendorWalletScreen()),
+      ),
+      _VendorMoreItem(
+        title: 'Reports',
+        subtitle: 'Sales, products, and customer reviews',
+        icon: AppIcons.reports,
+        onTap: () => openPage('Reports', const VendorReportsScreen()),
+      ),
+      _VendorMoreItem(
+        title: 'Store profile',
+        subtitle: 'Identity, store details, and preferences',
+        icon: AppIcons.person,
+        onTap: () => openPage('Profile', const VendorProfileScreen()),
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) => GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: constraints.maxWidth >= 700 ? 2 : 1,
+          mainAxisExtent: 88,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+        ),
+        itemCount: items.length,
+        itemBuilder: (_, index) => items[index],
+      ),
+    );
+  }
+}
+
+class _VendorMoreItem extends StatelessWidget {
+  const _VendorMoreItem({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Icon(icon, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 3),
+                      Text(subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _ApprovalPending extends StatelessWidget {

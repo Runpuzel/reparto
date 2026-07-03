@@ -14,7 +14,6 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../models/models.dart';
-import '../../admin/screens/admin_vendors_screen.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../providers/vendor_providers.dart';
 
@@ -25,6 +24,8 @@ class VendorProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final vendorAsync = ref.watch(currentVendorProvider);
     final userAsync = ref.watch(currentUserProvider);
+    final platformSettings =
+        ref.watch(vendorPlatformSettingsProvider).valueOrNull;
     final scheme = Theme.of(context).colorScheme;
 
     return AsyncView<Vendor?>(
@@ -39,8 +40,9 @@ class VendorProfileScreen extends ConsumerWidget {
         final storeName = v.displayStoreName;
         final storeDesc = v.displayDescription;
         // operating hours display
-        final hours = (v.openingTime != null && v.closingTime != null)
-            ? '${v.openingTime!.substring(0,5)} – ${v.closingTime!.substring(0,5)}'
+        final hours = (_shortTime(v.openingTime) != null &&
+                _shortTime(v.closingTime) != null)
+            ? '${_shortTime(v.openingTime)} – ${_shortTime(v.closingTime)}'
             : 'Set hours';
         final workingDays = v.workingDays.isNotEmpty ? v.workingDays.join(' · ') : '—';
 
@@ -284,9 +286,11 @@ class VendorProfileScreen extends ConsumerWidget {
             AppCard(
               child: Column(
                 children: [
-                  _feeRow('Platform fee – products', '${v.platformFeeRate.toStringAsFixed(v.platformFeeRate.truncateToDouble() == v.platformFeeRate ? 0 : 1)}%', 'Seller-only'),
+                  _feeRow('Platform fee – products',
+                      '${_fee(platformSettings?.platformFeeSellerPercent ?? v.platformFeeRate)}%', 'Seller-only'),
                   const Divider(height: 20),
-                  _feeRow('Platform fee – services', '8%', 'Seller-only'),
+                  _feeRow('Platform fee – services',
+                      '${_fee(platformSettings?.platformFeeServicePercent ?? 8)}%', 'Seller-only'),
                   const Divider(height: 20),
                   _feeRow('Payout schedule', 'T+2 business days', null),
                   const SizedBox(height: 12),
@@ -416,6 +420,14 @@ class VendorProfileScreen extends ConsumerWidget {
       default: return 'Unverified';
     }
   }
+
+  static String? _shortTime(String? value) {
+    if (value == null || value.length < 5) return null;
+    return value.substring(0, 5);
+  }
+
+  static String _fee(double value) => value.toStringAsFixed(
+      value.truncateToDouble() == value ? 0 : 1);
 
   Widget _groupLabel(String text, IconData icon, {bool sellerOnly = false}) {
     return Builder(builder: (context) {

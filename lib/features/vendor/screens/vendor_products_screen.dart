@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_client.dart';
 import '../../../core/theme/app_colors.dart';
@@ -53,16 +54,28 @@ class VendorProductsScreenState
     extends ConsumerState<VendorProductsScreen>
     with SingleTickerProviderStateMixin {
   late TabController tab;
+  RealtimeChannel? _inventoryChannel;
 
   @override
   void initState() {
     super.initState();
     tab = TabController(length: 2, vsync: this);
+    _inventoryChannel = supabase
+        .channel('vendor-inventory-${supabase.auth.currentUser?.id ?? 'guest'}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'products',
+          callback: (_) => ref.invalidate(myProductsProvider),
+        )
+        .subscribe();
   }
 
   @override
   void dispose() {
     tab.dispose();
+    final channel = _inventoryChannel;
+    if (channel != null) supabase.removeChannel(channel);
     super.dispose();
   }
 
@@ -282,7 +295,7 @@ class ServicesTab extends ConsumerWidget {
                   title: 'No services yet',
                   subtitle: isFreeMode
                       ? 'Post a service – Free Mode: no expiration'
-                      : 'Post a service – 14 days free, then GHS 30 authorize',
+                      : 'Post a service under the current listing policy',
                 ),
                 const SizedBox(height: 16),
                 Padding(
@@ -484,7 +497,7 @@ _ExpInfo _expirationInfo(Service s, bool freeMode) {
   }
   final d = s.daysLeft;
   if (d < 0) {
-    return const _ExpInfo('Expired – Renew GHS 30',
+    return const _ExpInfo('Expired - renewal required',
         AppColors.error, Icons.error_outline);
   }
   if (d == 0) {

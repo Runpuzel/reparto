@@ -275,24 +275,29 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+      final displayColor = Theme.of(context).brightness == Brightness.dark
+          ? Color.lerp(color, Colors.white, 0.22)!
+          : color;
+      return Container(
       padding: EdgeInsets.fromLTRB(icon != null ? 7 : 10, 4, 10, 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.13),
+          color: displayColor.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(AppTheme.radiusPill),
-        border: Border.all(color: color.withValues(alpha: 0.30)),
+          border: Border.all(color: displayColor.withValues(alpha: 0.45)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 13, color: color),
+              Icon(icon, size: 13, color: displayColor),
             const SizedBox(width: 4),
           ],
           Text(
             label,
             style: TextStyle(
-                color: color, fontWeight: FontWeight.w700, fontSize: 11.5),
+                  color: displayColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11.5),
           ),
         ],
       ),

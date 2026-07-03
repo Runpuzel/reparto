@@ -96,9 +96,9 @@ class AppTheme {
           : AppColors.surfaceElevatedDark,
       surfaceContainerHighest:
       isLight ? const Color(0xFFEDE7EA) : AppColors.surfaceMutedDark,
-      outline: isLight ? const Color(0xFF8C8389) : const Color(0xFF6E6470),
+      outline: isLight ? const Color(0xFF8C8389) : const Color(0xFFA99DA8),
       outlineVariant:
-      isLight ? AppColors.border : AppColors.borderDark,
+      isLight ? AppColors.border : const Color(0xFF544956),
       onSurfaceVariant:
       isLight ? AppColors.textSecondary : AppColors.textSecondaryDark,
     );

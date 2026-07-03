@@ -4,13 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
-import '../../../core/widgets/app_network_image.dart';
+import '../../../core/widgets/product_image_viewer.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/confirm_actions.dart';
 import '../../../models/models.dart';
@@ -113,16 +112,10 @@ class OrderDetailScreen extends ConsumerWidget {
                             vertical: AppSpacing.xs + 2),
                         child: Row(
                           children: [
-                            ClipRRect(
-                              borderRadius: AppRadius.brSm,
-                              child: SizedBox(
-                                width: 44,
-                                height: 44,
-                                child: AppNetworkImage(
-                                    url: it.productImage,
-                                    fallbackIcon: AppIcons.image,
-                                    iconSize: 20),
-                              ),
+                            OrderProductThumbnail(
+                              imageUrl: it.productImage,
+                              productName: it.productName ?? 'Item',
+                              size: 48,
                             ),
                             const SizedBox(width: AppSpacing.sm + 4),
                             Expanded(

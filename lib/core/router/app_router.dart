@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../features/admin/screens/admin_shell.dart';
+import '../../features/admin/screens/admin_platform_settings_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
 import '../../features/auth/screens/forgot_passcode_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
@@ -228,12 +229,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/admin/settings/platform',
-        builder: (_, __) => Scaffold(
-          appBar: AppBar(title: const Text('Platform Settings')),
-          body: const Center(
-              child: Text(
-                  'service_auth_fee, platform_fee_seller_percent, current_policy_version\nEdit in Admin Services > Fee Settings')),
-        ),
+        builder: (_, __) => const AdminPlatformSettingsScreen(),
       ),
 
       // Shared – v1.0 split About / Developer

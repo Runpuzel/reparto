@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +9,7 @@ import '../config/supabase_client.dart';
 /// Top-level background handler (must be a top-level or static function).
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // No-op: the OS displays the notification. Hook analytics here if needed.
+  await Firebase.initializeApp();
 }
 
 /// Manages FCM registration, token persistence, foreground display and taps.

@@ -40,6 +40,10 @@ final adminDisputesProvider = FutureProvider<List<Dispute>>((ref) async {
   return ref.watch(adminRepositoryProvider).fetchDisputes();
 });
 
+final adminDisputeKpisProvider = FutureProvider<DisputeKpis>((ref) async {
+  return ref.watch(adminRepositoryProvider).fetchDisputeKpis();
+});
+
 // ---- Services (v1.0) ----
 
 final adminServicesProvider =
@@ -49,6 +53,10 @@ final adminServicesProvider =
 
 final adminServiceKpisProvider = FutureProvider<ServiceKpis>((ref) async {
   return ref.watch(adminRepositoryProvider).fetchServiceKpis();
+});
+
+final platformSettingsProvider = FutureProvider<PlatformSetting>((ref) async {
+  return ref.watch(adminRepositoryProvider).fetchPlatformSettings();
 });
 
 final serviceBookingsProvider =

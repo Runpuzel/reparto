@@ -292,6 +292,14 @@ class StudentRepository {
   /// Buyer confirms receipt → releases payment to the seller (status completed).
   Future<void> confirmReceipt(String orderId) async {
     await supabase.rpc('confirm_receipt', params: {'p_order': orderId});
+    try {
+      await supabase.functions.invoke(
+        'process-payouts',
+        body: {'order_id': orderId},
+      );
+    } catch (_) {
+      // The settlement is committed and remains queued for the payout worker.
+    }
   }
 
   /// Raise a dispute on an order.

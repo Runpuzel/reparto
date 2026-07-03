@@ -29,7 +29,11 @@ final salesSummaryProvider = FutureProvider<SalesSummary>((ref) async {
   final vendor = await ref.watch(currentVendorProvider.future);
   if (vendor == null) {
     return SalesSummary(
-        totalOrders: 0, completedOrders: 0, pendingOrders: 0, revenue: 0);
+        totalOrders: 0,
+        completedOrders: 0,
+        activeOrders: 0,
+        cancelledOrders: 0,
+        revenue: 0);
   }
   return ref.watch(vendorRepositoryProvider).fetchSalesSummary(vendor.vendorId);
 });
@@ -44,4 +48,18 @@ final myShopReviewsProvider = FutureProvider<List<Review>>((ref) async {
   final vendor = await ref.watch(currentVendorProvider.future);
   if (vendor == null) return [];
   return ref.watch(vendorRepositoryProvider).fetchReviews(vendor.vendorId);
+});
+
+final vendorPlatformSettingsProvider =
+    FutureProvider<PlatformSetting>((ref) async {
+  return ref.watch(vendorRepositoryProvider).fetchPlatformSettings();
+});
+
+final vendorWalletProvider = FutureProvider<VendorWallet>((ref) async {
+  final vendor = await ref.watch(currentVendorProvider.future);
+  if (vendor == null) {
+    return const VendorWallet(
+        availablePesewas: 0, reservedPesewas: 0, transactions: []);
+  }
+  return ref.watch(vendorRepositoryProvider).fetchWallet(vendor.vendorId);
 });

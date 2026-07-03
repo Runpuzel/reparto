@@ -12,7 +12,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_card.dart';
-import '../../../core/widgets/app_network_image.dart';
+import '../../../core/widgets/product_image_viewer.dart';
 import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/confirm_actions.dart';
@@ -123,7 +123,9 @@ class _VendorOrderCard extends ConsumerWidget {
   final AppOrder order;
   const _VendorOrderCard({required this.order});
 
-  String get _shortId => order.orderId.substring(0, 8).toUpperCase();
+  String get _shortId => order.orderId.length >= 8
+      ? order.orderId.substring(0, 8).toUpperCase()
+      : order.orderId.toUpperCase();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -157,16 +159,10 @@ class _VendorOrderCard extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 5),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: AppRadius.brSm,
-                    child: SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: AppNetworkImage(
-                          url: it.productImage,
-                          fallbackIcon: AppIcons.image,
-                          iconSize: 18),
-                    ),
+                  OrderProductThumbnail(
+                    imageUrl: it.productImage,
+                    productName: it.productName ?? 'Item',
+                    size: 44,
                   ),
                   const SizedBox(width: AppSpacing.sm + 2),
                   Container(

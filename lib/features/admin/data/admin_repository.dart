@@ -40,6 +40,19 @@ class ServiceKpis {
   });
 }
 
+/// Key performance indicators for customer disputes.
+class DisputeKpis {
+  final int open;
+  final int underReview;
+  final int resolved;
+
+  const DisputeKpis({
+    this.open = 0,
+    this.underReview = 0,
+    this.resolved = 0,
+  });
+}
+
 /// Data access for administrator tooling: campuses, vendor approvals,
 /// account suspension and reporting.
 class AdminRepository {
@@ -140,20 +153,34 @@ class AdminRepository {
   }
 
   Future<ServiceKpis> fetchServiceKpis() async {
-    final now = DateTime.now().toIso8601String();
-    
-    // In Supabase Dart 2.x, using select() returns a list.
-    final activeRes = await supabase.from('services').select('service_id').eq('status', 'available');
-    final expiredRes = await supabase.from('services').select('service_id').lt('expires_at', now);
-    final authorizedRes = await supabase.from('services').select('service_id').eq('is_authorized', true);
-    final pendingAuthRes = await supabase.from('services').select('service_id')
+    final currentTime = DateTime.now();
+    final now = currentTime.toIso8601String();
+    final authorizationDeadline =
+        currentTime.add(const Duration(days: 3)).toIso8601String();
+
+    final activeRes = await supabase
+        .from('services')
+        .select('service_id')
+        .eq('status', 'available')
+        .or('expires_at.is.null,expires_at.gt.$now');
+    final expiredRes = await supabase
+        .from('services')
+        .select('service_id')
+        .eq('status', 'expired');
+    final pendingAuthRes = await supabase
+        .from('services')
+        .select('service_id')
         .eq('is_authorized', false)
-        .lt('expires_at', DateTime.now().add(const Duration(days: 3)).toIso8601String())
+        .lt('expires_at', authorizationDeadline)
         .gte('expires_at', now);
-    
+
     // Revenue MTD (estimate from authorization fees)
-    final firstOfMonth = DateTime(DateTime.now().year, DateTime.now().month, 1).toIso8601String();
-    final revRows = await supabase.from('services').select('authorization_fee_paid').gte('authorization_paid_at', firstOfMonth);
+    final firstOfMonth =
+        DateTime(currentTime.year, currentTime.month).toIso8601String();
+    final revRows = await supabase
+        .from('services')
+        .select('authorization_fee_paid')
+        .gte('authorization_paid_at', firstOfMonth);
     double revenue = 0;
     for (final r in revRows as List) {
       revenue += (r['authorization_fee_paid'] as num?)?.toDouble() ?? 0;
@@ -168,32 +195,59 @@ class AdminRepository {
   }
 
   Future<PlatformSetting> fetchPlatformSettings() async {
-    try {
-      final row = await supabase
-          .from('platform_settings')
-          .select()
-          .eq('id', 'global')
-          .maybeSingle();
-      if (row == null) return PlatformSetting.freeMode;
-      return PlatformSetting.fromMap(Map<String, dynamic>.from(row));
-    } catch (_) {
-      return PlatformSetting.freeMode;
-    }
+    final row = await supabase
+        .from('platform_settings')
+        .select()
+        .order('updated_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    if (row == null) return PlatformSetting.freeMode;
+    return PlatformSetting.fromMap(Map<String, dynamic>.from(row));
   }
 
   Future<void> updatePlatformSettings(Map<String, dynamic> data) async {
-    await supabase.from('platform_settings').upsert({
-      'id': 'global',
+    final existing = await supabase
+        .from('platform_settings')
+        .select('id')
+        .order('updated_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    final values = {
       ...data,
       'updated_at': DateTime.now().toIso8601String(),
-    });
+    };
+    if (existing == null) {
+      await supabase.from('platform_settings').insert(values);
+      return;
+    }
+
+    await supabase
+        .from('platform_settings')
+        .update(values)
+        .eq('id', existing['id']);
   }
 
   Future<void> extendServiceExpiration(String serviceId, int days) async {
-    final s = await supabase.from('services').select('expires_at').eq('service_id', serviceId).single();
-    final current = DateTime.parse(s['expires_at'] as String);
-    final next = current.add(Duration(days: days));
-    await supabase.from('services').update({'expires_at': next.toIso8601String()}).eq('service_id', serviceId);
+    if (days <= 0) {
+      throw ArgumentError.value(days, 'days', 'Must be greater than zero');
+    }
+
+    final service = await supabase
+        .from('services')
+        .select('expires_at')
+        .eq('service_id', serviceId)
+        .single();
+    final expiresAt = DateTime.tryParse(service['expires_at'] as String? ?? '');
+    final baseline =
+        expiresAt != null && expiresAt.isAfter(DateTime.now())
+            ? expiresAt
+            : DateTime.now();
+    final next = baseline.add(Duration(days: days));
+    await supabase
+        .from('services')
+        .update({'expires_at': next.toIso8601String()})
+        .eq('service_id', serviceId);
   }
 
   Future<void> authorizeService(String serviceId, bool auth, String reason) async {
@@ -317,11 +371,37 @@ class AdminRepository {
 
   Future<void> resolveDispute(
       String disputeId, String outcome, String? note) async {
+    const outcomes = {'refund_buyer', 'release_seller'};
+    if (!outcomes.contains(outcome)) {
+      throw ArgumentError.value(outcome, 'outcome', 'Unsupported ruling');
+    }
+    if (note == null || note.trim().length < 10) {
+      throw ArgumentError.value(note, 'note', 'Enter at least 10 characters');
+    }
     await supabase.rpc('resolve_dispute', params: {
       'p_dispute': disputeId,
       'p_outcome': outcome,
-      'p_note': note,
+      'p_note': note.trim(),
     });
+    if (outcome == 'release_seller') {
+      final dispute = await supabase
+          .from('disputes')
+          .select('order_id')
+          .eq('dispute_id', disputeId)
+          .single();
+      try {
+        await supabase.functions.invoke(
+          'process-payouts',
+          body: {'order_id': dispute['order_id']},
+        );
+      } catch (_) {
+        // The settlement remains queued and can be retried by the worker.
+      }
+    }
+  }
+
+  Future<void> markDisputeUnderReview(String disputeId) async {
+    await supabase.rpc('review_dispute', params: {'p_dispute': disputeId});
   }
 
   // ---- Reports --------------------------------------------------------------

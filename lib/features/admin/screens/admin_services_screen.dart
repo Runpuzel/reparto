@@ -85,15 +85,17 @@ class _AdminServicesScreenState extends ConsumerState<AdminServicesScreen> {
 
       return Scaffold(
         drawer: isMobile ? Drawer(child: filterContent) : null,
-        body: Row(
+        body: Stack(
           children: [
-            if (!isMobile) ...[
-              SizedBox(width: 320, child: filterContent),
-              const VerticalDivider(width: 1),
-            ],
-            Expanded(
-              child: Column(
-                children: [
+            Row(
+              children: [
+                if (!isMobile) ...[
+                  SizedBox(width: 320, child: filterContent),
+                  const VerticalDivider(width: 1),
+                ],
+                Expanded(
+                  child: Column(
+                    children: [
                   // Toolbar
                   _buildToolbar(context, isMobile, servicesAsync),
 
@@ -166,14 +168,18 @@ class _AdminServicesScreenState extends ConsumerState<AdminServicesScreen> {
                       },
                     ),
                   ),
-                ],
-              ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             if (_drawerService != null)
-              _ServiceDrawer(
-                service: _drawerService!,
-                onClose: () => setState(() => _drawerService = null),
-                onAction: _rowAction,
+              Positioned.fill(
+                child: _ServiceDrawer(
+                  service: _drawerService!,
+                  onClose: () => setState(() => _drawerService = null),
+                  onAction: _rowAction,
+                ),
               ),
           ],
         ),
@@ -189,8 +195,14 @@ class _AdminServicesScreenState extends ConsumerState<AdminServicesScreen> {
     final allSelected =
         allIds.isNotEmpty && _selected.containsAll(allIds);
 
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 480;
+        return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? AppSpacing.sm : AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       child: Row(
         children: [
           if (isMobile)
@@ -199,8 +211,15 @@ class _AdminServicesScreenState extends ConsumerState<AdminServicesScreen> {
                       icon: const Icon(Icons.filter_list),
                       onPressed: () => Scaffold.of(ctx).openDrawer(),
                     )),
-          Text('Service Management', style: AppTextStyles.titleLarge),
-          if (count != null) ...[
+          Expanded(
+            child: Text(
+              'Service Management',
+              style: AppTextStyles.titleLarge,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (count != null && !compact) ...[
             const SizedBox(width: 8),
             Container(
               padding:
@@ -219,8 +238,7 @@ class _AdminServicesScreenState extends ConsumerState<AdminServicesScreen> {
               ),
             ),
           ],
-          const Spacer(),
-          if (allIds.isNotEmpty)
+          if (allIds.isNotEmpty && !compact)
             Tooltip(
               message: allSelected ? 'Deselect all' : 'Select all visible',
               child: IconButton(
@@ -249,6 +267,8 @@ class _AdminServicesScreenState extends ConsumerState<AdminServicesScreen> {
           ),
         ],
       ),
+    );
+      },
     );
   }
 
@@ -899,57 +919,34 @@ class _ServiceTile extends StatelessWidget {
                   scheme.surfaceContainerHighest.withValues(alpha: 0.45),
               borderRadius: AppRadius.brMd,
             ),
-            child: Row(
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                // Category
-                Icon(Icons.category_outlined,
-                    size: 14, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 4),
-                Text(s.category.label,
-                    style: AppTextStyles.bodySmall
-                        .copyWith(fontSize: 11.5)),
-                const SizedBox(width: 16),
-
-                // Expiration
-                Icon(
-                  Icons.schedule,
-                  size: 14,
-                  color: days < 3 ? AppColors.error : scheme.onSurfaceVariant,
+                _metadataItem(
+                  context,
+                  Icons.category_outlined,
+                  s.category.label,
                 ),
-                const SizedBox(width: 4),
-                Text(
+                _metadataItem(
+                  context,
+                  Icons.schedule,
                   s.expiresAt == null
                       ? 'No expiry'
                       : days < 0
                           ? 'Expired ${-days}d ago'
                           : '${days}d left',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    fontSize: 11.5,
-                    color: days < 3 ? AppColors.error : null,
-                    fontWeight: days < 3 ? FontWeight.w700 : null,
-                  ),
+                  color: days < 3 ? AppColors.error : null,
                 ),
-                const Spacer(),
-
-                // Plan indicator
-                if (s.isAuthorized)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.workspace_premium,
-                          size: 14, color: AppColors.success),
-                      const SizedBox(width: 3),
-                      Text('Paid',
-                          style: AppTextStyles.bodySmall.copyWith(
-                              fontSize: 11.5,
-                              color: AppColors.success,
-                              fontWeight: FontWeight.w700)),
-                    ],
-                  )
-                else
-                  Text('Free',
-                      style: AppTextStyles.bodySmall.copyWith(
-                          fontSize: 11.5, fontWeight: FontWeight.w600)),
+                _metadataItem(
+                  context,
+                  s.isAuthorized
+                      ? Icons.workspace_premium
+                      : Icons.lock_open_outlined,
+                  s.isAuthorized ? 'Paid' : 'Free',
+                  color: s.isAuthorized ? AppColors.success : null,
+                ),
               ],
             ),
           ),
@@ -977,6 +974,30 @@ class _ServiceTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _metadataItem(
+    BuildContext context,
+    IconData icon,
+    String label, {
+    Color? color,
+  }) {
+    final effectiveColor = color ?? Theme.of(context).colorScheme.onSurfaceVariant;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: effectiveColor),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            fontSize: 11.5,
+            color: color,
+            fontWeight: color == null ? null : FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1041,22 +1062,30 @@ class _BulkActionBar extends StatelessWidget {
         border: Border.all(
             color: scheme.primary.withValues(alpha: 0.2)),
       ),
-      child: Row(
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Icon(Icons.checklist, size: 18, color: scheme.primary),
-          const SizedBox(width: 8),
-          Text('$count selected',
-              style: AppTextStyles.labelMedium
-                  .copyWith(color: scheme.onPrimaryContainer)),
-          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.checklist, size: 18, color: scheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  '$count selected',
+                  style: AppTextStyles.labelMedium
+                      .copyWith(color: scheme.onPrimaryContainer),
+                ),
+              ],
+            ),
+          ),
           _barBtn('Extend', Icons.more_time, () => onAction('extend')),
-          const SizedBox(width: 6),
-          _barBtn(
-              'Authorize', Icons.verified, () => onAction('authorize'),
+          _barBtn('Authorize', Icons.verified, () => onAction('authorize'),
               filled: true),
-          const SizedBox(width: 6),
           _barBtn('Hide', Icons.visibility_off, () => onAction('hide')),
-          const SizedBox(width: 6),
           _barBtn('Delete', Icons.delete_outline, () => onAction('delete'),
               destructive: true),
         ],
@@ -1113,10 +1142,13 @@ class _ServiceDrawer extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final days = s.daysLeft;
 
-    return Material(
+    return LayoutBuilder(
+      builder: (context, constraints) => Align(
+        alignment: Alignment.centerRight,
+        child: Material(
       elevation: 8,
       child: SizedBox(
-        width: 420,
+        width: constraints.maxWidth > 420 ? 420 : constraints.maxWidth,
         child: Column(
           children: [
             // Header
@@ -1139,8 +1171,14 @@ class _ServiceDrawer extends ConsumerWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Text(s.vendorName ?? 'Unknown',
-                                style: AppTextStyles.bodySmall),
+                            Flexible(
+                              child: Text(
+                                s.vendorName ?? 'Unknown',
+                                style: AppTextStyles.bodySmall,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                             if (s.vendorIsVerified == true) ...[
                               const SizedBox(width: 4),
                               const Icon(Icons.verified,
@@ -1401,6 +1439,8 @@ class _ServiceDrawer extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
         ),
       ),
     );

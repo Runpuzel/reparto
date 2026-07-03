@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/common_widgets.dart';
-import '../../../core/widgets/developer_info_card.dart';
-import '../../../core/widgets/notifications_diagnostic_tile.dart';
+import '../../../core/widgets/confirm_actions.dart';
 import '../../../core/widgets/theme_mode_tile.dart';
 import '../../../models/models.dart';
-import '../../shared/providers/shared_providers.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../shared/providers/shared_providers.dart';
 
 class StudentProfileScreen extends ConsumerWidget {
   const StudentProfileScreen({super.key});
@@ -23,123 +21,315 @@ class StudentProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final campuses = ref.watch(campusesProvider);
-    final scheme = Theme.of(context).colorScheme;
+    final tokens = ref.watch(tokenBalanceProvider).valueOrNull ?? 0;
+    final unread = ref.watch(unreadNotificationsProvider).valueOrNull ?? 0;
 
     return AsyncView<AppUser?>(
       value: user,
-      data: (u) {
-        if (u == null) return const SizedBox();
+      onRetry: () => ref.invalidate(currentUserProvider),
+      data: (student) {
+        if (student == null) {
+          return const EmptyState(
+            icon: Icons.person_outline,
+            title: 'Profile unavailable',
+            subtitle: 'Sign in again to view your student profile.',
+          );
+        }
         final campusName = campuses.valueOrNull
-            ?.firstWhere(
-              (c) => c.campusId == u.campusId,
-          orElse: () => Campus(campusId: '', campusName: 'Unknown'),
-        )
-            .campusName;
-        return ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            const SizedBox(height: AppSpacing.sm + 4),
-            Center(
-              child: CircleAvatar(
-                radius: 44,
-                backgroundColor: scheme.primaryContainer,
-                foregroundColor: scheme.onPrimaryContainer,
-                child: Text(
-                  u.fullName.isNotEmpty ? u.fullName[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                      fontSize: 34, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Center(
-              child: Text(u.fullName,
-                  style: AppTextStyles.titleLarge
-                      .copyWith(color: scheme.onSurface)),
-            ),
-            Center(
-              child: Text(u.email,
-                  style: AppTextStyles.bodyMedium
-                      .copyWith(color: scheme.onSurfaceVariant)),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _InfoTile(
-                icon: AppIcons.campus, label: 'Campus', value: campusName ?? '—'),
-            const SizedBox(height: AppSpacing.sm),
-            _InfoTile(icon: AppIcons.role, label: 'Role', value: 'Student'),
-            const SizedBox(height: AppSpacing.sm + 4),
-            AppCard(
-              onTap: () => context.push('/referrals'),
-              padding: EdgeInsets.zero,
-              child: ListTile(
-                leading: Icon(AppIcons.tag),
-                title: const Text('Referral Hub'),
-                subtitle: const Text('Invite friends & earn tokens'),
-                trailing: Icon(AppIcons.caretRight, size: 18),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm + 4),
-            const ThemeModeTile(),
-            const SizedBox(height: AppSpacing.sm + 4),
-            const NotificationsDiagnosticTile(),
-            const SizedBox(height: AppSpacing.sm + 4),
-            AppCard(
-              onTap: () => context.push('/forgot-passcode'),
-              padding: EdgeInsets.zero,
-              child: ListTile(
-                leading: Icon(AppIcons.lockReset),
-                title: const Text('Forgot / Reset passcode'),
-                subtitle:
-                const Text('Contact support to reset your passcode'),
-                trailing: Icon(AppIcons.caretRight, size: 18),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm + 4),
-            const DeveloperInfoCard(),
-            const SizedBox(height: AppSpacing.lg),
-            AppButton(
-              label: 'Sign Out',
-              icon: AppIcons.logout,
-              variant: AppButtonVariant.secondary,
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
-            ),
-          ]
-              .animate(interval: 40.ms)
-              .fadeIn(duration: 300.ms)
-              .slideY(begin: 0.03, end: 0),
+                ?.firstWhere(
+                  (campus) => campus.campusId == student.campusId,
+                  orElse: () =>
+                      Campus(campusId: '', campusName: 'Campus not set'),
+                )
+                .campusName ??
+            'Campus not set';
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(currentUserProvider);
+            ref.invalidate(campusesProvider);
+            ref.invalidate(tokenBalanceProvider);
+            ref.invalidate(unreadNotificationsProvider);
+          },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final padding = constraints.maxWidth < 400 ? 12.0 : 20.0;
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(padding, 20, padding, 32),
+                children: [
+                  _ProfileHeader(student: student, campusName: campusName),
+                  const SizedBox(height: 16),
+                  _StudentSummary(
+                    campusName: campusName,
+                    tokens: tokens,
+                    unread: unread,
+                  ),
+                  const SizedBox(height: 24),
+                  const _SectionTitle('Student account'),
+                  const SizedBox(height: 8),
+                  _SettingsGroup(
+                    children: [
+                      _ProfileAction(
+                        icon: AppIcons.tag,
+                        title: 'Referral rewards',
+                        subtitle: '$tokens token${tokens == 1 ? '' : 's'} available',
+                        onTap: () => context.push('/referrals'),
+                      ),
+                      _ProfileAction(
+                        icon: AppIcons.notification,
+                        title: 'Notifications',
+                        subtitle: unread == 0
+                            ? 'You are all caught up'
+                            : '$unread unread notification${unread == 1 ? '' : 's'}',
+                        badge: unread > 0 ? '$unread' : null,
+                        onTap: () => context.push('/notifications'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const _SectionTitle('Preferences'),
+                  const SizedBox(height: 8),
+                  const _SettingsGroup(children: [ThemeModeTile()]),
+                  const SizedBox(height: 20),
+                  const _SectionTitle('Security and support'),
+                  const SizedBox(height: 8),
+                  _SettingsGroup(
+                    children: [
+                      _ProfileAction(
+                        icon: AppIcons.lockReset,
+                        title: 'Reset passcode',
+                        subtitle: 'Recover access to your account',
+                        onTap: () => context.push('/forgot-passcode'),
+                      ),
+                      _ProfileAction(
+                        icon: Icons.info_outline,
+                        title: 'About Reparto',
+                        subtitle: 'Policies, platform information, and support',
+                        onTap: () => context.push('/about'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  AppButton(
+                    label: 'Sign out',
+                    icon: AppIcons.logout,
+                    variant: AppButtonVariant.secondary,
+                    onPressed: () => _signOut(context, ref),
+                  ),
+                ],
+              );
+            },
+          ),
         );
       },
     );
   }
+
+  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final confirmed = await ConfirmActions.confirm(
+      context,
+      title: 'Sign out?',
+      message: 'You will need to sign in again to access your orders and saved items.',
+      confirmLabel: 'Sign out',
+      icon: AppIcons.logout,
+    );
+    if (confirmed) await ref.read(authRepositoryProvider).signOut();
+  }
 }
 
-class _InfoTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _InfoTile(
-      {required this.icon, required this.label, required this.value});
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({required this.student, required this.campusName});
+  final AppUser student;
+  final String campusName;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return AppCard(
-      child: Row(
-        children: [
-          Icon(icon, color: scheme.onSurfaceVariant),
-          const SizedBox(width: AppSpacing.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: AppTextStyles.bodySmall),
-              const SizedBox(height: 2),
-              Text(value,
-                  style: AppTextStyles.titleSmall
-                      .copyWith(color: scheme.onSurface)),
-            ],
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 46,
+          backgroundColor: scheme.primaryContainer,
+          foregroundColor: scheme.onPrimaryContainer,
+          child: Text(
+            student.fullName.trim().isEmpty
+                ? '?'
+                : student.fullName.trim()[0].toUpperCase(),
+            style: AppTextStyles.headlineSmall.copyWith(fontSize: 34),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          student.fullName,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.titleLarge,
+        ),
+        const SizedBox(height: 3),
+        Text(
+          student.email,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        StatusPill(
+          label: campusName,
+          icon: AppIcons.campus,
+          color: scheme.primary,
+        ),
+      ],
     );
   }
+}
+
+class _StudentSummary extends StatelessWidget {
+  const _StudentSummary({
+    required this.campusName,
+    required this.tokens,
+    required this.unread,
+  });
+  final String campusName;
+  final int tokens;
+  final int unread;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _SummaryValue(
+                icon: AppIcons.campus,
+                label: 'Campus',
+                value: campusName,
+              ),
+            ),
+            const SizedBox(height: 44, child: VerticalDivider()),
+            Expanded(
+              child: _SummaryValue(
+                icon: AppIcons.tag,
+                label: 'Tokens',
+                value: '$tokens',
+              ),
+            ),
+            const SizedBox(height: 44, child: VerticalDivider()),
+            Expanded(
+              child: _SummaryValue(
+                icon: AppIcons.notification,
+                label: 'Unread',
+                value: '$unread',
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _SummaryValue extends StatelessWidget {
+  const _SummaryValue({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Icon(icon, size: 19, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(height: 5),
+          Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.labelMedium),
+          Text(label, style: AppTextStyles.bodySmall),
+        ],
+      );
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.title);
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        title,
+        style: AppTextStyles.labelMedium.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
+}
+
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            for (var index = 0; index < children.length; index++) ...[
+              children[index],
+              if (index < children.length - 1) const Divider(height: 1),
+            ],
+          ],
+        ),
+      );
+}
+
+class _ProfileAction extends StatelessWidget {
+  const _ProfileAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.badge,
+  });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final String? badge;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+        title: Text(title),
+        subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (badge != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.error,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(badge!,
+                    style: const TextStyle(color: Colors.white, fontSize: 11)),
+              ),
+            const SizedBox(width: 4),
+            Icon(AppIcons.caretRight, size: 18),
+          ],
+        ),
+        onTap: onTap,
+      );
 }
