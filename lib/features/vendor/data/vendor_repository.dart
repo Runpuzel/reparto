@@ -16,12 +16,11 @@ class VendorRepository {
   }
 
   /// Creates or updates a product and replaces its gallery with [imageUrls].
-  /// The first image is also stored as the cover (`products.image_url`).
-  Future<void> upsertProduct(
-      Map<String, dynamic> data, {
-        String? productId,
-        List<String>? imageUrls,
-      }) async {
+  Future<String> upsertProduct(
+    Map<String, dynamic> data, {
+    String? productId,
+    List<String>? imageUrls,
+  }) async {
     final cover = (imageUrls != null && imageUrls.isNotEmpty)
         ? imageUrls.first
         : data['image_url'];
@@ -41,7 +40,6 @@ class VendorRepository {
     }
 
     if (imageUrls != null) {
-      // Replace the gallery atomically (simple delete + reinsert).
       await supabase.from('product_images').delete().eq('product_id', id);
       if (imageUrls.isNotEmpty) {
         final rows = <Map<String, dynamic>>[];
@@ -55,6 +53,7 @@ class VendorRepository {
         await supabase.from('product_images').insert(rows);
       }
     }
+    return id;
   }
 
   Future<void> deleteProduct(String productId) async {
@@ -73,7 +72,6 @@ class VendorRepository {
         .toList();
   }
 
-  /// Count of a seller's currently-available services (for the 2-active limit).
   Future<int> activeServiceCount(String vendorId) async {
     final rows = await supabase
         .from('services')
@@ -83,11 +81,11 @@ class VendorRepository {
     return (rows as List).length;
   }
 
-  Future<void> upsertService(
-      Map<String, dynamic> data, {
-        String? serviceId,
-        List<String>? imageUrls,
-      }) async {
+  Future<String> upsertService(
+    Map<String, dynamic> data, {
+    String? serviceId,
+    List<String>? imageUrls,
+  }) async {
     final cover = (imageUrls != null && imageUrls.isNotEmpty)
         ? imageUrls.first
         : data['image_url'];
@@ -120,17 +118,22 @@ class VendorRepository {
         await supabase.from('service_images').insert(rows);
       }
     }
+    return id;
   }
 
   Future<void> deleteService(String serviceId) async {
     await supabase.from('services').delete().eq('service_id', serviceId);
   }
 
+  Future<void> updateServiceStatus(String serviceId, String status) async {
+    await supabase.from('services').update({'status': status}).eq('service_id', serviceId);
+  }
+
   Future<List<AppOrder>> fetchOrders(String vendorId) async {
     final rows = await supabase
         .from('orders')
         .select(
-        '*, users(full_name), order_items(*, products(product_name, image_url))')
+            '*, users(full_name), order_items(*, products(product_name, image_url))')
         .eq('vendor_id', vendorId)
         .order('created_at', ascending: false);
     return (rows as List)
@@ -144,7 +147,6 @@ class VendorRepository {
         .update({'order_status': status.db}).eq('order_id', orderId);
   }
 
-  /// Per-product sales stats (units sold + revenue) via RPC.
   Future<List<ProductStat>> fetchProductStats(String vendorId) async {
     final rows = await supabase
         .rpc('vendor_product_stats', params: {'p_vendor_id': vendorId});
@@ -153,7 +155,6 @@ class VendorRepository {
         .toList();
   }
 
-  /// Customer reviews for the shop, with average + count.
   Future<List<Review>> fetchReviews(String vendorId) async {
     final rows = await supabase
         .from('reviews')
@@ -165,7 +166,6 @@ class VendorRepository {
         .toList();
   }
 
-  /// Simple sales summary computed client-side from completed orders.
   Future<SalesSummary> fetchSalesSummary(String vendorId) async {
     final rows = await supabase
         .from('orders')
@@ -189,6 +189,40 @@ class VendorRepository {
       pendingOrders: pending,
       revenue: revenue,
     );
+  }
+
+  Future<void> recordSellerConsent(
+      String vendorId, Map<String, dynamic> metadata) async {
+    await supabase.from('vendors').update({
+      'consent_seller_agreement': true,
+      'consent_seller_agreement_at': DateTime.now().toIso8601String(),
+      'consent_seller_agreement_version':
+          metadata['consent_seller_agreement_version'] ?? 'v1.0-2025-07',
+    }).eq('vendor_id', vendorId);
+
+    final userId = supabase.auth.currentUser?.id;
+    if (userId != null) {
+      await supabase.from('consent_records').insert({
+        'user_id': userId,
+        'consent_type': 'seller_agreement',
+        'policy_version': metadata['policy_version'] ?? 'v1.0-2025-07',
+        'metadata': metadata,
+      });
+    }
+  }
+
+  /// Updates all vendor profile details.
+  Future<void> updateStoreDetails(Map<String, dynamic> payload) async {
+    final uid = supabase.auth.currentUser?.id;
+    if (uid == null) throw 'User session expired';
+    // Update the vendors table directly
+    await supabase.from('vendors').update(payload).eq('user_id', uid);
+  }
+
+  Future<void> submitVerification(Map<String, dynamic> data) async {
+    final uid = supabase.auth.currentUser?.id;
+    if (uid == null) throw 'User session expired';
+    await supabase.from('vendors').update(data).eq('user_id', uid);
   }
 }
 

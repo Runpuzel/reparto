@@ -33,7 +33,10 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     final selectedCat = ref.watch(selectedCategoryProvider);
 
     return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(productsProvider),
+      onRefresh: () async {
+        ref.invalidate(categoriesProvider);
+        ref.invalidate(productsProvider);
+      },
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -64,34 +67,52 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             ),
           ),
           SliverToBoxAdapter(
-            child: SizedBox(
-              height: 48,
-              child: categories.when(
-                data: (cats) => ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.sm + 4, AppSpacing.xs, AppSpacing.sm + 4,
-                      AppSpacing.xs),
-                  children: [
-                    _chip(
-                      label: 'All',
-                      selected: selectedCat == null,
-                      onTap: () => ref
-                          .read(selectedCategoryProvider.notifier)
-                          .state = null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+                  child: Text('Categories', 
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                    ...cats.map((c) => _chip(
-                      label: c.categoryName,
-                      selected: selectedCat == c.categoryId,
-                      onTap: () => ref
-                          .read(selectedCategoryProvider.notifier)
-                          .state = c.categoryId,
-                    )),
-                  ],
+                  ),
                 ),
-                loading: () => const SizedBox(),
-                error: (_, __) => const SizedBox(),
-              ),
+                SizedBox(
+                  height: 52,
+                  child: categories.when(
+                    data: (cats) => ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                      children: [
+                        _chip(
+                          label: 'All Items',
+                          selected: selectedCat == null,
+                          onTap: () => ref.read(selectedCategoryProvider.notifier).state = null,
+                        ),
+                        ...cats.map((c) => _chip(
+                          label: c.categoryName,
+                          selected: selectedCat == c.categoryId,
+                          onTap: () => ref.read(selectedCategoryProvider.notifier).state = c.categoryId,
+                        )),
+                      ],
+                    ),
+                    loading: () => AppShimmer(
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                        itemCount: 5,
+                        itemBuilder: (_, __) => const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          child: SkeletonBox(width: 80, height: 36, radius: 20),
+                        ),
+                      ),
+                    ),
+                    error: (e, _) => const SizedBox(),
+                  ),
+                ),
+              ],
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xs)),
@@ -129,11 +150,11 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
               );
             },
             loading: () => const SliverToBoxAdapter(
-              child: SkeletonGrid(itemCount: 6),
+              child: SkeletonGrid(itemCount: 6, shrinkWrap: true),
             ),
             error: (e, _) => SliverFillRemaining(
               child: ErrorState(
-                  message: '$e',
+                  error: e,
                   onRetry: () => ref.invalidate(productsProvider)),
             ),
           ),
@@ -148,20 +169,23 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-      child: Builder(builder: (context) {
-        final scheme = Theme.of(context).colorScheme;
-        return FilterChip(
-          label: Text(label),
-          selected: selected,
-          onSelected: (_) => onTap(),
-          labelStyle: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
-          ),
-        );
-      }),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) => onTap(),
+        labelStyle: TextStyle(
+          fontSize: 13,
+          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+          color: selected 
+            ? Theme.of(context).colorScheme.onPrimary 
+            : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        selectedColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        showCheckmark: false,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+      ),
     );
   }
 }

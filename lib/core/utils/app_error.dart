@@ -5,8 +5,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Use everywhere instead of `e.toString()` so users never see raw stack
 /// traces, exception class names or SQL/Postgres jargon.
 class AppError {
+  static const String offlineMessage =
+      'You are offline. Please check your internet connection and try again.';
+  
+  static const String genericMessage = 
+      'Something went wrong. Please try again later.';
+
   static String friendly(Object? error) {
-    if (error == null) return 'Something went wrong. Please try again.';
+    if (error == null) return genericMessage;
+
+    if (isOffline(error)) return offlineMessage;
 
     // --- Supabase / Postgres -------------------------------------------------
     if (error is AuthException) {
@@ -23,6 +31,30 @@ class AppError {
     return _fromRawString(raw);
   }
 
+  static bool isOffline(Object? error) {
+    if (error == null) return false;
+    final raw = error.toString().toLowerCase();
+    
+    // Common Flutter/Dart/Supabase offline indicators
+    return raw.contains('socketexception') ||
+        raw.contains('failed host lookup') ||
+        raw.contains('network is unreachable') ||
+        raw.contains('connection closed') ||
+        raw.contains('clientexception') ||
+        raw.contains('connection reset') ||
+        raw.contains('software caused connection abort') ||
+        raw.contains('connection refused') ||
+        raw.contains('handshake_exception') ||
+        (raw.contains('network') &&
+            (raw.contains('error') ||
+                raw.contains('fail') ||
+                raw.contains('unavailable') ||
+                raw.contains('issue'))) ||
+        // Supabase specific offline states
+        raw.contains('postgresterror(message: , code: 0') ||
+        raw.contains('null check operator used on a null value') && raw.contains('auth');
+  }
+
   static String _auth(String message) {
     final m = message.toLowerCase();
     if (m.contains('invalid login') || m.contains('invalid credentials')) {
@@ -36,18 +68,17 @@ class AppError {
       return 'An account with this email already exists.';
     }
     if (m.contains('password')) {
-      return 'Your password does not meet the requirements.';
+      return 'Your password does not meet the security requirements.';
     }
-    if (m.contains('network') || m.contains('socket')) {
-      return 'No internet connection. Please check your network.';
+    if (m.contains('user not found')) {
+      return 'No account found with this email.';
     }
     return 'Sign-in failed. Please try again.';
   }
 
   static String _postgrest(PostgrestException e) {
     final msg = e.message;
-    // Surface custom RAISE EXCEPTION messages from our RPCs (they are written
-    // to be human readable, e.g. "Delivery address is required").
+    // Surface custom RAISE EXCEPTION messages from our RPCs
     final cleaned = _stripPgPrefix(msg);
 
     final lower = cleaned.toLowerCase();
@@ -65,20 +96,17 @@ class AppError {
     if (lower.contains('insufficient stock')) {
       return cleaned; // already friendly from our RPC
     }
+    
+    // Check if it's a code 0 (usually network/offline)
+    if (e.code == '0' || e.code == null) return offlineMessage;
+
     // If the message looks like a clean sentence, show it; else generic.
     if (_looksHumanReadable(cleaned)) return cleaned;
-    return 'Something went wrong. Please try again.';
+    return genericMessage;
   }
 
   static String _fromRawString(String raw) {
     final lower = raw.toLowerCase();
-    if (lower.contains('socketexception') ||
-        lower.contains('failed host lookup') ||
-        lower.contains('network is unreachable') ||
-        lower.contains('connection closed') ||
-        lower.contains('clientexception')) {
-      return 'No internet connection. Please check your network and try again.';
-    }
     if (lower.contains('timeout') || lower.contains('timed out')) {
       return 'The request took too long. Please try again.';
     }
@@ -88,7 +116,7 @@ class AppError {
 
     final cleaned = _stripPgPrefix(raw);
     if (_looksHumanReadable(cleaned) && cleaned.length < 140) return cleaned;
-    return 'Something went wrong. Please try again.';
+    return genericMessage;
   }
 
   /// Removes common prefixes like "Exception: ", "PostgrestException(message: ".
@@ -107,9 +135,11 @@ class AppError {
   static bool _looksHumanReadable(String s) {
     if (s.isEmpty) return false;
     // Avoid showing things that still look technical.
-    final bad = ['null', 'exception', 'stacktrace', '#0', 'dart:', 'package:'];
+    final bad = ['null', 'exception', 'stacktrace', '#0', 'dart:', 'package:', 'postgresql', 'supabase', 'flutter'];
     final lower = s.toLowerCase();
     if (bad.any(lower.contains)) return false;
+    // Sentence should start with a letter and not look like a class name
+    if (!RegExp(r'^[a-zA-Z]').hasMatch(s)) return false;
     return true;
   }
 }

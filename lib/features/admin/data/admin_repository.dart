@@ -2,13 +2,50 @@ import '../../../core/config/supabase_client.dart';
 import '../../../core/utils/commission.dart';
 import '../../../models/models.dart';
 
+/// Query parameters for filtering services in the admin dashboard.
+class AdminServiceQuery {
+  final String status;
+  final String q;
+  final String verification;
+  const AdminServiceQuery({
+    required this.status,
+    required this.q,
+    required this.verification,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AdminServiceQuery &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          q == other.q &&
+          verification == other.verification;
+
+  @override
+  int get hashCode => status.hashCode ^ q.hashCode ^ verification.hashCode;
+}
+
+/// Key performance indicators for campus services.
+class ServiceKpis {
+  final int active;
+  final int pendingAuth;
+  final int expired;
+  final double revenueMtd;
+  const ServiceKpis({
+    this.active = 0,
+    this.pendingAuth = 0,
+    this.expired = 0,
+    this.revenueMtd = 0,
+  });
+}
+
 /// Data access for administrator tooling: campuses, vendor approvals,
 /// account suspension and reporting.
 class AdminRepository {
   // ---- Campuses -------------------------------------------------------------
   Future<List<Campus>> fetchAllCampuses() async {
-    final rows =
-    await supabase.from('campuses').select().order('campus_name');
+    final rows = await supabase.from('campuses').select().order('campus_name');
     return (rows as List)
         .map((e) => Campus.fromMap(Map<String, dynamic>.from(e)))
         .toList();
@@ -45,8 +82,7 @@ class AdminRepository {
 
   // ---- Categories -----------------------------------------------------------
   Future<List<Category>> fetchCategories() async {
-    final rows =
-    await supabase.from('categories').select().order('category_name');
+    final rows = await supabase.from('categories').select().order('category_name');
     return (rows as List)
         .map((e) => Category.fromMap(Map<String, dynamic>.from(e)))
         .toList();
@@ -71,7 +107,145 @@ class AdminRepository {
     await supabase.from('categories').delete().eq('category_id', categoryId);
   }
 
+  // ---- Services (v1.0) ------------------------------------------------------
+  Future<List<Service>> fetchServices(AdminServiceQuery query) async {
+    var q = supabase.from('services').select('*, vendors(business_name, is_verified)');
+
+    if (query.status != 'all') {
+      if (query.status == 'active') {
+        q = q.eq('status', 'available');
+      } else if (query.status == 'pending_auth') {
+        q = q.eq('is_authorized', false).lt('expires_at', DateTime.now().add(const Duration(days: 3)).toIso8601String());
+      } else if (query.status == 'expired') {
+        q = q.lt('expires_at', DateTime.now().toIso8601String());
+      } else if (query.status == 'authorized') {
+        q = q.eq('is_authorized', true);
+      }
+    }
+
+    if (query.verification == 'verified') {
+      q = q.eq('vendors.is_verified', true);
+    } else if (query.verification == 'unverified') {
+      q = q.eq('vendors.is_verified', false);
+    }
+
+    if (query.q.isNotEmpty) {
+      q = q.ilike('title', '%${query.q}%');
+    }
+
+    final rows = await q.order('created_at', ascending: false);
+    return (rows as List)
+        .map((e) => Service.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<ServiceKpis> fetchServiceKpis() async {
+    final now = DateTime.now().toIso8601String();
+    
+    // In Supabase Dart 2.x, using select() returns a list.
+    final activeRes = await supabase.from('services').select('service_id').eq('status', 'available');
+    final expiredRes = await supabase.from('services').select('service_id').lt('expires_at', now);
+    final authorizedRes = await supabase.from('services').select('service_id').eq('is_authorized', true);
+    final pendingAuthRes = await supabase.from('services').select('service_id')
+        .eq('is_authorized', false)
+        .lt('expires_at', DateTime.now().add(const Duration(days: 3)).toIso8601String())
+        .gte('expires_at', now);
+    
+    // Revenue MTD (estimate from authorization fees)
+    final firstOfMonth = DateTime(DateTime.now().year, DateTime.now().month, 1).toIso8601String();
+    final revRows = await supabase.from('services').select('authorization_fee_paid').gte('authorization_paid_at', firstOfMonth);
+    double revenue = 0;
+    for (final r in revRows as List) {
+      revenue += (r['authorization_fee_paid'] as num?)?.toDouble() ?? 0;
+    }
+
+    return ServiceKpis(
+      active: activeRes.length,
+      expired: expiredRes.length,
+      pendingAuth: pendingAuthRes.length,
+      revenueMtd: revenue,
+    );
+  }
+
+  Future<PlatformSetting> fetchPlatformSettings() async {
+    try {
+      final row = await supabase
+          .from('platform_settings')
+          .select()
+          .eq('id', 'global')
+          .maybeSingle();
+      if (row == null) return PlatformSetting.freeMode;
+      return PlatformSetting.fromMap(Map<String, dynamic>.from(row));
+    } catch (_) {
+      return PlatformSetting.freeMode;
+    }
+  }
+
+  Future<void> updatePlatformSettings(Map<String, dynamic> data) async {
+    await supabase.from('platform_settings').upsert({
+      'id': 'global',
+      ...data,
+      'updated_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<void> extendServiceExpiration(String serviceId, int days) async {
+    final s = await supabase.from('services').select('expires_at').eq('service_id', serviceId).single();
+    final current = DateTime.parse(s['expires_at'] as String);
+    final next = current.add(Duration(days: days));
+    await supabase.from('services').update({'expires_at': next.toIso8601String()}).eq('service_id', serviceId);
+  }
+
+  Future<void> authorizeService(String serviceId, bool auth, String reason) async {
+    await supabase.from('services').update({
+      'is_authorized': auth,
+      'authorization_paid_at': auth ? DateTime.now().toIso8601String() : null,
+      'authorization_expires_at': auth ? DateTime.now().add(const Duration(days: 30)).toIso8601String() : null,
+      'status': auth ? 'available' : 'available',
+    }).eq('service_id', serviceId);
+  }
+
+  Future<void> setServiceStatus(String serviceId, String status) async {
+    await supabase.from('services').update({'status': status}).eq('service_id', serviceId);
+  }
+
+  Future<void> deleteService(String serviceId) async {
+    await supabase.from('services').delete().eq('service_id', serviceId);
+  }
+
+  Future<int> expireUnpaidServices() async {
+    final res = await supabase.rpc('expire_unpaid_services');
+    return (res as num?)?.toInt() ?? 0;
+  }
+
+  Future<void> bulkExtendServices(List<String> ids, int days) async {
+    for (final id in ids) {
+      await extendServiceExpiration(id, days);
+    }
+  }
+
+  Future<void> bulkAuthorizeServices(List<String> ids, bool auth) async {
+    await supabase.from('services').update({
+      'is_authorized': auth,
+      'authorization_paid_at': auth ? DateTime.now().toIso8601String() : null,
+      'authorization_expires_at': auth ? DateTime.now().add(const Duration(days: 30)).toIso8601String() : null,
+    }).inFilter('service_id', ids);
+  }
+
   // ---- Users ----------------------------------------------------------------
+  Future<List<AppUser>> fetchUsers() async {
+    final rows = await supabase.from('users').select().order('created_at', ascending: false);
+    return (rows as List)
+        .map((e) => AppUser.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<void> setUserSuspended(String userId, bool suspended) async {
+    await supabase
+        .from('users')
+        .update({'is_suspended': suspended}).eq('user_id', userId);
+  }
+
   // ---- Commission tiers -----------------------------------------------------
   Future<List<CommissionTier>> fetchCommissionTiers() async {
     final rows = await supabase
@@ -123,7 +297,24 @@ class AdminRepository {
         .toList();
   }
 
-  /// outcome ∈ {refund_buyer, partial_refund, release_seller}
+  Future<DisputeKpis> fetchDisputeKpis() async {
+    final rows = await supabase.from('disputes').select('status');
+    int open = 0, review = 0, resolved = 0;
+    for (final r in rows as List) {
+      switch (r['status'] as String?) {
+        case 'resolved':
+          resolved++;
+          break;
+        case 'under_review':
+          review++;
+          break;
+        default:
+          open++;
+      }
+    }
+    return DisputeKpis(open: open, underReview: review, resolved: resolved);
+  }
+
   Future<void> resolveDispute(
       String disputeId, String outcome, String? note) async {
     await supabase.rpc('resolve_dispute', params: {
@@ -133,28 +324,13 @@ class AdminRepository {
     });
   }
 
-  Future<List<AppUser>> fetchUsers() async {
-    final rows =
-    await supabase.from('users').select().order('created_at', ascending: false);
-    return (rows as List)
-        .map((e) => AppUser.fromMap(Map<String, dynamic>.from(e)))
-        .toList();
-  }
-
-  Future<void> setUserSuspended(String userId, bool suspended) async {
-    await supabase
-        .from('users')
-        .update({'is_suspended': suspended}).eq('user_id', userId);
-  }
-
   // ---- Reports --------------------------------------------------------------
   Future<PlatformReport> fetchReport() async {
     final campuses = await supabase.from('campuses').select('campus_id');
     final users = await supabase.from('users').select('role');
     final vendors = await supabase.from('vendors').select('approval_status');
     final products = await supabase.from('products').select('product_id');
-    final orders =
-    await supabase.from('orders').select('total_amount, order_status');
+    final orders = await supabase.from('orders').select('total_amount, order_status');
 
     int students = 0, vendorUsers = 0;
     for (final u in users as List) {
@@ -164,15 +340,9 @@ class AdminRepository {
     int approvedVendors = 0, pendingVendors = 0, suspendedVendors = 0;
     for (final v in vendors as List) {
       switch (v['approval_status']) {
-        case 'approved':
-          approvedVendors++;
-          break;
-        case 'pending':
-          pendingVendors++;
-          break;
-        case 'suspended':
-          suspendedVendors++;
-          break;
+        case 'approved': approvedVendors++; break;
+        case 'pending': pendingVendors++; break;
+        case 'suspended': suspendedVendors++; break;
       }
     }
     double gmv = 0;

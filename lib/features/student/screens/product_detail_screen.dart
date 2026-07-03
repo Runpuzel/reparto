@@ -14,6 +14,7 @@ import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_network_image.dart';
+import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/confirm_actions.dart';
 import '../../../core/widgets/sign_in_prompt.dart';
 import '../../../models/models.dart';
@@ -148,10 +149,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       ),
       body: productAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => ErrorState(
+          error: e,
+          onRetry: () => ref.invalidate(_productProvider(widget.productId)),
+        ),
         data: (p) {
           if (p == null) {
-            return const Center(child: Text('Product not found'));
+            return const EmptyState(
+              icon: Icons.inventory_2_outlined,
+              title: 'Product not found',
+            );
           }
           final gallery = p.gallery;
           return Column(

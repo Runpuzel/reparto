@@ -47,9 +47,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _name = TextEditingController(text: p?.productName ?? '');
     _description = TextEditingController(text: p?.description ?? '');
     _price = TextEditingController(text: p != null ? '${p.price}' : '');
-    _quantity =
-        TextEditingController(text: p != null ? '${p.quantityAvailable}' : '');
+    _quantity = TextEditingController(text: p != null ? '${p.quantityAvailable}' : '');
     _categoryId = p?.categoryId;
+    
+    // Initialize gallery with existing URLs
+    if (p != null) {
+      _gallery = p.gallery.map((u) => GalleryEntry.url(u)).toList();
+    }
   }
 
   @override
@@ -63,6 +67,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    
     final confirmed = await ConfirmActions.confirm(
       context,
       title: _isEdit ? 'Save changes?' : 'Add product?',
@@ -73,12 +78,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       icon: _isEdit ? Icons.save_outlined : Icons.add_box_outlined,
     );
     if (!confirmed) return;
+
     final vendor = await ref.read(currentVendorProvider.future);
     if (vendor == null) return;
+    
     setState(() => _loading = true);
     try {
-      // Upload any newly-picked images, preserving order. Existing URLs are
-      // kept as-is so we don't re-upload unchanged photos.
       final imageUrls = <String>[];
       for (final entry in _gallery) {
         if (entry.isNew) {
@@ -100,12 +105,15 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         'description': _description.text.trim(),
         'price': double.tryParse(_price.text.trim()) ?? 0,
         'quantity_available': int.tryParse(_quantity.text.trim()) ?? 0,
+        'image_url': imageUrls.isNotEmpty ? imageUrls.first : null,
       };
+
       await ref.read(vendorRepositoryProvider).upsertProduct(
         data,
         productId: widget.product?.productId,
         imageUrls: imageUrls,
       );
+
       ref.invalidate(myProductsProvider);
       if (mounted) {
         Navigator.pop(context);
@@ -118,30 +126,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  /// Live "Platform fee for this price" line under the price field (spec E2a).
-  Widget _liveFee() {
-    final scheme = Theme.of(context).colorScheme;
-    final pesewas = Money.parse(_price.text) ?? 0;
-    final tiers =
-        ref.watch(commissionTiersProvider).valueOrNull ?? Commission.defaults;
-    final campusId = ref.watch(currentUserProvider).valueOrNull?.campusId;
-    final fee = Commission.forPrice(pesewas, campusId: campusId, tiers: tiers);
-    return Row(
-      children: [
-        Icon(AppIcons.info, size: 15, color: scheme.onSurfaceVariant),
-        const SizedBox(width: AppSpacing.xs + 2),
-        Expanded(
-          child: Text(
-            pesewas <= 0
-                ? 'Free items have no platform fee.'
-                : 'Platform fee for this price: ${Money.format(fee)}',
-            style: AppTextStyles.bodySmall,
-          ),
-        ),
-      ],
-    );
   }
 
   @override
@@ -196,14 +180,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           controller: _price,
                           label: 'Price',
                           prefixIcon: AppIcons.price,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           onChanged: (_) => setState(() {}),
                           validator: (v) {
                             final d = double.tryParse(v ?? '');
-                            return (d == null || d < 0)
-                                ? 'Enter a valid price'
-                                : null;
+                            return (d == null || d < 0) ? 'Enter a valid price' : null;
                           },
                         ),
                       ),
@@ -216,15 +197,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           keyboardType: TextInputType.number,
                           validator: (v) {
                             final n = int.tryParse(v ?? '');
-                            return (n == null || n < 0)
-                                ? 'Enter a quantity'
-                                : null;
+                            return (n == null || n < 0) ? 'Enter a quantity' : null;
                           },
                         ),
                       ),
                     ]),
-                    const SizedBox(height: AppSpacing.sm),
-                    _liveFee(),
                     const SizedBox(height: AppSpacing.md),
                     AppTextField(
                       controller: _description,

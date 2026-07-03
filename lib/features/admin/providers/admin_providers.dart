@@ -5,7 +5,7 @@ import '../../../models/models.dart';
 import '../data/admin_repository.dart';
 
 final adminRepositoryProvider =
-Provider<AdminRepository>((ref) => AdminRepository());
+    Provider<AdminRepository>((ref) => AdminRepository());
 
 final allCampusesProvider = FutureProvider<List<Campus>>((ref) async {
   return ref.watch(adminRepositoryProvider).fetchAllCampuses();
@@ -32,10 +32,26 @@ final adminCategoriesProvider = FutureProvider<List<Category>>((ref) async {
 });
 
 final adminCommissionTiersProvider =
-FutureProvider<List<CommissionTier>>((ref) async {
+    FutureProvider<List<CommissionTier>>((ref) async {
   return ref.watch(adminRepositoryProvider).fetchCommissionTiers();
 });
 
 final adminDisputesProvider = FutureProvider<List<Dispute>>((ref) async {
   return ref.watch(adminRepositoryProvider).fetchDisputes();
+});
+
+// ---- Services (v1.0) ----
+
+final adminServicesProvider =
+    FutureProvider.family<List<Service>, AdminServiceQuery>((ref, query) async {
+  return ref.watch(adminRepositoryProvider).fetchServices(query);
+});
+
+final adminServiceKpisProvider = FutureProvider<ServiceKpis>((ref) async {
+  return ref.watch(adminRepositoryProvider).fetchServiceKpis();
+});
+
+final serviceBookingsProvider =
+    FutureProvider.family<List<dynamic>, String>((ref, serviceId) async {
+  return [];
 });

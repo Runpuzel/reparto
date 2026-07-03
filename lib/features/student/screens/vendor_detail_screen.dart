@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/supabase_client.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/common_widgets.dart';
 import '../../../models/models.dart';
 import '../providers/student_providers.dart';
 
@@ -43,9 +44,12 @@ class VendorDetailScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Vendor')),
       body: vendor.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => ErrorState(
+          error: e,
+          onRetry: () => ref.invalidate(_vendorProvider(vendorId)),
+        ),
         data: (v) {
-          if (v == null) return const Center(child: Text('Vendor not found'));
+          if (v == null) return const EmptyState(icon: Icons.storefront, title: 'Vendor not found');
           final revs = reviews.valueOrNull ?? [];
           final avg = revs.isEmpty
               ? 0.0

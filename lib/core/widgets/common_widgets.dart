@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../constants/app_constants.dart';
 import '../theme/app_theme.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../utils/app_error.dart';
 
 /// A reusable async-value renderer with consistent loading/error states.
 class AsyncView<T> extends StatelessWidget {
@@ -16,19 +17,34 @@ class AsyncView<T> extends StatelessWidget {
     return value.when(
       data: data,
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => ErrorState(message: '$e', onRetry: onRetry),
+      error: (e, _) => ErrorState(error: e, onRetry: onRetry),
     );
   }
 }
 
 class ErrorState extends StatelessWidget {
-  final String message;
+  final String? message;
+  final Object? error;
   final VoidCallback? onRetry;
-  const ErrorState({super.key, required this.message, this.onRetry});
+
+  const ErrorState({
+    super.key,
+    this.message,
+    this.error,
+    this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isOffline = AppError.isOffline(error ?? message);
+
+    // Ensure even if a technical string is passed in 'message', we show a friendly one.
+    final displayMessage = AppError.friendly(error ?? message);
+    
+    final icon = isOffline ? Icons.wifi_off_rounded : Icons.error_outline_rounded;
+    final title = isOffline ? 'No Internet Connection' : 'Something went wrong';
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -39,30 +55,32 @@ class ErrorState extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: scheme.error.withValues(alpha: 0.12),
+                color: (isOffline ? scheme.primary : scheme.error).withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.error_outline_rounded,
-                  size: 36, color: scheme.error),
+              child: Icon(icon,
+                  size: 36, color: isOffline ? scheme.primary : scheme.error),
             ),
             const SizedBox(height: 16),
-            Text('Something went wrong',
-                style: Theme.of(context).textTheme.titleMedium,
+            Text(title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center),
             const SizedBox(height: 6),
-            Text(message,
+            Text(displayMessage,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: scheme.onSurfaceVariant)),
+                style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4)),
             if (onRetry != null) ...[
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
+              const SizedBox(height: 24),
+              FilledButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Try again'),
-                style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 44),
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 20)),
+                icon: Icon(isOffline ? Icons.refresh : Icons.replay_rounded, size: 18),
+                label: Text(isOffline ? 'Try Reconnecting' : 'Try again'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(160, 48),
+                  backgroundColor: isOffline ? scheme.primary : null,
+                ),
               ),
             ],
           ],

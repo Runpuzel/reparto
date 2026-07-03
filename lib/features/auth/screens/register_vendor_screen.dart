@@ -1,3 +1,8 @@
+// lib/features/auth/screens/register_vendor_screen.dart
+// UPDATED – v1.0-2025-07 – Frictionless onboarding
+// REMOVED: Ghana Card fields (moved to post-registration IdentityVerificationScreen)
+// ADDED: SellerAgreement redirect gate
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -24,116 +29,118 @@ class RegisterVendorScreen extends ConsumerStatefulWidget {
   const RegisterVendorScreen({super.key});
 
   @override
-  ConsumerState<RegisterVendorScreen> createState() =>
-      _RegisterVendorScreenState();
+  ConsumerState<RegisterVendorScreen> createState() => RegisterVendorScreenState();
 }
 
-class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _business = TextEditingController();
-  final _owner = TextEditingController();
-  final _phone = TextEditingController();
-  final _businessPhone = TextEditingController();
-  final _momo = TextEditingController();
-  final _ghanaCard = TextEditingController();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  String? _campusId;
-  String _momoNetwork = 'MTN';
-  bool _obscure = true;
-  bool _loading = false;
+class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
+  final formKey = GlobalKey<FormState>();
+  final business = TextEditingController();
+  final owner = TextEditingController();
+  final phone = TextEditingController();
+  final businessPhone = TextEditingController();
+  final momo = TextEditingController();
+  final email = TextEditingController();
+  final password = TextEditingController();
+  String? campusId;
+  String momoNetwork = 'MTN';
+  bool obscure = true;
+  bool loading = false;
+  bool agreeTerms = false;
 
-  PickedImage? _logo;
-  PickedImage? _ghanaCardImage;
+  PickedImage? logo;
+  // REMOVED in v1.0: ghanaCard, ghanaCardImage
 
-  final _storage = StorageService();
+  final storage = StorageService();
 
   @override
   void dispose() {
-    _business.dispose();
-    _owner.dispose();
-    _phone.dispose();
-    _businessPhone.dispose();
-    _momo.dispose();
-    _ghanaCard.dispose();
-    _email.dispose();
-    _password.dispose();
+    business.dispose();
+    owner.dispose();
+    phone.dispose();
+    businessPhone.dispose();
+    momo.dispose();
+    email.dispose();
+    password.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_campusId == null) {
-      _snack('Please select your campus');
+  Future<void> submit() async {
+    if (!formKey.currentState!.validate()) return;
+    if (campusId == null) {
+      snack('Please select your campus');
       return;
     }
-    if (_ghanaCardImage == null) {
-      _snack('Please upload a photo of your Ghana Card');
+    if (!agreeTerms) {
+      snack('Please accept the Seller Terms to continue');
       return;
     }
-    setState(() => _loading = true);
+    setState(() => loading = true);
     final repo = ref.read(authRepositoryProvider);
     try {
-      final res = await repo.signUpVendor(
-        businessName: _business.text.trim(),
-        ownerName: _owner.text.trim(),
-        phoneNumber: _phone.text.trim(),
-        businessPhone: _businessPhone.text.trim(),
-        momoNumber: _momo.text.trim(),
-        momoNetwork: _momoNetwork,
-        ghanaCardNumber: _ghanaCard.text.trim().toUpperCase(),
-        email: _email.text.trim(),
-        password: _password.text,
-        campusId: _campusId!,
-      );
+      // v1.0 signUpVendor – NO ghana card params
+      // TODO Phase 5: update auth_repository.signUpVendor signature to remove KYC args
+      final res = await (repo.signUpVendorV1?.call(
+        businessName: business.text.trim(),
+        ownerName: owner.text.trim(),
+        phoneNumber: phone.text.trim(),
+        businessPhone: businessPhone.text.trim(),
+        momoNumber: momo.text.trim(),
+        momoNetwork: momoNetwork,
+        email: email.text.trim(),
+        password: password.text,
+        campusId: campusId!,
+      ) ?? repo.signUpVendor(
+        businessName: business.text.trim(),
+        ownerName: owner.text.trim(),
+        phoneNumber: phone.text.trim(),
+        businessPhone: businessPhone.text.trim(),
+        momoNumber: momo.text.trim(),
+        momoNetwork: momoNetwork,
+        // LEGACY COMPAT – pass empty – remove in Phase 5
+        ghanaCardNumber: '',
+        email: email.text.trim(),
+        password: password.text,
+        campusId: campusId!,
+      ));
 
-      // If a session exists immediately (email confirmation off), upload the
-      // images and complete the vendor record now.
-      if (res.session != null && currentAuthUser != null) {
-        String? logoUrl;
-        String? cardPath;
-        if (_logo != null) {
-          logoUrl = await _storage.upload(
-            bucket: StorageService.businessLogos,
-            bytes: _logo!.bytes,
-            fileName: _logo!.name,
-          );
-        }
-        cardPath = await _storage.upload(
-          bucket: StorageService.kycDocuments,
-          bytes: _ghanaCardImage!.bytes,
-          fileName: _ghanaCardImage!.name,
-          publicUrl: false,
+      // Upload logo if session exists
+      if (res.session != null && currentAuthUser != null && logo != null) {
+        final logoUrl = await storage.upload(
+          bucket: StorageService.businessLogos,
+          bytes: logo!.bytes,
+          fileName: logo!.name,
         );
+        // Phase 5: update vendor logo via vendorRepository.updateStoreDetails
         await repo.createVendorRecord(
-          businessName: _business.text.trim(),
-          ownerName: _owner.text.trim(),
-          phoneNumber: _phone.text.trim(),
-          businessPhone: _businessPhone.text.trim(),
-          momoNumber: _momo.text.trim(),
-          momoNetwork: _momoNetwork,
-          ghanaCardNumber: _ghanaCard.text.trim().toUpperCase(),
-          campusId: _campusId!,
+          businessName: business.text.trim(),
+          ownerName: owner.text.trim(),
+          phoneNumber: phone.text.trim(),
+          businessPhone: businessPhone.text.trim(),
+          momoNumber: momo.text.trim(),
+          momoNetwork: momoNetwork,
+          ghanaCardNumber: '', // v1.0 – KYC post-registration
+          campusId: campusId!,
           logoUrl: logoUrl,
-          ghanaCardImageUrl: cardPath,
+          ghanaCardImageUrl: null, // removed
         );
       }
 
       if (!mounted) return;
       ref.invalidate(currentUserProvider);
-      _snack(
-        'Application submitted! Verify your email. An admin will review your business.',
+      snack(
+        'Welcome! Complete your Seller Agreement to start selling.',
         success: true,
       );
-      context.go('/login');
+      // v1.0 redirect: Seller Agreement gate, NOT /login
+      context.go('/vendor/agreement');
     } catch (e) {
-      _snack(AppError.friendly(e));
+      snack(AppError.friendly(e));
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
-  void _snack(String msg, {bool success = false}) {
+  void snack(String msg, {bool success = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
@@ -157,14 +164,14 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: Form(
-                key: _formKey,
+                key: formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _InfoBanner(),
+                    const InfoBannerV1(),
                     const SizedBox(height: AppSpacing.lg),
 
-                    const _SectionLabel('Business identity'),
+                    const SectionLabel('Business identity'),
                     const SizedBox(height: AppSpacing.sm + 4),
                     Center(
                       child: SizedBox(
@@ -174,13 +181,13 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                           icon: Icons.storefront_outlined,
                           height: 110,
                           circle: true,
-                          onPicked: (p) => _logo = p,
+                          onPicked: (p) => logo = p,
                         ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     AppTextField(
-                      controller: _business,
+                      controller: business,
                       label: 'Business Name',
                       prefixIcon: AppIcons.storefront,
                       validator: (v) =>
@@ -188,7 +195,7 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     AppTextField(
-                      controller: _owner,
+                      controller: owner,
                       label: 'Owner Name',
                       prefixIcon: AppIcons.user,
                       validator: (v) => Validators.required(v, 'Owner name'),
@@ -197,7 +204,7 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                     AsyncView<List<Campus>>(
                       value: campuses,
                       data: (list) => DropdownButtonFormField<String>(
-                        value: _campusId,
+                        value: campusId,
                         isExpanded: true,
                         decoration: InputDecoration(
                           labelText: 'Campus',
@@ -207,15 +214,15 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                             .map((c) => DropdownMenuItem(
                             value: c.campusId, child: Text(c.campusName)))
                             .toList(),
-                        onChanged: (v) => setState(() => _campusId = v),
+                        onChanged: (v) => setState(() => campusId = v),
                       ),
                     ),
 
                     const SizedBox(height: AppSpacing.lg),
-                    const _SectionLabel('Contact numbers'),
+                    const SectionLabel('Contact numbers'),
                     const SizedBox(height: AppSpacing.sm + 4),
                     AppTextField(
-                      controller: _phone,
+                      controller: phone,
                       label: 'Personal Phone Number',
                       prefixIcon: AppIcons.phone,
                       keyboardType: TextInputType.phone,
@@ -223,7 +230,7 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     AppTextField(
-                      controller: _businessPhone,
+                      controller: businessPhone,
                       label: 'Business Phone Number',
                       prefixIcon: AppIcons.phoneBusiness,
                       keyboardType: TextInputType.phone,
@@ -231,7 +238,7 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                     ),
 
                     const SizedBox(height: AppSpacing.lg),
-                    const _SectionLabel('Mobile money (for payouts)'),
+                    const SectionLabel('Mobile money (for payouts)'),
                     const SizedBox(height: AppSpacing.sm + 4),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,7 +246,7 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                         SizedBox(
                           width: 130,
                           child: DropdownButtonFormField<String>(
-                            value: _momoNetwork,
+                            value: momoNetwork,
                             decoration:
                             const InputDecoration(labelText: 'Network'),
                             items: const [
@@ -252,13 +259,13 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                                   child: Text('AirtelTigo')),
                             ],
                             onChanged: (v) =>
-                                setState(() => _momoNetwork = v ?? 'MTN'),
+                                setState(() => momoNetwork = v ?? 'MTN'),
                           ),
                         ),
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: AppTextField(
-                            controller: _momo,
+                            controller: momo,
                             label: 'MoMo Number',
                             prefixIcon: AppIcons.wallet,
                             keyboardType: TextInputType.phone,
@@ -268,35 +275,14 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: AppSpacing.lg),
-                    const _SectionLabel('Identity verification (Ghana Card)'),
-                    const SizedBox(height: AppSpacing.sm + 4),
-                    AppTextField(
-                      controller: _ghanaCard,
-                      label: 'Ghana Card Number',
-                      hint: 'GHA-123456789-0',
-                      prefixIcon: AppIcons.badge,
-                      inputFormatters: [UpperCaseTextFormatter()],
-                      validator: Validators.ghanaCard,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    ImageUploadField(
-                      label: 'Ghana Card photo',
-                      icon: Icons.badge_outlined,
-                      onPicked: (p) => _ghanaCardImage = p,
-                    ),
-                    const SizedBox(height: AppSpacing.xs + 2),
-                    Text(
-                      'Your card photo is stored privately and only visible to '
-                          'administrators for verification.',
-                      style: AppTextStyles.bodySmall,
-                    ),
+                    // REMOVED v1.0: Identity verification (Ghana Card) section
+                    // → moved to /vendor/settings/verification post-registration
 
                     const SizedBox(height: AppSpacing.lg),
-                    const _SectionLabel('Account'),
+                    const SectionLabel('Account'),
                     const SizedBox(height: AppSpacing.sm + 4),
                     AppTextField(
-                      controller: _email,
+                      controller: email,
                       label: 'Email',
                       prefixIcon: AppIcons.email,
                       keyboardType: TextInputType.emailAddress,
@@ -304,23 +290,37 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     AppTextField(
-                      controller: _password,
+                      controller: password,
                       label: 'Password',
                       helper: '8+ chars, 1 number, 1 uppercase',
                       prefixIcon: AppIcons.lock,
-                      obscureText: _obscure,
-                      suffixIcon: _obscure ? AppIcons.eyeOff : AppIcons.eye,
-                      onSuffixTap: () => setState(() => _obscure = !_obscure),
+                      obscureText: obscure,
+                      suffixIcon: obscure ? AppIcons.eyeOff : AppIcons.eye,
+                      onSuffixTap: () => setState(() => obscure = !obscure),
                       validator: Validators.password,
                     ),
+
+                    const SizedBox(height: AppSpacing.md),
+                    // NEW v1.0 – pre-consent checkbox (full agreement still at /vendor/agreement)
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      value: agreeTerms,
+                      onChanged: (v) => setState(() => agreeTerms = v ?? false),
+                      title: const Text(
+                        'I agree to the Seller Terms and Privacy Policy (v1.0). Full Seller Agreement will be shown after sign-up.',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+
                     const SizedBox(height: AppSpacing.lg),
                     AppButton(
-                      label: _loading
-                          ? 'Submitting…'
-                          : 'Submit Application',
-                      icon: _loading ? null : AppIcons.shield,
-                      loading: _loading,
-                      onPressed: _submit,
+                      label: loading
+                          ? 'Creating account…'
+                          : 'Create Seller Account',
+                      icon: loading ? null : AppIcons.shield,
+                      loading: loading,
+                      onPressed: submit,
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     TextButton(
@@ -341,9 +341,9 @@ class _RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
+class SectionLabel extends StatelessWidget {
   final String text;
-  const _SectionLabel(this.text);
+  const SectionLabel(this.text, {super.key});
   @override
   Widget build(BuildContext context) {
     return Text(
@@ -357,8 +357,8 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _InfoBanner extends StatelessWidget {
-  const _InfoBanner();
+class InfoBannerV1 extends StatelessWidget {
+  const InfoBannerV1({super.key});
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -366,15 +366,15 @@ class _InfoBanner extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: scheme.secondaryContainer.withValues(alpha: 0.5),
-        borderRadius: AppRadius.brLg,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(children: [
         Icon(AppIcons.info, size: 20, color: scheme.onSecondaryContainer),
         const SizedBox(width: AppSpacing.sm + 2),
         Expanded(
           child: Text(
-            'Student Seller accounts require admin approval before you can '
-                'list products.',
+            'v1.0 – Start selling in 60 seconds. '
+                'ID verification (Ghana Card or Student ID) is post-registration in Settings – unlocks prepayment & verified badge.',
             style: AppTextStyles.bodySmall
                 .copyWith(color: scheme.onSecondaryContainer),
           ),
@@ -384,14 +384,20 @@ class _InfoBanner extends StatelessWidget {
   }
 }
 
-/// Forces text input to uppercase (for the Ghana Card field).
-class UpperCaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    return TextEditingValue(
-      text: newValue.text.toUpperCase(),
-      selection: newValue.selection,
-    );
-  }
+// --- Phase 5 compatibility shims ---
+// These extensions let the v1.0 UI compile against the legacy auth_repository
+// Remove once auth_repository.signUpVendor is refactored to signUpVendorV1
+extension AuthRepoV1X on dynamic {
+  // ignore: non_constant_identifier_names
+  dynamic Function({
+  required String businessName,
+  required String ownerName,
+  required String phoneNumber,
+  required String businessPhone,
+  required String momoNumber,
+  required String momoNetwork,
+  required String email,
+  required String password,
+  required String campusId,
+  })? get signUpVendorV1 => null;
 }

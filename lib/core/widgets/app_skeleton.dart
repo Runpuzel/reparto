@@ -60,18 +60,21 @@ class SkeletonList extends StatelessWidget {
     this.itemCount = 6,
     this.itemHeight = 84,
     this.padding = const EdgeInsets.all(AppSpacing.md),
+    this.shrinkWrap = false,
   });
 
   final int itemCount;
   final double itemHeight;
   final EdgeInsetsGeometry padding;
+  final bool shrinkWrap;
 
   @override
   Widget build(BuildContext context) {
     return AppShimmer(
       child: ListView.separated(
         padding: padding,
-        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: shrinkWrap,
+        physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
         itemCount: itemCount,
         separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
         itemBuilder: (_, __) => Row(
@@ -101,40 +104,59 @@ class SkeletonGrid extends StatelessWidget {
     super.key,
     this.itemCount = 6,
     this.padding = const EdgeInsets.all(AppSpacing.md),
+    this.shrinkWrap = false,
+    this.crossAxisCount = 2,
+    this.childAspectRatio = 0.66,
   });
 
   final int itemCount;
   final EdgeInsetsGeometry padding;
+  final bool shrinkWrap;
+  final int crossAxisCount;
+  final double childAspectRatio;
 
   @override
   Widget build(BuildContext context) {
     return AppShimmer(
       child: GridView.builder(
         padding: padding,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+        shrinkWrap: shrinkWrap,
+        physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
           mainAxisSpacing: AppSpacing.md,
           crossAxisSpacing: AppSpacing.md,
-          childAspectRatio: 0.72,
+          childAspectRatio: childAspectRatio,
         ),
         itemCount: itemCount,
-        itemBuilder: (_, __) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Expanded(
-              child: SkeletonBox(
-                  width: double.infinity,
-                  height: double.infinity,
-                  radius: AppRadius.lg),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            SkeletonBox(width: double.infinity, height: 12),
-            const SizedBox(height: 6),
-            const SkeletonBox(width: 80, height: 12),
-          ],
-        ),
+        itemBuilder: (_, __) => const SkeletonProductCard(),
       ),
+    );
+  }
+}
+
+/// Skeleton for a single product card.
+class SkeletonProductCard extends StatelessWidget {
+  const SkeletonProductCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Expanded(
+          child: SkeletonBox(
+              width: double.infinity,
+              height: double.infinity,
+              radius: AppRadius.lg),
+        ),
+        const SizedBox(height: 10),
+        const SkeletonBox(width: double.infinity, height: 14),
+        const SizedBox(height: 6),
+        const SkeletonBox(width: 120, height: 12),
+        const SizedBox(height: 10),
+        const SkeletonBox(width: 70, height: 18),
+      ],
     );
   }
 }
