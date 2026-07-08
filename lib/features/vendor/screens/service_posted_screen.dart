@@ -21,7 +21,6 @@ import '../../../core/widgets/consent_dialog.dart';
 import '../../../models/models.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../providers/vendor_providers.dart';
-import 'vendor_products_screen.dart';
 
 /// Fetches a specific service from the current vendor's list.
 final serviceByIdProvider = FutureProvider.family<Service?, String>((ref, id) async {
@@ -83,7 +82,7 @@ class _ServicePostedScreenState extends ConsumerState<ServicePostedScreen> {
   @override
   Widget build(BuildContext context) {
     final serviceAsync = ref.watch(serviceByIdProvider(widget.serviceId));
-    final platformAsync = ref.watch(platformSettingsProvider);
+    final platformAsync = ref.watch(vendorPlatformSettingsProvider);
     final vendor = ref.watch(currentVendorProvider).valueOrNull;
     final scheme = Theme.of(context).colorScheme;
 
@@ -174,7 +173,23 @@ class _ServicePostedScreenState extends ConsumerState<ServicePostedScreen> {
                     ref: ref,
                   );
                   if (ok && context.mounted) {
-                    ConfirmActions.toast(context, 'Payment system launching in Phase 4');
+                    try {
+                      await ref
+                          .read(vendorRepositoryProvider)
+                          .authorizeService(s.serviceId);
+                      ref.invalidate(serviceByIdProvider(s.serviceId));
+                      ref.invalidate(myServicesProvider);
+                      ref.invalidate(vendorWalletProvider);
+                      if (context.mounted) {
+                        ConfirmActions.toast(
+                            context, 'Service authorized successfully',
+                            success: true);
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ConfirmActions.showError(context, e);
+                      }
+                    }
                   }
                 },
               ),
@@ -403,7 +418,15 @@ class _InteractivePreview extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8),
             color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            child: const Center(child: Text('Tap to view Student Page', style: TextStyle(fontSize: 11, color: Colors.grey))),
+            child: Center(
+              child: Text(
+                'Tap to view Student Page',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
           ),
         ],
       ),

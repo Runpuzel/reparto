@@ -33,7 +33,6 @@ class AuthRepository {
   Future<AuthResponse> signUpVendor({
     required String businessName,
     required String ownerName,
-    required String phoneNumber,
     required String businessPhone,
     required String momoNumber,
     required String momoNetwork,
@@ -51,7 +50,9 @@ class AuthRepository {
         'role': 'vendor',
         'campus_id': campusId,
         'business_name': businessName,
-        'phone_number': phoneNumber,
+        // Keep the legacy contact column aligned without asking applicants for
+        // a second, personal number.
+        'phone_number': businessPhone,
         'business_phone': businessPhone,
         'momo_number': momoNumber,
         'momo_network': momoNetwork,
@@ -153,11 +154,16 @@ class AuthRepository {
         .update({'campus_id': campusId}).eq('user_id', uid);
   }
 
+  /// Upgrade the signed-in student account to a Student Seller while keeping
+  /// the same buyer identity, cart, favorites, and order history.
+  Future<void> becomeStudentSeller() async {
+    await supabase.rpc('become_student_seller');
+  }
+
   /// Create / update the vendor business record (after the user account exists).
   Future<void> createVendorRecord({
     required String businessName,
     required String ownerName,
-    required String phoneNumber,
     required String businessPhone,
     required String momoNumber,
     required String momoNetwork,
@@ -172,7 +178,7 @@ class AuthRepository {
       'user_id': uid,
       'business_name': businessName,
       'owner_name': ownerName,
-      'phone_number': phoneNumber,
+      'phone_number': businessPhone,
       'business_phone': businessPhone,
       'momo_number': momoNumber,
       'momo_network': momoNetwork,

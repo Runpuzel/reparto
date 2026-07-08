@@ -5,7 +5,6 @@ import '../../../core/services/storage_service.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/utils/commission.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_button.dart';
@@ -30,6 +29,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _description;
+  late final TextEditingController _brand;
+  late final TextEditingController _specifications;
+  String _condition = 'new';
   late final TextEditingController _price;
   late final TextEditingController _quantity;
   String? _categoryId;
@@ -40,12 +42,20 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   bool get _isEdit => widget.product != null;
 
+  int get _pricePesewas => Money.parse(_price.text.trim()) ?? 0;
+
+  int _feePesewas(PlatformSetting settings) =>
+      (_pricePesewas * settings.platformFeeSellerPercent / 100).round();
+
   @override
   void initState() {
     super.initState();
     final p = widget.product;
     _name = TextEditingController(text: p?.productName ?? '');
     _description = TextEditingController(text: p?.description ?? '');
+    _brand = TextEditingController(text: p?.brand ?? '');
+    _specifications = TextEditingController(text: p?.specifications ?? '');
+    _condition = p?.itemCondition ?? 'new';
     _price = TextEditingController(text: p != null ? '${p.price}' : '');
     _quantity = TextEditingController(text: p != null ? '${p.quantityAvailable}' : '');
     _categoryId = p?.categoryId;
@@ -60,6 +70,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   void dispose() {
     _name.dispose();
     _description.dispose();
+    _brand.dispose();
+    _specifications.dispose();
     _price.dispose();
     _quantity.dispose();
     super.dispose();
@@ -67,13 +79,17 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final settings = await ref.read(marketplaceSettingsProvider.future);
+    final fee = _feePesewas(settings);
+    final earnings = (_pricePesewas - fee).clamp(0, _pricePesewas);
     
     final confirmed = await ConfirmActions.confirm(
       context,
       title: _isEdit ? 'Save changes?' : 'Add product?',
       message: _isEdit
-          ? 'Update this product with your changes?'
-          : 'Publish this product to your shop?',
+          ? 'Update this product?\n\nAdmin deduction per sale: ${Money.format(fee)}\nYour earnings per sale: ${Money.format(earnings)}'
+          : 'Publish this product to your shop?\n\nAdmin deduction per sale: ${Money.format(fee)}\nYour earnings per sale: ${Money.format(earnings)}',
       confirmLabel: _isEdit ? 'Save' : 'Add product',
       icon: _isEdit ? Icons.save_outlined : Icons.add_box_outlined,
     );
@@ -115,6 +131,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         'category_id': _categoryId,
         'product_name': _name.text.trim(),
         'description': _description.text.trim(),
+        'brand': _brand.text.trim().isEmpty ? null : _brand.text.trim(),
+        'item_condition': _condition,
+        'specifications': _specifications.text.trim().isEmpty
+            ? null : _specifications.text.trim(),
         'price': double.tryParse(_price.text.trim()) ?? 0,
         'quantity_available': int.tryParse(_quantity.text.trim()) ?? 0,
         'image_url': imageUrls.isNotEmpty ? imageUrls.first : null,
@@ -215,9 +235,72 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                       ),
                     ]),
                     const SizedBox(height: AppSpacing.md),
+                    Consumer(builder: (context, ref, _) {
+                      final settings = ref.watch(marketplaceSettingsProvider);
+                      return AsyncView<PlatformSetting>(
+                        value: settings,
+                        data: (value) {
+                          final fee = _feePesewas(value);
+                          final earnings =
+                              (_pricePesewas - fee).clamp(0, _pricePesewas);
+                          return Container(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer
+                                  .withValues(alpha: 0.45),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text('Earnings per sale',
+                                    style: AppTextStyles.titleSmall),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text('Admin deduction (${value.platformFeeSellerPercent.toStringAsFixed(1)}%): ${Money.format(fee)}'),
+                                const SizedBox(height: 4),
+                                Text('You receive: ${Money.format(earnings)}',
+                                    style: AppTextStyles.titleSmall.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary)),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    }),
+                    const SizedBox(height: AppSpacing.md),
                     AppTextField(
                       controller: _description,
                       label: 'Description (optional)',
+                      maxLines: 4,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
+                      controller: _brand,
+                      label: 'Brand (optional)',
+                      prefixIcon: Icons.branding_watermark_outlined,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    DropdownButtonFormField<String>(
+                      value: _condition,
+                      decoration: const InputDecoration(
+                          labelText: 'Condition',
+                          prefixIcon: Icon(Icons.verified_outlined)),
+                      items: const [
+                        DropdownMenuItem(value: 'new', child: Text('New')),
+                        DropdownMenuItem(value: 'used_like_new', child: Text('Used – like new')),
+                        DropdownMenuItem(value: 'used_good', child: Text('Used – good')),
+                        DropdownMenuItem(value: 'used_fair', child: Text('Used – fair')),
+                      ],
+                      onChanged: (v) => setState(() => _condition = v ?? 'new'),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
+                      controller: _specifications,
+                      label: 'More details (size, colour, model, etc.)',
                       maxLines: 4,
                     ),
                     const SizedBox(height: AppSpacing.lg),

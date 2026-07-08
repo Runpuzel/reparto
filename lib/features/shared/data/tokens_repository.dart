@@ -30,8 +30,4 @@ class TokensRepository {
         .rpc('redeem_listing_boost', params: {'p_product': productId});
   }
 
-  Future<void> redeemCommissionDiscount(String productId) async {
-    await supabase
-        .rpc('redeem_commission_discount', params: {'p_product': productId});
-  }
 }

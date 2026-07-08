@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../utils/app_error.dart';
 
 /// Reusable helpers for confirmation dialogs, undoable actions and consistent
-/// success / error feedback across Reparto.
+/// Success and error feedback across UjustBUY.
 class ConfirmActions {
   /// Shows a confirmation dialog. Returns true if the user confirms.
   static Future<bool> confirm(

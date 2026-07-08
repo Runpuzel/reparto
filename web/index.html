@@ -4,24 +4,25 @@
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="UjustBUY">
+  <meta name="description" content="Buy and sell products and services on your campus with UjustBUY.">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Passkeys Web SDK (Corbado) - Required for the passkeys_web plugin -->
-  <script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js" type="text/javascript"></script>
 
   <title>UjustBUY</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="app_icon.png"/>
 
   <style>
-    body { margin: 0; background: #FFFFFF; overflow: hidden; }
+    body { margin: 0; background: #F6F3F5; overflow: hidden; }
     #loading {
       position: fixed; inset: 0; display: flex; align-items: center;
       justify-content: center; flex-direction: column; font-family: sans-serif;
-      color: #0E6E74; background: white; z-index: 9999;
+      color: #8E153E; background: #F6F3F5; z-index: 9999;
     }
     #loading img { width: 80px; height: auto; margin-bottom: 20px; }
+    @media (prefers-color-scheme: dark) {
+      body, #loading { background: #120F11; }
+      #loading { color: #8E153E; }
+    }
   </style>
 </head>
 <body>
@@ -30,6 +31,8 @@
     <p>Loading UjustBUY…</p>
   </div>
 
+  <!-- Required by passkeys_web. Load it before Flutter initializes plugins. -->
+  <script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 
   <script>

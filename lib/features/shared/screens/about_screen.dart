@@ -2,8 +2,6 @@
 // v1.0-2025-07 – Refactored – focused About (Developer split out)
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_icons.dart';
@@ -49,7 +47,7 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm + 4),
                 Text(
-                  'Campus Marketplace',
+                  'UjustBUY',
                   style: AppTextStyles.headlineSmall.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -79,8 +77,8 @@ class AboutScreen extends StatelessWidget {
                   .copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Campus Marketplace connects Ghanaian student sellers with student buyers – '
-                'right on campus. Built in Kumasi for students, by students.\n\n'
+            'UjustBUY connects Ghanaian student sellers with student buyers – '
+                'right on campus. Built for students, by students.\n\n'
                 'We believe every student side-hustle deserves trust, discoverability, '
                 'and safe payments.',
             style: AppTextStyles.bodyMedium.copyWith(height: 1.5),
@@ -135,8 +133,8 @@ class AboutScreen extends StatelessWidget {
                   context,
                   icon: Icons.description_outlined,
                   label: 'Terms of Service',
-                  onTap: () => _openUrl(
-                      context, 'https://campusmarketplace.gh/terms'),
+                  onTap: () => _showLegal(context, 'Terms of Service',
+                      'Use UjustBUY lawfully and honestly. Keep orders, payments, and communication inside the app. Sellers must describe items accurately and fulfil accepted orders. Fraud, unsafe items, harassment, and attempts to bypass platform protections may result in suspension.'),
                 ),
                 const Divider(height: 1),
                 _linkTile(
@@ -144,33 +142,16 @@ class AboutScreen extends StatelessWidget {
                   icon: Icons.privacy_tip_outlined,
                   label: 'Privacy Policy',
                   subtitle: 'DPA 2012 compliant',
-                  onTap: () => _openUrl(
-                      context, 'https://campusmarketplace.gh/privacy'),
+                  onTap: () => _showLegal(context, 'Privacy Policy',
+                      'UjustBUY processes account, order, payment, and verification information only to operate and protect the marketplace. Identity documents are restricted to authorised review and handled under Ghana\'s Data Protection Act, 2012 (Act 843).'),
                 ),
-                const Divider(height: 1),
-                _linkTile(
-                  context,
-                  icon: Icons.gavel_outlined,
-                  label: 'Seller Agreement v1.0',
-                  onTap: () => context.push('/vendor/agreement'),
-                ),
-                const Divider(height: 1),
                 _linkTile(
                   context,
                   icon: Icons.support_agent_outlined,
                   label: 'Help & Support',
-                  subtitle: 'help@campusmarketplace.gh',
-                  onTap: () => _openUrl(
-                      context, 'mailto:help@campusmarketplace.gh'),
-                ),
-                const Divider(height: 1),
-                _linkTile(
-                  context,
-                  icon: Icons.code,
-                  label: 'Developer Info',
-                  subtitle: 'Build info, API, open source →',
-                  onTap: () => context.push('/profile/developer'),
-                  emphasized: true,
+                  subtitle: AppConstants.devEmail,
+                  onTap: () => _showLegal(context, 'Help & Support',
+                      'For account, order, payment, or verification assistance, email ${AppConstants.devEmail}. Include your order reference when asking about an order. Please never send passwords or passcodes.'),
                 ),
               ],
             ),
@@ -187,11 +168,10 @@ class AboutScreen extends StatelessWidget {
             spacing: 8,
             runSpacing: 6,
             children: const [
-              Chip(label: Text('KNUST', style: TextStyle(fontSize: 12))),
-              Chip(label: Text('UG', style: TextStyle(fontSize: 12))),
-              Chip(label: Text('UCC', style: TextStyle(fontSize: 12))),
-              Chip(label: Text('UDS', style: TextStyle(fontSize: 12))),
-              Chip(label: Text('+ more', style: TextStyle(fontSize: 12))),
+              Chip(label: Text('USTED-K', style: TextStyle(fontSize: 12))),
+              Chip(
+                  label:
+                      Text('USTED-MAMPONG', style: TextStyle(fontSize: 12))),
             ],
           ),
 
@@ -200,7 +180,7 @@ class AboutScreen extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'Made with ♥ in Kumasi, Ghana',
+                  'Made with ♥ in Ghana',
                   style: AppTextStyles.bodyMedium
                       .copyWith(fontWeight: FontWeight.w600),
                 ),
@@ -209,14 +189,6 @@ class AboutScreen extends StatelessWidget {
                   '© ${2025} ${AppConstants.devBusinessName}',
                   style: AppTextStyles.bodySmall
                       .copyWith(color: scheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => context.push('/profile/developer'),
-                  child: const Text(
-                    'Technical details → Developer screen',
-                    style: TextStyle(fontSize: 12),
-                  ),
                 ),
               ],
             ),
@@ -252,15 +224,19 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _openUrl(BuildContext context, String url) async {
-    try {
-      final ok = await launchUrl(Uri.parse(url),
-          mode: LaunchMode.externalApplication);
-      if (!ok && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open link')),
-        );
-      }
-    } catch (_) {}
+  Future<void> _showLegal(
+      BuildContext context, String title, String content) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(child: Text(content)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close')),
+        ],
+      ),
+    );
   }
 }

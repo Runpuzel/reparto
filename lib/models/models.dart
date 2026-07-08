@@ -249,6 +249,9 @@ class Product {
   final String? categoryId;
   final String productName;
   final String? description;
+  final String? brand;
+  final String? itemCondition;
+  final String? specifications;
   final double price;
   final int quantityAvailable;
   final String? imageUrl;
@@ -262,6 +265,9 @@ class Product {
     this.categoryId,
     required this.productName,
     this.description,
+    this.brand,
+    this.itemCondition,
+    this.specifications,
     required this.price,
     required this.quantityAvailable,
     this.imageUrl,
@@ -294,6 +300,9 @@ class Product {
       categoryId: m['category_id'] as String?,
       productName: (m['product_name'] as String?) ?? '',
       description: m['description'] as String?,
+      brand: m['brand'] as String?,
+      itemCondition: m['item_condition'] as String?,
+      specifications: m['specifications'] as String?,
       price: toDouble(m['price']),
       quantityAvailable: toInt(m['quantity_available']),
       imageUrl: m['image_url'] as String?,
@@ -308,6 +317,9 @@ class Product {
     'category_id': categoryId,
     'product_name': productName,
     'description': description,
+    'brand': brand,
+    'item_condition': itemCondition,
+    'specifications': specifications,
     'price': price,
     'quantity_available': quantityAvailable,
     'image_url': imageUrl,

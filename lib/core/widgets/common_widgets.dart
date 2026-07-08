@@ -147,10 +147,10 @@ class EmptyState extends StatelessWidget {
 }
 
 /// Brand logo lockup used in headers / auth screens.
-class RepartoLogo extends StatelessWidget {
+class UjustBuyLogo extends StatelessWidget {
   final double size;
   final bool showText;
-  const RepartoLogo({super.key, this.size = 48, this.showText = true});
+  const UjustBuyLogo({super.key, this.size = 48, this.showText = true});
 
   @override
   Widget build(BuildContext context) {

@@ -99,21 +99,24 @@ class _ConsentDialogState extends State<_ConsentDialog> {
     super.initState();
     _checks = List.filled(widget.requiredCheckboxes.length, false);
     if (widget.scrollToAccept) {
-      _scrollCtrl.addListener(() {
-        if (!_scrollCtrl.hasClients) return;
-        final max = _scrollCtrl.position.maxScrollExtent;
-        final off = _scrollCtrl.position.pixels;
-        final pct = max <= 0 ? 1.0 : (off / max).clamp(0.0, 1.0);
-        if ((pct - _readPct).abs() > 0.01) {
-          setState(() => _readPct = pct);
-        }
-      });
+      _scrollCtrl.addListener(_updateReadProgress);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _updateReadProgress());
     } else {
       _readPct = 1.0;
     }
     Stream.periodic(const Duration(seconds: 1)).take(900).listen((i) {
       if (mounted) setState(() => _seconds = i + 1);
     });
+  }
+
+  void _updateReadProgress() {
+    if (!mounted || !_scrollCtrl.hasClients) return;
+    final max = _scrollCtrl.position.maxScrollExtent;
+    final off = _scrollCtrl.position.pixels;
+    final pct = max <= 0 ? 1.0 : (off / max).clamp(0.0, 1.0);
+    if ((pct - _readPct).abs() > 0.01) {
+      setState(() => _readPct = pct);
+    }
   }
 
   @override

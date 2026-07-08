@@ -8,9 +8,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/utils/commission.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_network_image.dart';
@@ -19,7 +17,6 @@ import '../../../core/widgets/confirm_actions.dart';
 import '../../../core/widgets/sign_in_prompt.dart';
 import '../../../models/models.dart';
 import '../../auth/providers/auth_providers.dart';
-import '../../shared/providers/shared_providers.dart';
 import '../providers/student_providers.dart';
 import '../widgets/favorite_button.dart';
 
@@ -161,6 +158,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             );
           }
           final gallery = p.gallery;
+          final isOwnProduct =
+              ref.watch(currentVendorProvider).valueOrNull?.vendorId ==
+                  p.vendorId;
           return Column(
             children: [
               Expanded(
@@ -262,8 +262,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   : 'No description provided.',
                               style: AppTextStyles.bodyMedium.copyWith(
                                   color: scheme.onSurfaceVariant)),
-                          const SizedBox(height: AppSpacing.lg),
-                          _PlatformFee(pricePesewas: p.pricePesewas),
+                          if (p.brand?.isNotEmpty == true) ...[
+                            const SizedBox(height: AppSpacing.md),
+                            Text('Brand: ${p.brand}', style: AppTextStyles.titleSmall),
+                          ],
+                          if (p.itemCondition != null) ...[
+                            const SizedBox(height: AppSpacing.xs),
+                            Text('Condition: ${p.itemCondition!.replaceAll('_', ' ')}',
+                                style: AppTextStyles.titleSmall),
+                          ],
+                          if (p.specifications?.isNotEmpty == true) ...[
+                            const SizedBox(height: AppSpacing.md),
+                            Text('More details', style: AppTextStyles.titleMedium),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(p.specifications!, style: AppTextStyles.bodyMedium),
+                          ],
                         ],
                       ),
                     ),
@@ -272,14 +285,19 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               ),
               _AddBar(
                 product: p,
+                isOwnProduct: isOwnProduct,
                 qty: _qty,
                 busy: _busy,
                 onDec: _qty > 1 ? () => setState(() => _qty--) : null,
                 onInc: _qty < p.quantityAvailable
                     ? () => setState(() => _qty++)
                     : null,
-                onAdd: (p.isAvailable && !_busy) ? () => _addToCart(p) : null,
-                onBuyNow: (p.isAvailable && !_busy) ? () => _buyNow(p) : null,
+                onAdd: (p.isAvailable && !_busy && !isOwnProduct)
+                    ? () => _addToCart(p)
+                    : null,
+                onBuyNow: (p.isAvailable && !_busy && !isOwnProduct)
+                    ? () => _buyNow(p)
+                    : null,
               ),
             ],
           );
@@ -467,6 +485,7 @@ class _AddBar extends StatelessWidget {
   final Product product;
   final int qty;
   final bool busy;
+  final bool isOwnProduct;
   final VoidCallback? onDec;
   final VoidCallback? onInc;
   final VoidCallback? onAdd;
@@ -475,6 +494,7 @@ class _AddBar extends StatelessWidget {
     required this.product,
     required this.qty,
     required this.busy,
+    required this.isOwnProduct,
     required this.onDec,
     required this.onInc,
     required this.onAdd,
@@ -538,8 +558,11 @@ class _AddBar extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm + 4),
                   Expanded(
                     child: AppButton(
-                      label:
-                      product.isAvailable ? 'Add to Cart' : 'Out of Stock',
+                      label: isOwnProduct
+                          ? 'Your Product'
+                          : product.isAvailable
+                              ? 'Add to Cart'
+                              : 'Out of Stock',
                       icon: AppIcons.addToCart,
                       variant: AppButtonVariant.secondary,
                       loading: busy,
@@ -550,7 +573,11 @@ class _AddBar extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm + 2),
               AppButton(
-                label: product.isAvailable ? 'Buy Now' : 'Unavailable',
+                label: isOwnProduct
+                    ? 'Seller-owned listing'
+                    : product.isAvailable
+                        ? 'Buy Now'
+                        : 'Unavailable',
                 icon: AppIcons.flash,
                 onPressed: onBuyNow,
               ),
@@ -562,50 +589,3 @@ class _AddBar extends StatelessWidget {
   }
 }
 
-/// Transparent platform-fee row shown on the product detail (spec C1).
-class _PlatformFee extends ConsumerWidget {
-  final int pricePesewas;
-  const _PlatformFee({required this.pricePesewas});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final tiers =
-        ref.watch(commissionTiersProvider).valueOrNull ?? Commission.defaults;
-    final campusId = ref.watch(currentUserProvider).valueOrNull?.campusId;
-    final fee =
-    Commission.forPrice(pricePesewas, campusId: campusId, tiers: tiers);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: AppRadius.brMd,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(AppIcons.info, size: 18, color: scheme.onSurfaceVariant),
-              const SizedBox(width: AppSpacing.sm),
-              Text('Platform fee',
-                  style: AppTextStyles.titleSmall
-                      .copyWith(color: scheme.onSurface)),
-              const Spacer(),
-              Text(Money.format(fee),
-                  style: AppTextStyles.titleSmall
-                      .copyWith(color: scheme.onSurface)),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'This fee is included in the total and goes toward running the '
-                'marketplace.',
-            style: AppTextStyles.bodySmall,
-          ),
-        ],
-      ),
-    );
-  }
-}

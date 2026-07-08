@@ -335,7 +335,11 @@ class _StoreDetailsUpdateScreenState
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          const Icon(Icons.delivery_dining, size: 20, color: Colors.grey),
+                          Icon(
+                            Icons.delivery_dining,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(child: Text('Delivery Radius: ${deliveryRadiusKm.round()} km')),
                         ],

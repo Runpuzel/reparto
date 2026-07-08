@@ -187,6 +187,9 @@ class _ActionBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isGuest = ref.watch(isGuestProvider);
+    final isOwnService =
+        ref.watch(currentVendorProvider).valueOrNull?.vendorId ==
+            service.vendorId;
     return Material(
       elevation: 8,
       child: SafeArea(
@@ -197,17 +200,19 @@ class _ActionBar extends ConsumerWidget {
             children: [
               Expanded(
                 child: AppButton(
-                  label: 'Contact on WhatsApp',
+                  label: isOwnService ? 'Your Service' : 'Contact on WhatsApp',
                   icon: AppIcons.whatsapp,
                   variant: AppButtonVariant.secondary,
-                  onPressed: () async {
+                  onPressed: isOwnService
+                      ? null
+                      : () async {
                     if (isGuest) {
                       await SignInPrompt.show(context,
                           action: 'contact sellers');
                       return;
                     }
                     await _whatsapp(context, ref);
-                  },
+                        },
                 ),
               ),
               const SizedBox(width: AppSpacing.sm + 4),

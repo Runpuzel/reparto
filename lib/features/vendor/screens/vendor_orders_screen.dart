@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
@@ -19,7 +20,7 @@ import '../../../core/widgets/confirm_actions.dart';
 import '../../../models/models.dart';
 import '../providers/vendor_providers.dart';
 
-/// Allowed forward transitions per the Reparto delivery lifecycle:
+/// Allowed forward transitions per the UjustBUY delivery lifecycle:
 ///   Placed → Confirmed → Dispatched → Delivered  (cancel while early)
 const _nextStatuses = <OrderStatus, List<OrderStatus>>{
   OrderStatus.pending: [OrderStatus.confirmed, OrderStatus.cancelled],
@@ -130,8 +131,17 @@ class _VendorOrderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final color = orderStatusColor(order.status, context);
-    final next = _nextStatuses[order.status] ?? [];
+    final next = (_nextStatuses[order.status] ?? [])
+        .where((status) =>
+            status != OrderStatus.cancelled ||
+            !(order.isPaid && order.paymentMethod != 'cash_on_delivery'))
+        .toList();
     final scheme = Theme.of(context).colorScheme;
+    final feeRate = ref.watch(vendorPlatformSettingsProvider).valueOrNull
+            ?.platformFeeSellerPercent ??
+        5.0;
+    final marketplaceFee = order.totalAmount * feeRate / 100;
+    final sellerPayout = order.totalAmount - marketplaceFee;
 
     return AppCard(
       padding: EdgeInsets.zero,
@@ -290,6 +300,19 @@ class _VendorOrderCard extends ConsumerWidget {
                         fontWeight: FontWeight.w800, color: scheme.primary)),
               ],
             ),
+            const SizedBox(height: AppSpacing.xs),
+            _moneyRow('Marketplace fee (${feeRate.toStringAsFixed(1)}%)',
+                marketplaceFee),
+            _moneyRow('Expected seller payout', sellerPayout, strong: true),
+
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => context.push('/order/${order.orderId}/chat'),
+                icon: const Icon(Icons.chat_bubble_outline),
+                label: const Text('Message buyer'),
+              ),
+            ),
 
             // ---- Actions --------------------------------------------------
             if (next.isNotEmpty) ...[
@@ -325,6 +348,17 @@ class _VendorOrderCard extends ConsumerWidget {
   }
 
   bool _has(String? v) => v != null && v.trim().isNotEmpty;
+
+  Widget _moneyRow(String label, double amount, {bool strong = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(label, style: AppTextStyles.bodySmall),
+        Text(Formatters.money(amount),
+            style: strong ? AppTextStyles.titleSmall : AppTextStyles.bodySmall),
+      ]),
+    );
+  }
 
   Widget _sectionLabel(BuildContext context, String text) {
     return Padding(

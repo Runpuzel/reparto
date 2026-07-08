@@ -62,9 +62,9 @@ Deno.serve(async (req) => {
         amount,
         currency: 'GHS',
         reference,
-        callback_url: 'https://reparto.app/wallet-topup-complete',
+        callback_url: 'https://ujustbuy.netlify.app/wallet-topup-complete',
         metadata: {
-          purpose: 'cod_commission_wallet',
+          purpose: 'cod_marketplace_fee_wallet',
           vendor_id: vendor.vendor_id,
         },
       }),

@@ -15,10 +15,35 @@ export function json(body: unknown, status = 200): Response {
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function serviceAccount(): {
+  projectId: string;
+  clientEmail: string;
+  privateKey: string;
+} {
+  const bundled = Deno.env.get("FCM_SERVICE_ACCOUNT");
+  if (bundled) {
+    const value = JSON.parse(bundled);
+    const projectId = String(value.project_id ?? "");
+    const clientEmail = String(value.client_email ?? "");
+    const privateKey = String(value.private_key ?? "");
+    if (projectId && clientEmail && privateKey) {
+      return { projectId, clientEmail, privateKey };
+    }
+    throw new Error("FCM_SERVICE_ACCOUNT is missing required fields");
+  }
+
+  const projectId = Deno.env.get("FCM_PROJECT_ID") ?? "";
+  const clientEmail = Deno.env.get("FCM_CLIENT_EMAIL") ?? "";
+  const privateKey = Deno.env.get("FCM_PRIVATE_KEY") ?? "";
+  if (!projectId || !clientEmail || !privateKey) {
+    throw new Error("FCM service account is not configured");
+  }
+  return { projectId, clientEmail, privateKey };
+}
+
 // --- Google OAuth2 helper (service account -> access token) ----------------
 async function getAccessToken(): Promise<string> {
-  const clientEmail = Deno.env.get("FCM_CLIENT_EMAIL")!;
-  const privateKeyRaw = Deno.env.get("FCM_PRIVATE_KEY")!;
+  const { clientEmail, privateKey: privateKeyRaw } = serviceAccount();
   const privateKeyPem = privateKeyRaw.replace(/\\n/g, "\n");
 
   const now = Math.floor(Date.now() / 1000);
@@ -77,14 +102,16 @@ Deno.serve(async (req) => {
   try {
     const expected = Deno.env.get("PUSH_FUNCTION_SECRET");
     const provided = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
-    if (expected && provided !== expected) {
+    if (!expected) {
+      return json({ error: "PUSH_FUNCTION_SECRET is not configured" }, 500);
+    }
+    if (provided !== expected) {
       return json({ error: "Forbidden" }, 403);
     }
 
-    const projectId = Deno.env.get("FCM_PROJECT_ID");
-    if (!projectId) return json({ error: "FCM not configured" }, 500);
+    const { projectId } = serviceAccount();
 
-    const { recipient_id, title, body } = await req.json();
+    const { recipient_id, title, body, notification_id } = await req.json();
     if (!recipient_id) return json({ error: "Missing recipient_id" }, 400);
 
     const admin = createClient(
@@ -115,8 +142,19 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           message: {
             token: t.token,
-            notification: { title: title ?? "Reparto", body: body ?? "" },
+            notification: { title: title ?? "UjustBUY", body: body ?? "" },
             android: { priority: "HIGH" },
+            webpush: {
+              notification: {
+                icon: "/icons/Icon-192.png",
+                badge: "/icons/Icon-192.png",
+              },
+              fcm_options: { link: "/notifications" },
+            },
+            data: {
+              route: "/notifications",
+              notification_id: String(notification_id ?? ""),
+            },
           },
         }),
       });

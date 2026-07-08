@@ -138,9 +138,9 @@ class _SellerAgreementScreenState extends ConsumerState<SellerAgreementScreen> {
                   _policySection('4. Listings and stock',
                       'Stock, price, description, images, location, and availability must be accurate. Product stock decreases when ordered and is restored after cancellation. Service duration and authorization charges follow current Platform Settings.'),
                   _policySection('5. Fees and Cash on Delivery',
-                      'Current commission is shown in the app and may vary by price or campus. COD commission is reserved from your prepaid wallet when you confirm an order, captured after delivery, and returned if the order is cancelled.'),
+                      'The current marketplace fee is shown in the app as a percentage. For COD orders it is reserved from your prepaid wallet when you confirm an order, captured after delivery, and returned if the order is cancelled.'),
                   _policySection('6. Prepayment and payouts',
-                      'Prepayment is available only to identity-verified sellers. Eligible buyer payments remain protected until receipt confirmation or automatic release. Platform commission is retained and seller net proceeds are submitted to the registered payout account.'),
+                      'Prepayment is available only to identity-verified sellers. Eligible buyer payments remain protected until receipt confirmation or automatic release. The marketplace fee is retained and seller net proceeds are submitted to the registered payout account.'),
                   _policySection('7. Prohibited items',
                       'No exam malpractice services, alcohol to minors, illicit drugs, weapons, or IP infringement. 3-strike suspension.'),
                   _policySection('8. Privacy and identity documents',
@@ -148,7 +148,7 @@ class _SellerAgreementScreenState extends ConsumerState<SellerAgreementScreen> {
                   _policySection('9. Orders and disputes',
                       'Fulfil orders accurately and update statuses honestly. A dispute pauses payout while an admin reviews evidence. A ruling may refund the buyer or release payment to the seller.'),
                   _policySection('10. Suspension and termination',
-                      'Serious safety, fraud, identity, payment, or repeated fulfilment violations may cause listing removal or suspension. Valid unsettled orders, refunds, commissions, and disputes remain enforceable after closure.'),
+                      'Serious safety, fraud, identity, payment, or repeated fulfilment violations may cause listing removal or suspension. Valid unsettled orders, refunds, marketplace fees, and disputes remain enforceable after closure.'),
                   const SizedBox(height: AppSpacing.lg),
                   AppCard(
                     child: Column(
@@ -172,7 +172,7 @@ class _SellerAgreementScreenState extends ConsumerState<SellerAgreementScreen> {
                             c4,
                             (v) => setState(() => c4 = v ?? false)),
                         _check(
-                            'I agree to displayed fees, escrow rules, and the COD wallet commission process',
+                            'I agree to displayed fees, escrow rules, and the COD marketplace fee wallet process',
                             c5,
                             (v) => setState(() => c5 = v ?? false)),
                       ],

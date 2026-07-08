@@ -3,10 +3,10 @@
     "short_name": "UjustBUY",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#FFFFFF",
-    "theme_color": "#0E6E74",
-    "description": "A Multi-Campus Marketplace System for Students and Vendors.",
-    "orientation": "portrait-primary",
+    "background_color": "#F6F3F5",
+    "theme_color": "#8E153E",
+    "description": "Buy and sell products and services on your campus with UjustBUY.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

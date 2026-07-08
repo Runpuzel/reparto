@@ -46,10 +46,10 @@ class _VendorWalletScreenState extends ConsumerState<VendorWalletScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
-            Text('COD commission wallet', style: AppTextStyles.headlineSmall),
+            Text('COD marketplace fee wallet', style: AppTextStyles.headlineSmall),
             const SizedBox(height: 4),
             Text(
-              'Commission is reserved when you confirm a Cash on Delivery order and charged only after delivery.',
+              'The marketplace fee is reserved when you confirm a Cash on Delivery order and charged only after delivery.',
               style: AppTextStyles.bodyMedium.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),

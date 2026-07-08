@@ -171,15 +171,6 @@ class ReferralHubScreen extends ConsumerWidget {
                   'Open a listing → Boost with tokens to redeem.'),
             ),
             const SizedBox(height: AppSpacing.sm),
-            _RedeemCard(
-              icon: AppIcons.price,
-              title: 'Commission Discount',
-              subtitle: 'Waive commission on one listing',
-              cost: 5,
-              balance: balance,
-              onRedeem: () => ConfirmActions.toast(context,
-                  'Open a listing → Use tokens to waive its commission.'),
-            ),
             const SizedBox(height: AppSpacing.lg),
 
             // History

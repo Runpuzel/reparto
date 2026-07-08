@@ -17,9 +17,10 @@ import '../../features/auth/screens/register_vendor_screen.dart';
 import '../../features/auth/screens/select_campus_screen.dart';
 import '../../features/auth/screens/splash_screen.dart';
 import '../../features/shared/screens/about_screen.dart';
-import '../../features/shared/screens/developer_screen.dart';
 import '../../features/shared/screens/notifications_screen.dart';
+import '../../features/shared/screens/order_chat_screen.dart';
 import '../../features/shared/screens/referral_hub_screen.dart';
+import '../../features/shared/screens/weekly_revenue_screen.dart';
 import '../../features/student/screens/checkout_screen.dart';
 import '../../features/student/screens/order_detail_screen.dart';
 import '../../features/student/screens/product_detail_screen.dart';
@@ -55,8 +56,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = loc.startsWith('/login') ||
           loc.startsWith('/register') ||
           loc == '/welcome' ||
-          isForgot ||
-          loc == '/splash';
+          isForgot;
 
       bool isGuestBrowsable(String l) =>
           l == '/student' ||
@@ -64,8 +64,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               l.startsWith('/student/shop/') ||
               l.startsWith('/student/service/') ||
               l == '/student/services' ||
-              l == '/about' ||
-              l == '/profile/developer'; // developer info is public curious
+              l == '/about';
+
+      // Splash owns startup navigation so it remains visible long enough to
+      // paint even when a browser session is restored instantly.
+      if (loc == '/splash') return null;
 
       // While loading the profile, stay on splash.
       if (authAsync.isLoading) return loc == '/splash' ? null : '/splash';
@@ -74,7 +77,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Not signed in (GUEST)
       if (user == null) {
-        if (loc == '/splash') return '/student';
         if (isAuthRoute || isGuestBrowsable(loc)) return null;
         return '/student';
       }
@@ -89,8 +91,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             (vendor as dynamic).consentSellerAgreement != true) {
           // allow agreement screen itself + legal view + logout
           final allowed = loc == '/vendor/agreement' ||
+              loc.startsWith('/student') ||
               loc == '/about' ||
-              loc == '/profile/developer' ||
               loc == '/login';
           if (!allowed) return '/vendor/agreement';
         }
@@ -164,6 +166,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, s) =>
             OrderDetailScreen(orderId: s.pathParameters['id']!),
       ),
+      GoRoute(path: '/order/:id/chat', builder: (_, s) =>
+          OrderChatScreen(orderId: s.pathParameters['id']!)),
 
       // Vendor – v1.0 new routes
       GoRoute(path: '/vendor', builder: (_, __) => const VendorShell()),
@@ -195,37 +199,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           serviceId: s.pathParameters['id']!,
         ),
       ),
-      GoRoute(
-        path: '/vendor/earnings',
-        builder: (_, __) => Scaffold(
-          appBar: AppBar(title: const Text('Earnings & Fees')),
-          body: const Center(
-              child: Text(
-                  'Earnings Dashboard – Phase 5\nPlatform fee: 5% products / 8% services – seller only')),
-        ),
-      ),
-      GoRoute(
-        path: '/vendor/store/preview',
-        builder: (_, __) => Scaffold(
-          appBar: AppBar(title: const Text('Store Preview')),
-          body: const Center(child: Text('Public store preview – Phase 4')),
-        ),
-      ),
-
       // Admin – v1.0 reorganized
+      GoRoute(path: '/vendor/weekly-earnings',
+          builder: (_, __) => const WeeklyRevenueScreen(admin: false)),
       GoRoute(path: '/admin', builder: (_, __) => const AdminShell()),
+      GoRoute(path: '/admin/revenue',
+          builder: (_, __) => const WeeklyRevenueScreen(admin: true)),
       // deep links (optional – shell handles tabs internally)
       GoRoute(
         path: '/admin/services',
         redirect: (_, __) => '/admin', // tab 2 inside shell
-      ),
-      GoRoute(
-        path: '/admin/settings/users',
-        builder: (_, __) => Scaffold(
-          appBar: AppBar(title: const Text('Settings · User Management')),
-          body: const Center(
-              child: Text('AdminUsersScreen – moved from main nav – v1.0')),
-        ),
       ),
       GoRoute(
         path: '/admin/settings/platform',
@@ -237,16 +220,40 @@ final routerProvider = Provider<GoRouter>((ref) {
           path: '/notifications',
           builder: (_, __) => const NotificationsScreen()),
       GoRoute(path: '/about', builder: (_, __) => const AboutScreen()),
+      GoRoute(
+        path: '/payment-complete',
+        builder: (_, __) => Scaffold(
+          appBar: AppBar(title: const Text('Payment complete')),
+          body: const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Return to the UjustBUY checkout tab and tap “I’ve paid” to confirm your order.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/wallet-topup-complete',
+        builder: (_, __) => Scaffold(
+          appBar: AppBar(title: const Text('Top-up submitted')),
+          body: const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Your payment was submitted. Return to UjustBUY and tap “Verify top-up” to update your wallet.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      ),
       // NEW – separate developer routes (all roles)
       GoRoute(
           path: '/profile/about',
           builder: (_, __) => const AboutScreen()),
-      GoRoute(
-          path: '/profile/developer',
-          builder: (_, __) => const DeveloperScreen()),
-      GoRoute(
-          path: '/developer',
-          redirect: (_, __) => '/profile/developer'),
       GoRoute(
           path: '/referrals',
           builder: (_, __) => const ReferralHubScreen()),

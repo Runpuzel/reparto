@@ -1,5 +1,4 @@
 import '../../../core/config/supabase_client.dart';
-import '../../../core/utils/commission.dart';
 import '../../../models/models.dart';
 
 /// Query parameters for filtering services in the admin dashboard.
@@ -205,27 +204,17 @@ class AdminRepository {
     return PlatformSetting.fromMap(Map<String, dynamic>.from(row));
   }
 
+  Future<void> reviewVerification(String vendorId, bool approve,
+      {String? reason}) async {
+    await supabase.rpc('admin_review_verification', params: {
+      'p_vendor_id': vendorId,
+      'p_approve': approve,
+      'p_reason': reason,
+    });
+  }
+
   Future<void> updatePlatformSettings(Map<String, dynamic> data) async {
-    final existing = await supabase
-        .from('platform_settings')
-        .select('id')
-        .order('updated_at', ascending: false)
-        .limit(1)
-        .maybeSingle();
-
-    final values = {
-      ...data,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-    if (existing == null) {
-      await supabase.from('platform_settings').insert(values);
-      return;
-    }
-
-    await supabase
-        .from('platform_settings')
-        .update(values)
-        .eq('id', existing['id']);
+    await supabase.rpc('set_platform_settings', params: {'p_settings': data});
   }
 
   Future<void> extendServiceExpiration(String serviceId, int days) async {
@@ -298,46 +287,6 @@ class AdminRepository {
     await supabase
         .from('users')
         .update({'is_suspended': suspended}).eq('user_id', userId);
-  }
-
-  // ---- Commission tiers -----------------------------------------------------
-  Future<List<CommissionTier>> fetchCommissionTiers() async {
-    final rows = await supabase
-        .from('commission_tiers')
-        .select()
-        .order('price_from');
-    return (rows as List)
-        .map((e) => CommissionTier.fromMap(Map<String, dynamic>.from(e)))
-        .toList();
-  }
-
-  Future<void> upsertCommissionTier({
-    String? tierId,
-    String? campusId,
-    required int priceFrom,
-    int? priceTo,
-    int? flatPesewas,
-    int? percentBps,
-  }) async {
-    final data = <String, dynamic>{
-      'campus_id': campusId,
-      'price_from': priceFrom,
-      'price_to': priceTo,
-      'flat_pesewas': flatPesewas,
-      'percent_bps': percentBps,
-    };
-    if (tierId != null) {
-      await supabase
-          .from('commission_tiers')
-          .update(data)
-          .eq('tier_id', tierId);
-    } else {
-      await supabase.from('commission_tiers').insert(data);
-    }
-  }
-
-  Future<void> deleteCommissionTier(String tierId) async {
-    await supabase.from('commission_tiers').delete().eq('tier_id', tierId);
   }
 
   // ---- Disputes (spec G4) ---------------------------------------------------

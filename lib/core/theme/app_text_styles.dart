@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'app_colors.dart';
-
 /// Typographic scale built on a single professional sans-serif (**Inter**).
 ///
 /// Every style is exposed as a named constant and also assembled into a
@@ -12,16 +10,12 @@ import 'app_colors.dart';
 class AppTextStyles {
   AppTextStyles._();
 
-  static const Color _ink = AppColors.textPrimary;
-  static const Color _muted = AppColors.textSecondary;
-
   // ---- Display / headings ---------------------------------------------------
   static TextStyle displayLarge = GoogleFonts.plusJakartaSans(
     fontSize: 32,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
     height: 1.15,
-    color: _ink,
   );
 
   static TextStyle displayMedium = GoogleFonts.plusJakartaSans(
@@ -29,7 +23,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w800,
     letterSpacing: -0.4,
     height: 1.18,
-    color: _ink,
   );
 
   static TextStyle headlineMedium = GoogleFonts.plusJakartaSans(
@@ -37,7 +30,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w700,
     letterSpacing: -0.3,
     height: 1.25,
-    color: _ink,
   );
 
   static TextStyle headlineSmall = GoogleFonts.plusJakartaSans(
@@ -45,7 +37,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w700,
     letterSpacing: -0.2,
     height: 1.3,
-    color: _ink,
   );
 
   // ---- Titles ---------------------------------------------------------------
@@ -54,21 +45,18 @@ class AppTextStyles {
     fontWeight: FontWeight.w700,
     letterSpacing: -0.2,
     height: 1.3,
-    color: _ink,
   );
 
   static TextStyle titleMedium = GoogleFonts.plusJakartaSans(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.35,
-    color: _ink,
   );
 
   static TextStyle titleSmall = GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.4,
-    color: _ink,
   );
 
   // ---- Body -----------------------------------------------------------------
@@ -76,21 +64,18 @@ class AppTextStyles {
     fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.5,
-    color: _ink,
   );
 
   static TextStyle bodyMedium = GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.5,
-    color: _ink,
   );
 
   static TextStyle bodySmall = GoogleFonts.inter(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
     height: 1.45,
-    color: _muted,
   );
 
   // ---- Labels ---------------------------------------------------------------
@@ -98,7 +83,6 @@ class AppTextStyles {
     fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.2,
-    color: _ink,
   );
 
   static TextStyle labelMedium = GoogleFonts.inter(
@@ -106,7 +90,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w600,
     letterSpacing: 0.2,
     height: 1.2,
-    color: _ink,
   );
 
   static TextStyle labelSmall = GoogleFonts.inter(
@@ -114,7 +97,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w600,
     letterSpacing: 0.5,
     height: 1.2,
-    color: _muted,
   );
 
   /// Assemble a Material [TextTheme] from the named styles, recoloured for the

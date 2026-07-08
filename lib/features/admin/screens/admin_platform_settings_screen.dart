@@ -9,6 +9,8 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/confirm_actions.dart';
 import '../../../models/models.dart';
+import '../../shared/providers/shared_providers.dart';
+import '../../vendor/providers/vendor_providers.dart';
 import '../providers/admin_providers.dart';
 
 class AdminPlatformSettingsScreen extends ConsumerStatefulWidget {
@@ -38,8 +40,6 @@ class _AdminPlatformSettingsScreenState
   static const _documents = <String, String>{
     'ghana_card': 'Ghana Card',
     'student_id': 'Student ID',
-    'passport': 'Passport',
-    'drivers_license': "Driver's licence",
   };
 
   @override
@@ -132,7 +132,8 @@ class _AdminPlatformSettingsScreenState
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               title: const Text('Free listing mode'),
-              subtitle: const Text('Vendors can authorize services at no cost.'),
+              subtitle: const Text(
+                  'Services remain active without expiration or authorization charges.'),
               value: _parseDouble(_authFee.text) == 0,
               onChanged: (enabled) {
                 setState(() {
@@ -161,7 +162,7 @@ class _AdminPlatformSettingsScreenState
             const SizedBox(height: 12),
             _InfoBanner(
               text:
-                  'Fee changes affect future transactions only. Existing orders retain their recorded totals.',
+                  'Product fees are charged when an order is settled. Service fees apply to supported service transactions.',
             ),
           ],
         );
@@ -233,7 +234,7 @@ class _AdminPlatformSettingsScreenState
               Text('Platform controls', style: AppTextStyles.headlineSmall),
               const SizedBox(height: 4),
               Text(
-                'Changes apply across Reparto. Review values carefully before saving.',
+                'Changes apply across UjustBUY. Review values carefully before saving.',
                 style: AppTextStyles.bodyMedium.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
@@ -351,6 +352,8 @@ class _AdminPlatformSettingsScreenState
         'current_policy_version': _policyVersion.text.trim(),
       });
       ref.invalidate(platformSettingsProvider);
+      ref.invalidate(marketplaceSettingsProvider);
+      ref.invalidate(vendorPlatformSettingsProvider);
       if (mounted) {
         setState(() => _dirty = false);
         ConfirmActions.toast(context, 'Platform settings saved', success: true);

@@ -55,6 +55,11 @@ class CartScreen extends ConsumerWidget {
                   Text('$itemCount item${itemCount == 1 ? '' : 's'}',
                       style: AppTextStyles.titleMedium),
                   const Spacer(),
+                  IconButton(
+                    tooltip: 'Refresh cart',
+                    onPressed: () => ref.invalidate(cartProvider),
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
                   TextButton.icon(
                     onPressed: () => _clearCart(context, ref, items),
                     icon: Icon(AppIcons.sweep, size: 18),
@@ -74,7 +79,7 @@ class CartScreen extends ConsumerWidget {
                 separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
                 itemBuilder: (_, i) => _CartTile(item: items[i])
                     .animate()
-                    .fadeIn(delay: (40 * (i % 12)).ms, duration: 280.ms)
+                    .fadeIn(delay: (18 * (i % 12)).ms, duration: 160.ms)
                     .slideX(begin: 0.04, end: 0),
               ),
             ),
@@ -100,9 +105,9 @@ class CartScreen extends ConsumerWidget {
     final snapshot = items
         .map((e) => (productId: e.productId, quantity: e.quantity))
         .toList();
-    for (final item in items) {
-      await repo.removeFromCart(item.cartItemId);
-    }
+    await Future.wait(
+      items.map((item) => repo.removeFromCart(item.cartItemId)),
+    );
     ref.invalidate(cartProvider);
     if (!context.mounted) return;
     final undone = await ConfirmActions.showUndo(
@@ -119,12 +124,21 @@ class CartScreen extends ConsumerWidget {
   }
 }
 
-class _CartTile extends ConsumerWidget {
+class _CartTile extends ConsumerStatefulWidget {
   final CartItem item;
   const _CartTile({required this.item});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CartTile> createState() => _CartTileState();
+}
+
+class _CartTileState extends ConsumerState<_CartTile> {
+  late int _quantity = widget.item.quantity;
+  bool _updating = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
     final repo = ref.read(studentRepositoryProvider);
     final p = item.product;
     final scheme = Theme.of(context).colorScheme;
@@ -198,7 +212,7 @@ class _CartTile extends ConsumerWidget {
                             .copyWith(color: scheme.onSurfaceVariant)),
                   ],
                   const SizedBox(height: AppSpacing.xs + 2),
-                  Text(Formatters.money(item.lineTotal),
+                  Text(Formatters.money((p?.price ?? 0) * _quantity),
                       style: AppTextStyles.titleSmall.copyWith(
                           color: scheme.primary,
                           fontWeight: FontWeight.w700)),
@@ -206,12 +220,10 @@ class _CartTile extends ConsumerWidget {
               ),
             ),
             _QtyStepper(
-              quantity: item.quantity,
+              quantity: _quantity,
               max: p?.quantityAvailable,
-              onChanged: (q) async {
-                await repo.updateCartQuantity(item.cartItemId, q);
-                ref.invalidate(cartProvider);
-              },
+              busy: _updating,
+              onChanged: (q) => _changeQuantity(repo, item, q),
               onRemove: () async {
                 final snapshot =
                 (productId: item.productId, quantity: item.quantity);
@@ -235,17 +247,40 @@ class _CartTile extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _changeQuantity(
+      dynamic repo, CartItem item, int quantity) async {
+    if (_updating) return;
+    final previous = _quantity;
+    setState(() {
+      _quantity = quantity;
+      _updating = true;
+    });
+    try {
+      await repo.updateCartQuantity(item.cartItemId, quantity);
+      ref.invalidate(cartProvider);
+    } catch (error) {
+      if (mounted) {
+        setState(() => _quantity = previous);
+        ConfirmActions.showError(context, error);
+      }
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
+  }
 }
 
 class _QtyStepper extends StatelessWidget {
   final int quantity;
   final int? max;
+  final bool busy;
   final ValueChanged<int> onChanged;
   final VoidCallback onRemove;
   const _QtyStepper({
     required this.quantity,
     required this.onChanged,
     required this.onRemove,
+    this.busy = false,
     this.max,
   });
 
@@ -266,14 +301,19 @@ class _QtyStepper extends StatelessWidget {
             iconSize: 20,
             icon: Icon(quantity > 1 ? AppIcons.minus : AppIcons.trash),
             color: quantity > 1 ? null : scheme.error,
-            onPressed: () => quantity > 1 ? onChanged(quantity - 1) : onRemove(),
+            onPressed: busy
+                ? null
+                : () => quantity > 1
+                    ? onChanged(quantity - 1)
+                    : onRemove(),
           ),
           Text('$quantity', style: AppTextStyles.labelLarge),
           IconButton(
             visualDensity: VisualDensity.compact,
             iconSize: 20,
             icon: Icon(AppIcons.plus),
-            onPressed: atMax ? null : () => onChanged(quantity + 1),
+            onPressed:
+                (atMax || busy) ? null : () => onChanged(quantity + 1),
           ),
         ],
       ),

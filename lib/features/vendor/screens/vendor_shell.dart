@@ -9,6 +9,7 @@ import '../../../core/widgets/common_widgets.dart';
 import '../../../models/models.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../shared/providers/shared_providers.dart';
+import '../../shared/screens/chat_inbox_screen.dart';
 import 'sell_chooser.dart';
 import 'vendor_dashboard_screen.dart';
 import 'vendor_products_screen.dart';
@@ -48,14 +49,20 @@ class _VendorShellState extends ConsumerState<VendorShell> {
           const VendorDashboardScreen(),
           const VendorProductsScreen(),
           const VendorOrdersScreen(),
-          _VendorMoreScreen(openPage: _openPage),
+          const ChatInboxScreen(),
         ];
-        final titles = ['Dashboard', 'Catalog', 'Orders', 'More'];
+        final titles = ['Dashboard', 'Catalog', 'Orders', 'Chats'];
 
         return Scaffold(
           appBar: AppBar(
             title: Text(titles[_index]),
             actions: [
+              IconButton(
+                tooltip: 'More',
+                onPressed: () => _openPage(
+                    'More', _VendorMoreScreen(openPage: _openPage)),
+                icon: const Icon(Icons.grid_view_outlined),
+              ),
               IconButton(
                 tooltip: 'Notifications',
                 onPressed: () => context.push('/notifications'),
@@ -93,9 +100,9 @@ class _VendorShellState extends ConsumerState<VendorShell> {
                   selectedIcon: Icon(AppIcons.receiptFill),
                   label: 'Orders'),
               NavigationDestination(
-                  icon: Icon(Icons.grid_view_outlined),
-                  selectedIcon: Icon(Icons.grid_view),
-                  label: 'More'),
+                  icon: Icon(Icons.chat_bubble_outline),
+                  selectedIcon: Icon(Icons.chat_bubble),
+                  label: 'Chat'),
             ],
           ),
         );
@@ -123,7 +130,13 @@ class _VendorMoreScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       _VendorMoreItem(
-        title: 'COD commission wallet',
+        title: 'Shop on UjustBUY',
+        subtitle: 'Browse and buy from other student sellers',
+        icon: AppIcons.storefront,
+        onTap: () => context.go('/student'),
+      ),
+      _VendorMoreItem(
+        title: 'COD marketplace fee wallet',
         subtitle: 'Fund and review Cash on Delivery fees',
         icon: Icons.account_balance_wallet_outlined,
         onTap: () => openPage('COD wallet', const VendorWalletScreen()),
@@ -233,11 +246,10 @@ class _ApprovalPending extends StatelessWidget {
             : 'An administrator is reviewing your business application. '
             'You will be notified once approved.',
         action: AppButton(
-          label: 'Sign Out',
-          icon: AppIcons.logout,
-          variant: AppButtonVariant.secondary,
+          label: 'Browse Marketplace',
+          icon: AppIcons.storefront,
           expand: false,
-          onPressed: () => ref.read(authRepositoryProvider).signOut(),
+          onPressed: () => context.go('/student'),
         ),
       ),
     );
@@ -270,8 +282,8 @@ class _VendorMissingRecord extends StatelessWidget {
               onPressed: () => context.go('/register/vendor'),
             ),
             TextButton(
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
-              child: const Text('Sign Out'),
+              onPressed: () => context.go('/student'),
+              child: const Text('Browse Marketplace'),
             ),
           ],
         ),

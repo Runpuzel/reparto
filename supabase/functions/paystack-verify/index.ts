@@ -101,6 +101,15 @@ Deno.serve(async (req) => {
     }
     if (rpcErr) return json({ status: "paid", order_error: rpcErr.message }, 200);
 
+    if (meta.use_tokens === true && Array.isArray(orderIds) && orderIds.length > 0) {
+      const { error: tokenErr } = await userClient.rpc("apply_checkout_token_discount", {
+        p_orders: orderIds,
+      });
+      if (tokenErr) {
+        return json({ status: "paid", orders: orderIds, token_error: tokenErr.message }, 200);
+      }
+    }
+
     return json({ status: "paid", orders: orderIds });
   } catch (e) {
     return json({ error: String(e) }, 500);

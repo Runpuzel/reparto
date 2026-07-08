@@ -6,6 +6,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/widgets/sign_in_prompt.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../shared/providers/shared_providers.dart';
+import '../../shared/screens/chat_inbox_screen.dart';
 import '../providers/student_providers.dart';
 import 'browse_screen.dart';
 import 'shops_screen.dart';
@@ -27,9 +28,8 @@ class _StudentShellState extends ConsumerState<StudentShell> {
   static const _pages = [
     BrowseScreen(),
     ShopsScreen(),
-    FavoritesScreen(),
     CartScreen(),
-    OrdersScreen(),
+    ChatInboxScreen(),
   ];
 
   @override
@@ -37,15 +37,33 @@ class _StudentShellState extends ConsumerState<StudentShell> {
     final unread = ref.watch(unreadNotificationsProvider).valueOrNull ?? 0;
     final cartCount = ref.watch(cartCountProvider);
     final isGuest = ref.watch(isGuestProvider);
-    final titles = ['Browse', 'Shops', 'Favorites', 'My Cart', 'My Orders'];
+    final titles = ['Browse', 'Shops', 'My Cart', 'Chats'];
 
     // Tabs that require an account (Favorites, Cart, Orders).
-    const guarded = {2: 'save listings', 3: 'use your cart', 4: 'view orders'};
+    const guarded = {2: 'use your cart', 3: 'view chats'};
 
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[_index]),
         actions: [
+          if (!isGuest) ...[
+            IconButton(
+              tooltip: 'Favorites',
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => Scaffold(
+                      appBar: AppBar(title: const Text('Favorites')),
+                      body: const FavoritesScreen()))),
+              icon: Icon(AppIcons.heart),
+            ),
+            IconButton(
+              tooltip: 'Orders',
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => Scaffold(
+                      appBar: AppBar(title: const Text('My Orders')),
+                      body: const OrdersScreen()))),
+              icon: Icon(AppIcons.receipt),
+            ),
+          ],
           IconButton(
             tooltip: 'Services',
             onPressed: () => context.push('/student/services'),
@@ -97,10 +115,6 @@ class _StudentShellState extends ConsumerState<StudentShell> {
               selectedIcon: Icon(AppIcons.storefrontFill),
               label: 'Shops'),
           NavigationDestination(
-              icon: Icon(AppIcons.heart),
-              selectedIcon: Icon(AppIcons.heartFill),
-              label: 'Favorites'),
-          NavigationDestination(
               icon: Badge(
                 isLabelVisible: cartCount > 0,
                 label: Text('$cartCount'),
@@ -113,9 +127,9 @@ class _StudentShellState extends ConsumerState<StudentShell> {
               ),
               label: 'Cart'),
           NavigationDestination(
-              icon: Icon(AppIcons.receipt),
-              selectedIcon: Icon(AppIcons.receiptFill),
-              label: 'Orders'),
+              icon: Icon(Icons.chat_bubble_outline),
+              selectedIcon: Icon(Icons.chat_bubble),
+              label: 'Chat'),
         ],
       ),
     );

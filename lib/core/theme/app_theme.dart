@@ -77,15 +77,20 @@ class AppTheme {
       seedColor: AppColors.primary,
       brightness: brightness,
     ).copyWith(
-      primary: isLight ? AppColors.primary : const Color(0xFFF2A8C0),
-      onPrimary: isLight ? AppColors.onPrimary : AppColors.primary800,
+      primary: AppColors.primary,
+      onPrimary: Colors.white,
       primaryContainer:
-      isLight ? AppColors.primary50 : AppColors.primary700,
+      isLight ? AppColors.primary50 : AppColors.primary900,
       onPrimaryContainer:
       isLight ? AppColors.primary800 : AppColors.primary50,
       secondary: isLight ? AppColors.secondary : const Color(0xFFE6A2B6),
       tertiary: isLight ? AppColors.tertiary : const Color(0xFFE6C98C),
       error: isLight ? AppColors.error : const Color(0xFFF2A8B0),
+      onError: isLight ? Colors.white : const Color(0xFF680018),
+      errorContainer:
+          isLight ? AppColors.errorContainer : const Color(0xFF640015),
+      onErrorContainer:
+          isLight ? AppColors.onErrorContainer : const Color(0xFFFFD9DE),
       surface: isLight ? AppColors.background : AppColors.backgroundDark,
       onSurface:
       isLight ? AppColors.textPrimary : AppColors.textPrimaryDark,
@@ -96,11 +101,12 @@ class AppTheme {
           : AppColors.surfaceElevatedDark,
       surfaceContainerHighest:
       isLight ? const Color(0xFFEDE7EA) : AppColors.surfaceMutedDark,
-      outline: isLight ? const Color(0xFF8C8389) : const Color(0xFFA99DA8),
+      outline: isLight ? const Color(0xFF756B72) : const Color(0xFFC0B3BC),
       outlineVariant:
-      isLight ? AppColors.border : const Color(0xFF544956),
-      onSurfaceVariant:
-      isLight ? AppColors.textSecondary : AppColors.textSecondaryDark,
+      isLight ? AppColors.border : AppColors.borderDark,
+      onSurfaceVariant: isLight
+          ? AppColors.textSecondary
+          : const Color(0xFFF2E8EC),
     );
 
     final textTheme = AppTextStyles.textTheme(
@@ -144,7 +150,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
           side: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: isLight ? 1 : 0.5),
+            color: scheme.outlineVariant.withValues(alpha: isLight ? 1 : 0.85),
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -156,7 +162,7 @@ class AppTheme {
         filled: true,
         fillColor: isLight
             ? Colors.white
-            : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            : scheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide(color: scheme.outlineVariant),
@@ -180,8 +186,9 @@ class AppTheme {
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
         floatingLabelStyle:
         TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
-        hintStyle:
-        TextStyle(color: scheme.onSurfaceVariant.withValues(alpha: 0.7)),
+        hintStyle: TextStyle(
+          color: isLight ? AppColors.textHint : AppColors.textHintDark,
+        ),
         helperStyle: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
         floatingLabelBehavior: FloatingLabelBehavior.auto,
         contentPadding:
@@ -263,7 +270,7 @@ class AppTheme {
         elevation: 0,
         backgroundColor: scheme.surfaceContainerLowest,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: scheme.primary.withValues(alpha: 0.14),
+        indicatorColor: scheme.primary.withValues(alpha: isLight ? 0.14 : 0.22),
         indicatorShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.full)),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
@@ -447,7 +454,7 @@ class AppTheme {
           filled: true,
           fillColor: isLight
               ? Colors.white
-              : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              : scheme.surfaceContainerHighest,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
             borderSide: BorderSide(color: scheme.outlineVariant),

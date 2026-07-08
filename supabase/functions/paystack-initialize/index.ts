@@ -44,6 +44,7 @@ Deno.serve(async (req) => {
     const deliveryAddress: string = String(body?.delivery_address ?? "").trim();
     const contactPhone: string = String(body?.contact_phone ?? "").trim();
     const note: string | null = body?.note ? String(body.note).trim() : null;
+    const useTokens: boolean = body?.use_tokens === true;
     if (!deliveryAddress || !contactPhone) {
       return json({ error: "Delivery address and contact phone are required" }, 400);
     }
@@ -71,7 +72,12 @@ Deno.serve(async (req) => {
     if (total <= 0) return json({ error: "Cart total is zero" }, 400);
 
     const reference = `rep_${user.id.slice(0, 8)}_${Date.now()}`;
-    const amountKobo = Math.round(total * 100);
+    let tokenDiscountPesewas = 0;
+    if (useTokens) {
+      const { data: quote } = await userClient.rpc("checkout_token_quote");
+      tokenDiscountPesewas = Number(quote?.discount_pesewas ?? 0);
+    }
+    const amountKobo = Math.max(0, Math.round(total * 100) - tokenDiscountPesewas);
 
     // Initialize with Paystack
     const initRes = await fetch("https://api.paystack.co/transaction/initialize", {
@@ -107,6 +113,8 @@ Deno.serve(async (req) => {
         delivery_address: deliveryAddress,
         contact_phone: contactPhone,
         note,
+        use_tokens: useTokens,
+        token_discount_pesewas: tokenDiscountPesewas,
       },
     });
 

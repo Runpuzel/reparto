@@ -23,6 +23,9 @@ class PaymentResult {
 ///    new tab on web).
 /// 3. `paystack-verify` confirms the payment and places the order.
 class PaymentService {
+  static const String _hostedCallback =
+      'https://ujustbuy.netlify.app/payment-complete';
+
   /// Runs the full checkout. On mobile, opens an in-app WebView and watches for
   /// the Paystack callback URL. On web, opens a new tab and relies on the
   /// caller to verify when the user returns.
@@ -34,17 +37,22 @@ class PaymentService {
         required String deliveryAddress,
         required String contactPhone,
         String? note,
+        bool useTokens = false,
       }) async {
+    final callbackUrl = kIsWeb
+        ? Uri.base.resolve('/payment-complete').toString()
+        : _hostedCallback;
     // 1. Initialize
     final initRes = await supabase.functions.invoke(
       'paystack-initialize',
       body: {
         // Paystack redirects here on completion; we just need a stable URL we
         // can detect inside the WebView.
-        'callback_url': 'https://reparto.app/payment-complete',
+        'callback_url': callbackUrl,
         'delivery_address': deliveryAddress,
         'contact_phone': contactPhone,
         'note': note,
+        'use_tokens': useTokens,
       },
     );
 
@@ -74,7 +82,7 @@ class PaymentService {
       MaterialPageRoute(
         builder: (_) => _PaystackWebView(
           authUrl: authUrl,
-          callbackPrefix: 'https://reparto.app/payment-complete',
+          callbackPrefix: callbackUrl,
         ),
       ),
     );

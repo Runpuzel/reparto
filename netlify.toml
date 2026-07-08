@@ -8,7 +8,7 @@
 [build]
 # Clone the Flutter SDK into ./flutter (kept inside the repo root the whole
 # time), put it on PATH, then build the web release into build/web.
-# Config is read from the bundled .env asset (see pubspec.yaml assets).
+# Public client config is read from the bundled env.txt asset.
 command = """
     if [ ! -d flutter ]; then
       git clone https://github.com/flutter/flutter.git -b stable --depth 1

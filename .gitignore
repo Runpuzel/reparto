@@ -6,6 +6,8 @@ build/
 .vscode/
 ios/Pods/
 android/.gradle/
+android/.kotlin/errors/
+supabase/.temp/
 
 # NOTE: env.txt and .env are intentionally NOT ignored.
 # `env.txt` is bundled as a Flutter web asset (web hosts like Netlify hide

@@ -26,7 +26,7 @@ class AppConstants {
 
 /// Order lifecycle stages — keep in sync with the `order_status` enum.
 ///
-/// Reparto delivery flow:
+/// UjustBUY delivery flow:
 ///   Placed(pending) → Confirmed → Dispatched → Delivered   (+ Cancelled)
 /// Legacy values (accepted/preparing/readyForPickup/completed) are still
 /// understood so older rows keep working.

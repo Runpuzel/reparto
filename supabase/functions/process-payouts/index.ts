@@ -1,11 +1,20 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors.ts'
 
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
-  status,
-  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-})
+// ─── Define CORS headers and JSON helper directly ──────────────────────────
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+// ─── Rest of your logic ─────────────────────────────────────────────────────
 const networkCode = (network: string) => {
   const value = network.toLowerCase().replace(/[^a-z]/g, '')
   if (value.includes('mtn')) return 'MTN'

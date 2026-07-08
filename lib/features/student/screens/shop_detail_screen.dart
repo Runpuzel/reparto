@@ -63,10 +63,6 @@ class ShopDetailScreen extends ConsumerWidget {
           final holidayMode = (v as dynamic).holidayMode as bool? ?? false;
           final storeLocation =
               (v as dynamic).storeLocation as String? ?? '';
-          final whatsappNumber =
-              (v as dynamic).whatsappNumber as String? ??
-                  v.businessPhone ??
-                  v.phoneNumber;
           final sellerBio = (v as dynamic).sellerBio as String?;
           final specialties =
               ((v as dynamic).specialties as List?)?.cast<String>() ??
@@ -122,6 +118,11 @@ class ShopDetailScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text('Shop information',
+                              style: AppTextStyles.titleLarge),
+                          const SizedBox(height: AppSpacing.md),
+                          Text('Status', style: AppTextStyles.titleSmall),
+                          const SizedBox(height: AppSpacing.xs),
                           // verified + open status row
                           Row(
                             children: [
@@ -175,8 +176,17 @@ class ShopDetailScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          // hours
+                          if ((sellerBio ?? '').isNotEmpty) ...[
+                            const Divider(height: 28),
+                            Text('About this seller',
+                                style: AppTextStyles.titleSmall),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(sellerBio!, style: AppTextStyles.bodyMedium),
+                          ],
+                          const Divider(height: 28),
+                          Text('Opening hours',
+                              style: AppTextStyles.titleSmall),
+                          const SizedBox(height: AppSpacing.xs),
                           Row(
                             children: [
                               const Icon(Icons.access_time, size: 16),
@@ -192,7 +202,10 @@ class ShopDetailScreen extends ConsumerWidget {
                             ],
                           ),
                           if (storeLocation.isNotEmpty) ...[
-                            const SizedBox(height: 8),
+                            const Divider(height: 28),
+                            Text('Shop location',
+                                style: AppTextStyles.titleSmall),
+                            const SizedBox(height: AppSpacing.xs),
                             Row(
                               crossAxisAlignment:
                               CrossAxisAlignment.start,
@@ -226,50 +239,11 @@ class ShopDetailScreen extends ConsumerWidget {
                               ],
                             ),
                           ],
-                          if (whatsappNumber != null &&
-                              whatsappNumber.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Icon(Icons.chat_outlined,
-                                    size: 16),
-                                const SizedBox(width: 8),
-                                Text(
-                                  whatsappNumber,
-                                  style: AppTextStyles.bodyMedium,
-                                ),
-                                const Spacer(),
-                                OutlinedButton.icon(
-                                  icon: const Icon(
-                                      Icons.chat_bubble_outline,
-                                      size: 14),
-                                  label: const Text(
-                                    'WhatsApp',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
-                                    minimumSize: const Size(0, 32),
-                                    tapTargetSize: MaterialTapTargetSize
-                                        .shrinkWrap,
-                                  ),
-                                  onPressed: () {
-                                    // TODO: url_launcher wa.me
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                          if ((sellerBio ?? '').isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            Text(
-                              sellerBio!,
-                              style: AppTextStyles.bodyMedium,
-                            ),
-                          ],
                           if (specialties.isNotEmpty) ...[
-                            const SizedBox(height: 8),
+                            const Divider(height: 28),
+                            Text('Specialties',
+                                style: AppTextStyles.titleSmall),
+                            const SizedBox(height: AppSpacing.xs),
                             Wrap(
                               spacing: 6,
                               runSpacing: 4,

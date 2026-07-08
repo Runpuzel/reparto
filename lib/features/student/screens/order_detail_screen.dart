@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
@@ -173,6 +174,13 @@ class OrderDetailScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
+                AppButton(
+                  label: 'Message seller',
+                  icon: Icons.chat_bubble_outline,
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () => context.push('/order/${o.orderId}/chat'),
+                ),
+                const SizedBox(height: AppSpacing.sm),
                 _BuyerActions(order: o),
               ],
             ),

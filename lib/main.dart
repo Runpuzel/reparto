@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -38,7 +39,21 @@ Future<void> main() async {
     // ENABLE_PUSH=true in .env).
     if (Env.pushEnabled) {
       try {
-        await Firebase.initializeApp();
+        if (kIsWeb) {
+          await Firebase.initializeApp(
+            options: FirebaseOptions(
+              apiKey: Env.firebaseWebApiKey,
+              appId: Env.firebaseWebAppId,
+              messagingSenderId: Env.firebaseMessagingSenderId,
+              projectId: Env.firebaseProjectId,
+              authDomain: Env.firebaseAuthDomain,
+              storageBucket: Env.firebaseStorageBucket,
+            ),
+          );
+          PushService.webVapidKey = Env.firebaseWebVapidKey;
+        } else {
+          await Firebase.initializeApp();
+        }
         FirebaseMessaging.onBackgroundMessage(
             firebaseMessagingBackgroundHandler);
         // Let push taps navigate via GoRouter.
@@ -53,14 +68,14 @@ Future<void> main() async {
       debugPrint('Push disabled: set ENABLE_PUSH=true in .env to enable.');
     }
 
-    runApp(const ProviderScope(child: RepartoApp()));
+    runApp(const ProviderScope(child: UjustBuyApp()));
   } else {
     runApp(const ProviderScope(child: _MisconfiguredApp()));
   }
 }
 
-class RepartoApp extends ConsumerWidget {
-  const RepartoApp({super.key});
+class UjustBuyApp extends ConsumerWidget {
+  const UjustBuyApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

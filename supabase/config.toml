@@ -1,0 +1,7 @@
+project_id = "eidqnjldlnlwqnblruep"
+
+# This function is called by a database webhook using PUSH_FUNCTION_SECRET.
+# It performs its own constant secret check, so the Supabase JWT gateway must
+# not reject that shared secret before the function executes.
+[functions.send-push]
+verify_jwt = false

@@ -155,13 +155,43 @@ class StudentRepository {
     required String contactPhone,
     required String paymentMethod,
     String? note,
+    bool useTokens = false,
   }) async {
-    await supabase.rpc('place_order_checkout', params: {
+    final result = await supabase.rpc('place_order_checkout', params: {
       'p_delivery_address': deliveryAddress,
       'p_contact_phone': contactPhone,
       'p_payment_method': paymentMethod,
       'p_note': note,
     });
+    if (useTokens && result is List && result.isNotEmpty) {
+      await supabase.rpc('apply_checkout_token_discount', params: {
+        'p_orders': result.map((id) => id.toString()).toList(),
+      });
+    }
+  }
+
+  Future<bool> isVendorPrepaymentEligible(String vendorId) async {
+    final settings = await supabase
+        .from('platform_settings')
+        .select('verification_required_for_prepayment')
+        .order('updated_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    if (settings?['verification_required_for_prepayment'] == false) {
+      return true;
+    }
+    final row = await supabase
+        .from('vendors')
+        .select('is_verified, verification_status')
+        .eq('vendor_id', vendorId)
+        .maybeSingle();
+    return row?['is_verified'] == true &&
+        row?['verification_status'] == 'approved';
+  }
+
+  Future<Map<String, dynamic>> checkoutTokenQuote() async {
+    final result = await supabase.rpc('checkout_token_quote');
+    return Map<String, dynamic>.from(result as Map);
   }
 
   /// A student may cancel their own pending order (allowed by RLS).
@@ -265,10 +295,21 @@ class StudentRepository {
   // ---- Services -------------------------------------------------------------
   /// Available services of approved sellers (RLS scopes by campus / guest).
   Future<List<Service>> fetchServices({String? category, String? search}) async {
+    final settings = await supabase
+        .from('platform_settings')
+        .select('service_auth_fee')
+        .order('updated_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    final freeMode = ((settings?['service_auth_fee'] as num?) ?? 0) == 0;
     var query = supabase
         .from('services')
         .select('*, vendors(business_name), service_images(image_url, position)')
         .eq('status', 'available');
+    if (!freeMode) {
+      query = query.or(
+          'is_authorized.eq.true,expires_at.gt.${DateTime.now().toUtc().toIso8601String()}');
+    }
     if (category != null) query = query.eq('category', category);
     if (search != null && search.trim().isNotEmpty) {
       query = query.ilike('title', '%${search.trim()}%');
@@ -285,7 +326,20 @@ class StudentRepository {
         .select('*, vendors(business_name), service_images(image_url, position)')
         .eq('service_id', serviceId)
         .maybeSingle();
-    return data == null ? null : Service.fromMap(Map<String, dynamic>.from(data));
+    if (data == null) return null;
+    final service = Service.fromMap(Map<String, dynamic>.from(data));
+    final settings = await supabase
+        .from('platform_settings')
+        .select('service_auth_fee')
+        .order('updated_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    final freeMode = ((settings?['service_auth_fee'] as num?) ?? 0) == 0;
+    if (!freeMode && !service.isAuthorized &&
+        (service.expiresAt == null || service.expiresAt!.isBefore(DateTime.now()))) {
+      return null;
+    }
+    return service;
   }
 
   // ---- Escrow / disputes (spec Section C) -----------------------------------

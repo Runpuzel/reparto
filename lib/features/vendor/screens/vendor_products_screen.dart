@@ -22,26 +22,6 @@ import '../../../core/widgets/confirm_actions.dart';
 import '../../../models/models.dart';
 import '../providers/vendor_providers.dart';
 
-// ---- v1.0 platform settings provider ----
-final _localPlatformSettingsProvider =
-FutureProvider<PlatformSetting?>((ref) async {
-  try {
-    final row = await supabase
-        .from('platform_settings')
-        .select()
-        .order('updated_at', ascending: false)
-        .limit(1)
-        .maybeSingle();
-    if (row == null) return PlatformSetting.freeMode;
-    return PlatformSetting.fromMap(
-        Map<String, dynamic>.from(row as Map));
-  } catch (_) {
-    return PlatformSetting.freeMode;
-  }
-});
-
-final platformSettingsProvider = _localPlatformSettingsProvider;
-
 class VendorProductsScreen extends ConsumerStatefulWidget {
   const VendorProductsScreen({super.key});
 
@@ -270,14 +250,14 @@ class ServicesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final services = ref.watch(myServicesProvider);
-    final platform = ref.watch(platformSettingsProvider);
+    final platform = ref.watch(vendorPlatformSettingsProvider);
 
     final isFreeMode = platform.value?.isFreeMode ?? true;
 
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(myServicesProvider);
-        ref.invalidate(platformSettingsProvider);
+        ref.invalidate(vendorPlatformSettingsProvider);
       },
       child: services.when(
         loading: () =>

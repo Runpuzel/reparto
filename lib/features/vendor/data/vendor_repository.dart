@@ -163,6 +163,12 @@ class VendorRepository {
     await supabase.from('services').update({'status': status}).eq('service_id', serviceId);
   }
 
+  Future<void> authorizeService(String serviceId) async {
+    await supabase.rpc('authorize_service_from_wallet', params: {
+      'p_service': serviceId,
+    });
+  }
+
   Future<List<AppOrder>> fetchOrders(String vendorId) async {
     final rows = await supabase
         .from('orders')
@@ -259,7 +265,9 @@ class VendorRepository {
   Future<void> submitVerification(Map<String, dynamic> data) async {
     final uid = supabase.auth.currentUser?.id;
     if (uid == null) throw 'User session expired';
-    await supabase.from('vendors').update(data).eq('user_id', uid);
+    await supabase.rpc('vendor_submit_verification', params: {
+      'p_payload': data,
+    });
   }
 }
 

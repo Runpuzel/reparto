@@ -299,7 +299,7 @@ class VendorProfileScreen extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.insights_outlined, size: 18),
                       label: const Text('View Earnings Dashboard'),
-                      onPressed: () => context.push('/vendor/earnings'),
+                      onPressed: () => context.push('/vendor/weekly-earnings'),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -370,11 +370,8 @@ class VendorProfileScreen extends ConsumerWidget {
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  _navTile(context, Icons.info_outline, 'About', 'About Campus Marketplace',
+                  _navTile(context, Icons.info_outline, 'About', 'About UjustBUY',
                           () => context.push('/profile/about')),
-                  const Divider(height: 1),
-                  _navTile(context, Icons.code, 'Developer', 'Build info, API, open source',
-                          () => context.push('/profile/developer')),
                 ],
               ),
             ),
@@ -382,11 +379,6 @@ class VendorProfileScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.md),
 
             // legacy tiles kept - theme, notifications, passcode
-            // ThemeModeTile and NotificationsDiagnosticTile are project-specific – keep if available
-            // const ThemeModeTile(),
-            // const SizedBox(height: AppSpacing.sm),
-            // const NotificationsDiagnosticTile(),
-
             const SizedBox(height: AppSpacing.lg),
 
             AppButton(

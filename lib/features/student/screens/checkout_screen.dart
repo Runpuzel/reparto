@@ -22,6 +22,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_actions.dart';
 import '../../../core/widgets/consent_dialog.dart';
 import '../../../models/models.dart';
+import '../../shared/providers/shared_providers.dart';
 import '../providers/student_providers.dart';
 
 /// Collects delivery address, contact phone and payment method, shows an order
@@ -44,6 +45,9 @@ class CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       : PaymentMethod.cashOnDelivery;
   bool loading = false;
   bool policyConsent = false;
+  bool useTokens = false;
+  int tokenDiscountPesewas = 0;
+  int tokensToRedeem = 0;
 
   // v1.0 – vendor verification gating
   bool _vendorChecked = false;
@@ -68,7 +72,22 @@ class CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void initState() {
     super.initState();
     // check vendor verification after first frame (cart loaded)
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkVendor());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkVendor();
+      _loadTokenQuote();
+    });
+  }
+
+  Future<void> _loadTokenQuote() async {
+    try {
+      final quote = await ref.read(studentRepositoryProvider).checkoutTokenQuote();
+      if (!mounted) return;
+      setState(() {
+        tokenDiscountPesewas =
+            (quote['discount_pesewas'] as num?)?.toInt() ?? 0;
+        tokensToRedeem = (quote['tokens_to_redeem'] as num?)?.toInt() ?? 0;
+      });
+    } catch (_) {}
   }
 
   Future<void> _checkVendor() async {
@@ -94,17 +113,16 @@ class CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (vendorId != null) {
         final repo = ref.read(studentRepositoryProvider);
         // v1.0 method – may not exist yet – try/catch
-        bool verified = true;
+        bool verified = false;
         String? vName;
         try {
           // ignore: avoid_dynamic_calls
-          verified = await (repo as dynamic).isVendorPrepaymentEligible(vendorId) as bool? ?? true;
+          verified = await repo.isVendorPrepaymentEligible(vendorId);
           final v = await repo.fetchVendor(vendorId);
           vName = v?.businessName;
           // also read isVerified directly if model has it
-          verified = (v as dynamic)?.isVerified ?? verified;
         } catch (_) {
-          verified = true; // fail open – don't block checkout if check fails
+          verified = false; // fail closed: prepayment requires confirmed KYC
         }
         setState(() {
           _vendorVerified = verified;
@@ -116,7 +134,7 @@ class CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         });
       } else {
         setState(() {
-          _vendorVerified = true;
+          _vendorVerified = false;
           _vendorChecked = true;
         });
       }
@@ -141,12 +159,15 @@ class CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
 
     final total = ref.read(cartTotalProvider);
+    final discount = useTokens ? tokenDiscountPesewas / 100 : 0.0;
+    final payable = (total - discount).clamp(0, total).toDouble();
 
     // v1.0 – consent dialog before payment
+    final policySettings = await ref.read(marketplaceSettingsProvider.future);
     final consented = await showConsentDialog(
       context,
       type: ConsentType.checkoutPolicy,
-      policyVersion: 'v1.0-2025-07',
+      policyVersion: policySettings.currentPolicyVersion,
       title: 'Purchase Policy',
       bodyMarkdown: '''
 **Order & Delivery – v1.0**
@@ -155,8 +176,7 @@ class CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 • Delivery address must be accurate – campus location preferred.
 • 48hr buyer confirmation window, then auto-release to seller.
 • Disputes: raise within 48hrs via My Orders → Report.
-• No platform fee shown to buyers – seller absorbs 5%.
-• Cancellations allowed while order is pending.
+• Pending Cash on Delivery orders may be cancelled. Paid Mobile Money orders cannot be cancelled; use the dispute process if there is a problem.
 
 ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your safety, prepayment is disabled – pay cash on delivery only.'}
 ''',
@@ -173,9 +193,9 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
       context,
       title: 'Place order?',
       message: method.isOnline
-          ? 'You will pay ${Formatters.money(total)} securely via Mobile Money. '
+          ? 'You will pay ${Formatters.money(payable)} securely via Mobile Money. '
           'Your payment goes to the shop\'s Mobile Money account.'
-          : 'Place this order for ${Formatters.money(total)} (cash on delivery)?',
+          : 'Place this order for ${Formatters.money(payable)} (cash on delivery)?',
       confirmLabel: method.isOnline ? 'Pay now' : 'Place order',
       icon: method.icon,
     );
@@ -188,7 +208,7 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
         final cr = ref.read(consentRepositoryProvider);
         await cr?.record?.call(
           type: 'checkout_policy',
-          policyVersion: 'v1.0-2025-07',
+          policyVersion: policySettings.currentPolicyVersion,
           metadata: {
             'payment_method': method.db,
             'vendor_verified': _vendorVerified,
@@ -215,6 +235,7 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
       contactPhone: phone.text.trim(),
       paymentMethod: method.db,
       note: note.text.trim().isEmpty ? null : note.text.trim(),
+      useTokens: useTokens,
     );
     ref.invalidate(cartProvider);
     ref.invalidate(myOrdersProvider);
@@ -227,6 +248,7 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
       deliveryAddress: address.text.trim(),
       contactPhone: phone.text.trim(),
       note: note.text.trim().isEmpty ? null : note.text.trim(),
+      useTokens: useTokens,
     );
 
     if (result.success) {
@@ -310,6 +332,8 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
     final cart = ref.watch(cartProvider).valueOrNull ?? [];
     final total = ref.watch(cartTotalProvider);
     final scheme = Theme.of(context).colorScheme;
+    final discount = useTokens ? tokenDiscountPesewas / 100 : 0.0;
+    final payable = (total - discount).clamp(0, total).toDouble();
 
     final unverifiedLock = _vendorChecked && !_vendorVerified;
 
@@ -471,12 +495,36 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
                       ),
                     )),
                     const Divider(height: 20),
-                    // v1.0 – NO platform fee line – seller absorbs fee, buyer never sees
+                    if (tokensToRedeem > 0) ...[
+                      SwitchListTile(
+                        value: useTokens,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('Use $tokensToRedeem tokens',
+                            style: AppTextStyles.titleSmall),
+                        subtitle: Text(
+                          'Save ${Formatters.money(tokenDiscountPesewas / 100)} from the UjustBUY marketplace fee',
+                          style: AppTextStyles.bodySmall,
+                        ),
+                        secondary: Icon(AppIcons.tag, color: scheme.primary),
+                        onChanged: (value) => setState(() => useTokens = value),
+                      ),
+                      if (useTokens)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Token discount'),
+                            Text('-${Formatters.money(discount)}',
+                                style: const TextStyle(
+                                    color: AppColors.success)),
+                          ],
+                        ),
+                      const Divider(height: 20),
+                    ],
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Total', style: AppTextStyles.titleMedium),
-                        Text(Formatters.money(total),
+                        Text(Formatters.money(payable),
                             style: AppTextStyles.titleLarge.copyWith(
                                 fontWeight: FontWeight.w800,
                                 color: scheme.primary)),
@@ -523,7 +571,7 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
             child: AppButton(
               label: loading
                   ? 'Processing…'
-                  : '${method.isOnline && _vendorVerified ? 'Pay' : 'Place Order'} · ${Formatters.money(total)}',
+                  : '${method.isOnline && _vendorVerified ? 'Pay' : 'Place Order'} · ${Formatters.money(payable)}',
               icon: loading
                   ? null
                   : (method.isOnline && _vendorVerified

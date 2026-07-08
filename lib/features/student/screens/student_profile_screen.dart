@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -71,6 +72,18 @@ class StudentProfileScreen extends ConsumerWidget {
                   _SettingsGroup(
                     children: [
                       _ProfileAction(
+                        icon: AppIcons.storefront,
+                        title: student.role == UserRole.vendor
+                            ? 'Seller dashboard'
+                            : 'Become a Student Seller',
+                        subtitle: student.role == UserRole.vendor
+                            ? 'Manage your products, services, and sales'
+                            : 'Sell products and services with this account',
+                        onTap: student.role == UserRole.vendor
+                            ? () => context.go('/vendor')
+                            : () => _becomeSeller(context, ref),
+                      ),
+                      _ProfileAction(
                         icon: AppIcons.tag,
                         title: 'Referral rewards',
                         subtitle: '$tokens token${tokens == 1 ? '' : 's'} available',
@@ -104,7 +117,7 @@ class StudentProfileScreen extends ConsumerWidget {
                       ),
                       _ProfileAction(
                         icon: Icons.info_outline,
-                        title: 'About Reparto',
+                        title: 'About UjustBUY',
                         subtitle: 'Policies, platform information, and support',
                         onTap: () => context.push('/about'),
                       ),
@@ -135,6 +148,32 @@ class StudentProfileScreen extends ConsumerWidget {
       icon: AppIcons.logout,
     );
     if (confirmed) await ref.read(authRepositoryProvider).signOut();
+  }
+
+  Future<void> _becomeSeller(BuildContext context, WidgetRef ref) async {
+    final confirmed = await ConfirmActions.confirm(
+      context,
+      title: 'Become a Student Seller?',
+      message: 'Your account, cart, favorites, and purchases will stay intact. '
+          'You will also get seller tools for posting products and services.',
+      confirmLabel: 'Continue',
+      icon: AppIcons.storefront,
+    );
+    if (!confirmed || !context.mounted) return;
+
+    try {
+      await ref.read(authRepositoryProvider).becomeStudentSeller();
+      ref.invalidate(currentUserProvider);
+      ref.invalidate(currentVendorProvider);
+      if (context.mounted) context.go('/vendor/agreement');
+    } catch (error) {
+      if (context.mounted) {
+        ConfirmActions.showError(
+          context,
+          'Could not enable seller mode. Please try again.',
+        );
+      }
+    }
   }
 }
 
@@ -174,10 +213,26 @@ class _ProfileHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        StatusPill(
-          label: campusName,
-          icon: AppIcons.campus,
-          color: scheme.primary,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            StatusPill(
+              label: student.role == UserRole.vendor ? 'Vendor' : 'Student',
+              icon: student.role == UserRole.vendor
+                  ? AppIcons.storefront
+                  : AppIcons.user,
+              color: student.role == UserRole.vendor
+                  ? scheme.tertiary
+                  : scheme.primary,
+            ),
+            StatusPill(
+              label: campusName,
+              icon: AppIcons.campus,
+              color: scheme.primary,
+            ),
+          ],
         ),
       ],
     );

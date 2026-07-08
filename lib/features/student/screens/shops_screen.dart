@@ -143,16 +143,6 @@ class _ShopCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.bodySmall
                           .copyWith(color: scheme.onSurfaceVariant)),
-                ] else if (shop.businessPhone != null) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Row(children: [
-                    Icon(AppIcons.phoneBusiness,
-                        size: 14, color: scheme.onSurfaceVariant),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(shop.businessPhone!,
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: scheme.onSurfaceVariant)),
-                  ]),
                 ],
               ],
             ),

@@ -1,4 +1,4 @@
-# Reparto — Multi-Campus Marketplace
+# UjustBUY — Multi-Campus Marketplace
 
 A mobile-first, campus-isolated marketplace connecting **students** and **campus
 vendors**, with an **admin** console for oversight. Built with **Flutter**
@@ -179,4 +179,4 @@ tab; students can cancel while `pending`.
 
 ---
 
-© Reparto. Built as an academic project scaffold.
+© UjustBUY.

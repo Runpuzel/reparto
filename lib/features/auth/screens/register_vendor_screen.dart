@@ -36,7 +36,6 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
   final formKey = GlobalKey<FormState>();
   final business = TextEditingController();
   final owner = TextEditingController();
-  final phone = TextEditingController();
   final businessPhone = TextEditingController();
   final momo = TextEditingController();
   final email = TextEditingController();
@@ -56,7 +55,6 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
   void dispose() {
     business.dispose();
     owner.dispose();
-    phone.dispose();
     businessPhone.dispose();
     momo.dispose();
     email.dispose();
@@ -77,31 +75,17 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
     setState(() => loading = true);
     final repo = ref.read(authRepositoryProvider);
     try {
-      // v1.0 signUpVendor – NO ghana card params
-      // TODO Phase 5: update auth_repository.signUpVendor signature to remove KYC args
-      final res = await (repo.signUpVendorV1?.call(
+      final res = await repo.signUpVendor(
         businessName: business.text.trim(),
         ownerName: owner.text.trim(),
-        phoneNumber: phone.text.trim(),
         businessPhone: businessPhone.text.trim(),
         momoNumber: momo.text.trim(),
         momoNetwork: momoNetwork,
         email: email.text.trim(),
         password: password.text,
-        campusId: campusId!,
-      ) ?? repo.signUpVendor(
-        businessName: business.text.trim(),
-        ownerName: owner.text.trim(),
-        phoneNumber: phone.text.trim(),
-        businessPhone: businessPhone.text.trim(),
-        momoNumber: momo.text.trim(),
-        momoNetwork: momoNetwork,
-        // LEGACY COMPAT – pass empty – remove in Phase 5
         ghanaCardNumber: '',
-        email: email.text.trim(),
-        password: password.text,
         campusId: campusId!,
-      ));
+      );
 
       // Upload logo if session exists
       if (res.session != null && currentAuthUser != null && logo != null) {
@@ -114,7 +98,6 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
         await repo.createVendorRecord(
           businessName: business.text.trim(),
           ownerName: owner.text.trim(),
-          phoneNumber: phone.text.trim(),
           businessPhone: businessPhone.text.trim(),
           momoNumber: momo.text.trim(),
           momoNetwork: momoNetwork,
@@ -188,7 +171,8 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                     const SizedBox(height: AppSpacing.md),
                     AppTextField(
                       controller: business,
-                      label: 'Business Name',
+                      label: 'Business name',
+                      hint: 'The shop name customers will see',
                       prefixIcon: AppIcons.storefront,
                       validator: (v) =>
                           Validators.required(v, 'Business name'),
@@ -196,7 +180,7 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                     const SizedBox(height: AppSpacing.md),
                     AppTextField(
                       controller: owner,
-                      label: 'Owner Name',
+                      label: 'Your full name',
                       prefixIcon: AppIcons.user,
                       validator: (v) => Validators.required(v, 'Owner name'),
                     ),
@@ -215,40 +199,39 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                             value: c.campusId, child: Text(c.campusName)))
                             .toList(),
                         onChanged: (v) => setState(() => campusId = v),
+                        validator: (v) =>
+                            v == null ? 'Please select your campus' : null,
                       ),
                     ),
 
                     const SizedBox(height: AppSpacing.lg),
-                    const SectionLabel('Contact numbers'),
+                    const SectionLabel('Business contact'),
                     const SizedBox(height: AppSpacing.sm + 4),
                     AppTextField(
-                      controller: phone,
-                      label: 'Personal Phone Number',
-                      prefixIcon: AppIcons.phone,
-                      keyboardType: TextInputType.phone,
-                      validator: Validators.phone,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    AppTextField(
                       controller: businessPhone,
-                      label: 'Business Phone Number',
+                      label: 'Business phone number',
+                      hint: 'Customers can contact your shop on this number',
                       prefixIcon: AppIcons.phoneBusiness,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
                       validator: Validators.phone,
                     ),
 
                     const SizedBox(height: AppSpacing.lg),
                     const SectionLabel('Mobile money (for payouts)'),
                     const SizedBox(height: AppSpacing.sm + 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 130,
-                          child: DropdownButtonFormField<String>(
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final networkField = DropdownButtonFormField<String>(
                             value: momoNetwork,
-                            decoration:
-                            const InputDecoration(labelText: 'Network'),
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Network',
+                              prefixIcon: Icon(Icons.sim_card_outlined),
+                            ),
                             items: const [
                               DropdownMenuItem(
                                   value: 'MTN', child: Text('MTN')),
@@ -260,19 +243,37 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                             ],
                             onChanged: (v) =>
                                 setState(() => momoNetwork = v ?? 'MTN'),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: AppTextField(
+                          );
+                        final numberField = AppTextField(
                             controller: momo,
-                            label: 'MoMo Number',
+                            label: 'MoMo number',
                             prefixIcon: AppIcons.wallet,
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(10),
+                            ],
                             validator: Validators.momo,
-                          ),
-                        ),
-                      ],
+                          );
+
+                        if (constraints.maxWidth < 360) {
+                          return Column(
+                            children: [
+                              networkField,
+                              const SizedBox(height: AppSpacing.md),
+                              numberField,
+                            ],
+                          );
+                        }
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(width: 150, child: networkField),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(child: numberField),
+                          ],
+                        );
+                      },
                     ),
 
                     // REMOVED v1.0: Identity verification (Ghana Card) section
@@ -301,14 +302,13 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                     ),
 
                     const SizedBox(height: AppSpacing.md),
-                    // NEW v1.0 – pre-consent checkbox (full agreement still at /vendor/agreement)
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
                       value: agreeTerms,
                       onChanged: (v) => setState(() => agreeTerms = v ?? false),
                       title: const Text(
-                        'I agree to the Seller Terms and Privacy Policy (v1.0). Full Seller Agreement will be shown after sign-up.',
+                        'I agree to the Seller Terms and Privacy Policy. The full Seller Agreement will be shown after sign-up.',
                         style: TextStyle(fontSize: 13),
                       ),
                     ),
@@ -340,7 +340,6 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
     );
   }
 }
-
 class SectionLabel extends StatelessWidget {
   final String text;
   const SectionLabel(this.text, {super.key});
@@ -373,8 +372,8 @@ class InfoBannerV1 extends StatelessWidget {
         const SizedBox(width: AppSpacing.sm + 2),
         Expanded(
           child: Text(
-            'v1.0 – Start selling in 60 seconds. '
-                'ID verification (Ghana Card or Student ID) is post-registration in Settings – unlocks prepayment & verified badge.',
+            'Create your shop with a business contact and payout number. '
+                'You can complete ID verification later in Settings to unlock prepayment and the verified badge.',
             style: AppTextStyles.bodySmall
                 .copyWith(color: scheme.onSecondaryContainer),
           ),
@@ -382,22 +381,4 @@ class InfoBannerV1 extends StatelessWidget {
       ]),
     );
   }
-}
-
-// --- Phase 5 compatibility shims ---
-// These extensions let the v1.0 UI compile against the legacy auth_repository
-// Remove once auth_repository.signUpVendor is refactored to signUpVendorV1
-extension AuthRepoV1X on dynamic {
-  // ignore: non_constant_identifier_names
-  dynamic Function({
-  required String businessName,
-  required String ownerName,
-  required String phoneNumber,
-  required String businessPhone,
-  required String momoNumber,
-  required String momoNetwork,
-  required String email,
-  required String password,
-  required String campusId,
-  })? get signUpVendorV1 => null;
 }

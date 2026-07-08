@@ -6,8 +6,8 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/widgets/theme_mode_tile.dart';
 import '../../auth/providers/auth_providers.dart';
 import 'admin_campuses_screen.dart';
+import 'admin_activity_screen.dart';
 import 'admin_categories_screen.dart';
-import 'admin_commission_screen.dart';
 import 'admin_disputes_screen.dart';
 import 'admin_reports_screen.dart';
 import 'admin_services_screen.dart';
@@ -46,7 +46,6 @@ class AdminShellState extends ConsumerState<AdminShell> {
       _AdminMoreScreen(
         openPage: _openPage,
         openPlatformSettings: () => context.push('/admin/settings/platform'),
-        openDeveloper: () => context.push('/profile/developer'),
       ),
     ];
 
@@ -59,21 +58,11 @@ class AdminShellState extends ConsumerState<AdminShell> {
             tooltip: 'Account',
             icon: const Icon(Icons.account_circle_outlined),
             onSelected: (value) {
-              if (value == 'developer') {
-                context.push('/profile/developer');
-              } else if (value == 'sign_out') {
+              if (value == 'sign_out') {
                 ref.read(authRepositoryProvider).signOut();
               }
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'developer',
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.code_outlined),
-                  title: Text('Developer'),
-                ),
-              ),
               PopupMenuItem(
                 value: 'sign_out',
                 child: ListTile(
@@ -124,22 +113,20 @@ class _AdminMoreScreen extends StatelessWidget {
   const _AdminMoreScreen({
     required this.openPage,
     required this.openPlatformSettings,
-    required this.openDeveloper,
   });
 
   final void Function(String title, Widget page) openPage;
   final VoidCallback openPlatformSettings;
-  final VoidCallback openDeveloper;
 
   @override
   Widget build(BuildContext context) {
     final tools = <_AdminTool>[
+      _AdminTool('Marketplace activity', 'Sales, cancellations, chats and product performance',
+          Icons.monitor_heart_outlined,
+          () => openPage('Marketplace activity', const AdminActivityScreen())),
       _AdminTool('Categories', 'Organize marketplace listings',
           Icons.category_outlined,
           () => openPage('Categories', const AdminCategoriesScreen())),
-      _AdminTool('Commission', 'Manage pricing and fee tiers',
-          Icons.payments_outlined,
-          () => openPage('Commission', const AdminCommissionScreen())),
       _AdminTool('Campuses', 'Manage supported locations',
           Icons.school_outlined,
           () => openPage('Campuses', const AdminCampusesScreen())),
@@ -149,10 +136,10 @@ class _AdminMoreScreen extends StatelessWidget {
       _AdminTool('Users', 'Manage access and account status',
           Icons.people_outline,
           () => openPage('User management', const AdminUsersScreen())),
+      _AdminTool('Revenue', 'Weekly fees and seller payouts',
+          Icons.trending_up_outlined, () => context.push('/admin/revenue')),
       _AdminTool('Platform settings', 'Configure fees and policies',
           Icons.tune_outlined, openPlatformSettings),
-      _AdminTool('Developer', 'Open developer tools', Icons.code_outlined,
-          openDeveloper),
     ];
 
     return LayoutBuilder(

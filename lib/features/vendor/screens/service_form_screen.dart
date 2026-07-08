@@ -20,7 +20,6 @@ import '../../../core/widgets/multi_image_field.dart';
 import '../../../models/models.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../providers/vendor_providers.dart';
-import 'vendor_products_screen.dart';
 
 /// E2b — Service Listing Form – v1.0 with consent + expiration
 class ServiceFormScreen extends ConsumerStatefulWidget {
@@ -92,10 +91,12 @@ class ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
 
     // v1.0 – consent dialog BEFORE confirm (new services only)
     if (!isEdit && !_consentChecked) {
+      final policySettings =
+          await ref.read(vendorPlatformSettingsProvider.future);
       final consented = await showConsentDialog(
         context,
         type: ConsentType.servicePost,
-        policyVersion: 'v2.0-2026-07',
+        policyVersion: policySettings.currentPolicyVersion,
         title: 'Service Listing Policy',
         bodyMarkdown: '''
 Service Listing Policy - v2.0 - July 2026
@@ -147,7 +148,11 @@ Service Listing Policy - v2.0 - July 2026
       }
 
       final now = DateTime.now();
-      final expiresAt = widget.service?.expiresAt ?? now.add(const Duration(days: 14));
+      final settings = await ref.read(vendorPlatformSettingsProvider.future);
+      final expiresAt = widget.service?.expiresAt ??
+          (settings.isFreeMode
+              ? null
+              : now.add(Duration(days: settings.serviceFreeListingDays)));
 
       final data = {
         'vendor_id': vendor.vendorId,
@@ -158,7 +163,7 @@ Service Listing Policy - v2.0 - July 2026
         'price_from': priceFrom,
         'availability': availability.text.trim().isEmpty ? null : availability.text.trim(),
         'location': location.text.trim().isEmpty ? null : location.text.trim(),
-        'expires_at': expiresAt.toIso8601String(),
+        'expires_at': expiresAt?.toIso8601String(),
         'consent_given': true,
         'consent_given_at': widget.service?.consentGivenAt?.toIso8601String() ?? now.toIso8601String(),
         'status': 'available',
@@ -201,7 +206,7 @@ Service Listing Policy - v2.0 - July 2026
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final platformAsync = ref.watch(platformSettingsProvider);
+    final platformAsync = ref.watch(vendorPlatformSettingsProvider);
     final settings = platformAsync.valueOrNull;
     final authFee = settings?.serviceAuthFee ?? 30.0;
     final isFreeMode = settings?.isFreeMode ?? (authFee == 0);

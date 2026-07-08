@@ -36,18 +36,14 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
   // Ghana Card
   final _gcName = TextEditingController();
   final _gcNumber = TextEditingController();
-  DateTime? _dob;
   PickedImage? _gcFront;
   PickedImage? _gcBack;
-  PickedImage? _gcSelfie;
   // Student ID
-  final _uni = TextEditingController();
   final _studentId = TextEditingController();
   final _program = TextEditingController();
   String _year = '1';
   PickedImage? _sidFront;
   PickedImage? _sidBack;
-  PickedImage? _enrollment;
   bool _consent = false;
   bool _submitting = false;
   int _submitCount = 0;
@@ -58,7 +54,6 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
   void dispose() {
     _gcName.dispose();
     _gcNumber.dispose();
-    _uni.dispose();
     _studentId.dispose();
     _program.dispose();
     super.dispose();
@@ -83,10 +78,11 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
       return;
     }
 
+    final settings = await ref.read(vendorPlatformSettingsProvider.future);
     final ok = await showConsentDialog(
       context,
       type: ConsentType.verificationSubmit,
-      policyVersion: 'v1.0-2025-07',
+      policyVersion: settings.currentPolicyVersion,
       title: 'ID Verification Consent',
       bodyMarkdown: '''
 **Ghana Data Protection Act 2012**
@@ -104,7 +100,7 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
 
     setState(() => _submitting = true);
     try {
-      String? frontUrl, backUrl, selfieUrl;
+      String? frontUrl, backUrl;
       final vendorId = v.vendorId;
       final ts = DateTime.now().millisecondsSinceEpoch;
       final isGc = _type == KycType.ghanaCard;
@@ -122,11 +118,9 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
       if (isGc) {
         frontUrl = await up(_gcFront, 'front');
         backUrl = await up(_gcBack, 'back');
-        selfieUrl = await up(_gcSelfie, 'selfie');
       } else {
         frontUrl = await up(_sidFront, 'front');
         backUrl = await up(_sidBack, 'back');
-        selfieUrl = await up(_enrollment, 'enrollment');
       }
 
       await ref.read(vendorRepositoryProvider).submitVerification({
@@ -134,10 +128,8 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
         'verification_id_number': isGc ? _gcNumber.text.trim().toUpperCase() : _studentId.text.trim(),
         'verification_front_url': frontUrl,
         'verification_back_url': backUrl,
-        'verification_selfie_url': selfieUrl,
         'verification_status': 'pending',
         'verification_submitted_at': DateTime.now().toIso8601String(),
-        if (isGc) 'date_of_birth': _dob?.toIso8601String(),
       });
 
       ref.invalidate(currentVendorProvider);
@@ -202,21 +194,25 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
   }
 
   Widget _chooseType() {
+    final allowed = ref.watch(vendorPlatformSettingsProvider).valueOrNull
+            ?.kycAllowedTypes ??
+        const ['ghana_card', 'student_id'];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('Select verification method:', style: AppTextStyles.titleSmall),
         const SizedBox(height: 12),
-        _typeCard(
+        if (allowed.contains('ghana_card')) _typeCard(
           title: 'Ghana Card',
           subtitle: 'Recommended – Quick verification',
           icon: AppIcons.badge,
           onTap: () => setState(() => _type = KycType.ghanaCard),
         ),
-        const SizedBox(height: AppSpacing.md),
-        _typeCard(
+        if (allowed.contains('ghana_card') && allowed.contains('student_id'))
+          const SizedBox(height: AppSpacing.md),
+        if (allowed.contains('student_id')) _typeCard(
           title: 'Student ID',
-          subtitle: 'Valid campus ID + Enrollment proof',
+          subtitle: 'Valid student ID card',
           icon: Icons.school_outlined,
           onTap: () => setState(() => _type = KycType.studentId),
         ),
@@ -257,25 +253,10 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
           const SizedBox(height: AppSpacing.md),
           AppTextField(controller: _gcNumber, label: 'Ghana Card Number *', hint: 'GHA-123456789-0', prefixIcon: AppIcons.badge),
           const SizedBox(height: AppSpacing.md),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.cake_outlined),
-            title: Text(_dob == null ? 'Date of birth *' : 'DOB: ${_dob!.day}/${_dob!.month}/${_dob!.year}'),
-            trailing: const Icon(Icons.edit_calendar),
-            onTap: () async {
-              final d = await showDatePicker(context: context, firstDate: DateTime(1960), lastDate: DateTime.now().subtract(const Duration(days: 365*16)), initialDate: DateTime(2003));
-              if (d != null) setState(() => _dob = d);
-            },
-          ),
-          const SizedBox(height: AppSpacing.md),
           ImageUploadField(label: 'Card front *', icon: Icons.badge_outlined, onPicked: (p)=> _gcFront = p),
           const SizedBox(height: AppSpacing.md),
           ImageUploadField(label: 'Card back *', icon: Icons.badge_outlined, onPicked: (p)=> _gcBack = p),
-          const SizedBox(height: AppSpacing.md),
-          ImageUploadField(label: 'Selfie with ID *', icon: Icons.face, onPicked: (p)=> _gcSelfie = p),
         ] else ...[
-          AppTextField(controller: _uni, label: 'University *', prefixIcon: Icons.school_outlined),
-          const SizedBox(height: AppSpacing.md),
           AppTextField(controller: _studentId, label: 'Student ID number *', prefixIcon: AppIcons.badge),
           const SizedBox(height: AppSpacing.md),
           AppTextField(controller: _program, label: 'Program *', prefixIcon: AppIcons.user),
@@ -283,13 +264,13 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
           DropdownButtonFormField<String>(
             value: _year,
             decoration: const InputDecoration(labelText: 'Year of study'),
-            items: ['1','2','3','4','5','6','Alumni'].map((y)=>DropdownMenuItem(value:y, child: Text('Year $y'))).toList(),
+            items: ['1','2','3','4'].map((y)=>DropdownMenuItem(value:y, child: Text('Year $y'))).toList(),
             onChanged: (v)=> setState(()=> _year = v ?? '1'),
           ),
           const SizedBox(height: AppSpacing.md),
           ImageUploadField(label: 'Student ID front *', icon: Icons.credit_card, onPicked: (p)=> _sidFront = p),
           const SizedBox(height: AppSpacing.md),
-          ImageUploadField(label: 'Enrollment proof (optional)', icon: Icons.description_outlined, onPicked: (p)=> _enrollment = p),
+          ImageUploadField(label: 'Student ID back (optional)', icon: Icons.credit_card, onPicked: (p)=> _sidBack = p),
         ],
         const SizedBox(height: AppSpacing.lg),
         CheckboxListTile(

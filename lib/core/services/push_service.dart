@@ -24,10 +24,11 @@ class PushService {
   static bool firebaseReady = false;
 
   static bool _initialized = false;
+  static bool _tokenRefreshBound = false;
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'reparto_default',
-    'JustBUY Notifications',
+    'UjustBUY Notifications',
     description: 'Order updates and account notices',
     importance: Importance.high,
   );
@@ -96,21 +97,40 @@ class PushService {
         await messaging.getAPNSToken();
       }
 
-      // Persist the token and keep it fresh (every login).
-      final token =
-      await messaging.getToken(vapidKey: kIsWeb ? webVapidKey : null);
-      debugPrint('PushService: FCM token = '
-          '${token == null ? 'NULL' : '${token.substring(0, 12)}…'}');
-      if (token != null) {
-        await _saveToken(token);
-      } else {
-        lastError = 'FCM returned a null token. On web, set a VAPID key; '
-            'on Android, ensure google-services.json + Google Play services.';
+      await _registerTokenWithRetry(messaging);
+      if (!_tokenRefreshBound) {
+        messaging.onTokenRefresh.listen(_saveTokenWithRetry);
+        _tokenRefreshBound = true;
       }
-      messaging.onTokenRefresh.listen(_saveToken);
     } catch (e, st) {
       lastError = e.toString();
       debugPrint('PushService.init failed: $e\n$st');
+    }
+  }
+
+  static Future<void> _registerTokenWithRetry(
+      FirebaseMessaging messaging) async {
+    for (var attempt = 0; attempt < 4; attempt++) {
+      try {
+        final token = await messaging.getToken(
+            vapidKey: kIsWeb ? webVapidKey : null);
+        if (token != null) {
+          await _saveTokenWithRetry(token);
+          return;
+        }
+      } catch (error) {
+        lastError = 'Token registration failed: $error';
+      }
+      await Future<void>.delayed(Duration(seconds: attempt + 1));
+    }
+    lastError ??= 'Firebase could not issue a notification token.';
+  }
+
+  static Future<void> _saveTokenWithRetry(String token) async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      await _saveToken(token);
+      if (lastError == null) return;
+      await Future<void>.delayed(Duration(seconds: attempt + 1));
     }
   }
 

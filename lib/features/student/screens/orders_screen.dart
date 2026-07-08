@@ -158,7 +158,8 @@ class _OrderCard extends ConsumerWidget {
                       fontWeight: FontWeight.w800, color: scheme.primary)),
               Row(
                 children: [
-                  if (order.status == OrderStatus.pending)
+                  if (order.status == OrderStatus.pending &&
+                      !(order.isPaid && order.paymentMethod != 'cash_on_delivery'))
                     TextButton(
                       onPressed: () => _cancel(context, ref),
                       child: Text('Cancel',

@@ -35,6 +35,8 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     final scheme = Theme.of(context).colorScheme;
     final cover = product.gallery.isNotEmpty ? product.gallery.first : null;
     final hasMany = product.gallery.length > 1;
+    final currentVendor = ref.watch(currentVendorProvider).valueOrNull;
+    final isOwnProduct = currentVendor?.vendorId == product.vendorId;
 
     return AnimatedScale(
       scale: _pressed ? 0.97 : 1.0,
@@ -94,7 +96,8 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                           ),
                         ),
                       // Favorite heart.
-                      Positioned(
+                      if (!isOwnProduct)
+                        Positioned(
                         right: 2,
                         top: 2,
                         child: Material(
@@ -181,6 +184,11 @@ class _ProductCardState extends ConsumerState<ProductCard> {
       return;
     }
     final product = widget.product;
+    if (ref.read(currentVendorProvider).valueOrNull?.vendorId ==
+        product.vendorId) {
+      ConfirmActions.showError(context, 'You cannot buy your own product.');
+      return;
+    }
     final repo = ref.read(studentRepositoryProvider);
     await repo.addToCart(product.productId);
     ref.invalidate(cartProvider);

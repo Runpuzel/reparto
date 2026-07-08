@@ -13,14 +13,19 @@ class Env {
 
   /// Whether to attempt Firebase init for push notifications.
   static bool get pushEnabled => _get('ENABLE_PUSH').toLowerCase() == 'true';
+  static String get firebaseWebApiKey => _get('FIREBASE_WEB_API_KEY');
+  static String get firebaseWebAppId => _get('FIREBASE_WEB_APP_ID');
+  static String get firebaseMessagingSenderId =>
+      _get('FIREBASE_MESSAGING_SENDER_ID');
+  static String get firebaseProjectId => _get('FIREBASE_PROJECT_ID');
+  static String get firebaseAuthDomain => _get('FIREBASE_AUTH_DOMAIN');
+  static String get firebaseStorageBucket => _get('FIREBASE_STORAGE_BUCKET');
+  static String get firebaseWebVapidKey => _get('FIREBASE_WEB_VAPID_KEY');
 
   /// Whether Paystack checkout is enabled (else fall back to free checkout).
   static bool get paymentsEnabled =>
       _get('ENABLE_PAYMENTS').toLowerCase() == 'true';
 
-  /// Paystack Secret Key (Note: In production, secret keys should ideally be 
-  /// kept in the backend/Supabase secrets, not the frontend).
-  static String get paystackSecretKey => _get('PAYSTACK_SECRET_KEY');
 
   static bool get isConfigured =>
       supabaseUrl.isNotEmpty &&
