@@ -506,29 +506,56 @@ class Review {
 }
 
 enum ServiceCategory {
-  hairGrooming, technicalRepairs, homeRoomServices, academicSupport,
-  creativeServices, laundryCleaning, transportErrands, other;
+  hairGrooming,
+  beautyMakeup,
+  technicalRepairs,
+  academicSupport,
+  printingTyping,
+  creativeServices,
+  laundryCleaning,
+  deliveryErrands,
+  transportErrands,
+  roomCleaning,
+  eventSupport,
+  foodCatering,
+  fitnessSports,
+  homeRoomServices,
+  other;
   String get db {
     switch (this) {
       case ServiceCategory.hairGrooming: return 'hair_grooming';
+      case ServiceCategory.beautyMakeup: return 'beauty_makeup';
       case ServiceCategory.technicalRepairs: return 'technical_repairs';
-      case ServiceCategory.homeRoomServices: return 'home_room_services';
       case ServiceCategory.academicSupport: return 'academic_support';
+      case ServiceCategory.printingTyping: return 'printing_typing';
       case ServiceCategory.creativeServices: return 'creative_services';
       case ServiceCategory.laundryCleaning: return 'laundry_cleaning';
+      case ServiceCategory.deliveryErrands: return 'delivery_errands';
       case ServiceCategory.transportErrands: return 'transport_errands';
+      case ServiceCategory.roomCleaning: return 'room_cleaning';
+      case ServiceCategory.eventSupport: return 'event_support';
+      case ServiceCategory.foodCatering: return 'food_catering';
+      case ServiceCategory.fitnessSports: return 'fitness_sports';
+      case ServiceCategory.homeRoomServices: return 'home_room_services';
       case ServiceCategory.other: return 'other';
     }
   }
   String get label {
     switch (this) {
       case ServiceCategory.hairGrooming: return 'Hair & Grooming';
+      case ServiceCategory.beautyMakeup: return 'Beauty & Makeup';
       case ServiceCategory.technicalRepairs: return 'Technical Repairs';
-      case ServiceCategory.homeRoomServices: return 'Home & Room Services';
       case ServiceCategory.academicSupport: return 'Academic Support';
+      case ServiceCategory.printingTyping: return 'Printing & Typing';
       case ServiceCategory.creativeServices: return 'Creative Services';
       case ServiceCategory.laundryCleaning: return 'Laundry & Cleaning';
+      case ServiceCategory.deliveryErrands: return 'Delivery & Errands';
       case ServiceCategory.transportErrands: return 'Transport & Errands';
+      case ServiceCategory.roomCleaning: return 'Room Cleaning';
+      case ServiceCategory.eventSupport: return 'Event Support';
+      case ServiceCategory.foodCatering: return 'Food & Catering';
+      case ServiceCategory.fitnessSports: return 'Fitness & Sports';
+      case ServiceCategory.homeRoomServices: return 'Home & Room Services';
       case ServiceCategory.other: return 'Other';
     }
   }

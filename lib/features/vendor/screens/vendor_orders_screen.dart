@@ -12,6 +12,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/product_image_viewer.dart';
 import '../../../core/widgets/app_skeleton.dart';
@@ -140,8 +141,19 @@ class _VendorOrderCard extends ConsumerWidget {
     final feeRate = ref.watch(vendorPlatformSettingsProvider).valueOrNull
             ?.platformFeeSellerPercent ??
         5.0;
+    final wallet = ref.watch(vendorWalletProvider).valueOrNull;
+    final walletAvailablePesewas = wallet?.availablePesewas;
     final marketplaceFee = order.totalAmount * feeRate / 100;
+    final marketplaceFeePesewas =
+        (order.totalAmountPesewas * feeRate / 100).round();
     final sellerPayout = order.totalAmount - marketplaceFee;
+    final isCod =
+        order.paymentMethod == 'cash_on_delivery' || order.paymentMethod == null;
+    final hasLowCodWallet = isCod &&
+        order.status == OrderStatus.pending &&
+        walletAvailablePesewas != null &&
+        marketplaceFeePesewas > 0 &&
+        walletAvailablePesewas < marketplaceFeePesewas;
 
     return AppCard(
       padding: EdgeInsets.zero,
@@ -304,6 +316,13 @@ class _VendorOrderCard extends ConsumerWidget {
             _moneyRow('Marketplace fee (${feeRate.toStringAsFixed(1)}%)',
                 marketplaceFee),
             _moneyRow('Expected seller payout', sellerPayout, strong: true),
+            if (hasLowCodWallet) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _CodWalletWarning(
+                availablePesewas: walletAvailablePesewas,
+                neededPesewas: marketplaceFeePesewas,
+              ),
+            ],
 
             Align(
               alignment: Alignment.centerRight,
@@ -473,6 +492,49 @@ class _VendorOrderCard extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) ConfirmActions.showError(context, e);
     }
+  }
+}
+
+class _CodWalletWarning extends StatelessWidget {
+  const _CodWalletWarning({
+    required this.availablePesewas,
+    required this.neededPesewas,
+  });
+
+  final int availablePesewas;
+  final int neededPesewas;
+
+  @override
+  Widget build(BuildContext context) {
+    final shortfall = neededPesewas - availablePesewas;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.sm + 4),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.10),
+        borderRadius: AppRadius.brSm,
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.account_balance_wallet_outlined,
+              color: AppColors.warning, size: 20),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'COD wallet is low. You need ${Money.format(neededPesewas)} to confirm this order; '
+              'available balance is ${Money.format(availablePesewas)}. '
+              'Top up at least ${Money.format(shortfall)}.',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

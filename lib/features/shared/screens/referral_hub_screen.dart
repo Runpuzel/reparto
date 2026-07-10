@@ -25,7 +25,8 @@ import '../providers/shared_providers.dart';
 class ReferralHubScreen extends ConsumerWidget {
   const ReferralHubScreen({super.key});
 
-  String _link(String code) => 'https://ujustbuy.app/i/$code';
+  String _link(String code) =>
+      '${AppConstants.publicBaseUrl}/referrals?code=$code';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,6 +35,7 @@ class ReferralHubScreen extends ConsumerWidget {
     final balance = ref.watch(tokenBalanceProvider).valueOrNull ?? 0;
     final history = ref.watch(tokenHistoryProvider);
     final code = user?.referralCode ?? '';
+    final incomingCode = Uri.base.queryParameters['code']?.trim() ?? '';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Earn Tokens')),
@@ -118,7 +120,9 @@ class ReferralHubScreen extends ConsumerWidget {
 
             // Enter a referral code (for users who didn't arrive via a link)
             AppCard(
-              onTap: () => _enterCode(context, ref),
+              onTap: incomingCode.isEmpty
+                  ? () => _enterCode(context, ref)
+                  : () => _claimCode(context, ref, incomingCode),
               child: Row(
                 children: [
                   Icon(AppIcons.tag, color: scheme.primary),
@@ -130,7 +134,10 @@ class ReferralHubScreen extends ConsumerWidget {
                         Text('Have a referral code?',
                             style: AppTextStyles.titleSmall
                                 .copyWith(color: scheme.onSurface)),
-                        Text('Enter a friend\'s code to claim your bonus',
+                        Text(
+                            incomingCode.isEmpty
+                                ? 'Enter a friend\'s code to claim your bonus'
+                                : 'Claim referral code $incomingCode',
                             style: AppTextStyles.bodySmall),
                       ],
                     ),
@@ -233,9 +240,14 @@ class ReferralHubScreen extends ConsumerWidget {
       ),
     );
     if (entered == null || entered.isEmpty) return;
+    await _claimCode(context, ref, entered);
+  }
+
+  Future<void> _claimCode(
+      BuildContext context, WidgetRef ref, String code) async {
     try {
       final ok =
-      await ref.read(tokensRepositoryProvider).claimReferral(entered);
+      await ref.read(tokensRepositoryProvider).claimReferral(code);
       ref.invalidate(tokenBalanceProvider);
       ref.invalidate(tokenHistoryProvider);
       if (context.mounted) {

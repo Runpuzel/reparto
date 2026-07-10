@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../constants/app_constants.dart';
 import '../config/supabase_client.dart';
 
 /// Result of a checkout attempt.
@@ -24,7 +25,7 @@ class PaymentResult {
 /// 3. `paystack-verify` confirms the payment and places the order.
 class PaymentService {
   static const String _hostedCallback =
-      'https://ujustbuy.netlify.app/payment-complete';
+      '${AppConstants.publicBaseUrl}/payment-complete';
 
   /// Runs the full checkout. On mobile, opens an in-app WebView and watches for
   /// the Paystack callback URL. On web, opens a new tab and relies on the

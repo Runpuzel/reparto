@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 /// Static, app-wide constants used across UjustBUY.
 class AppConstants {
   static const String appName = 'UjustBUY';
+  static const String publicBaseUrl = 'https://ujustbuy.store';
 
   /// OAuth redirect used for Google sign-in (configure in Supabase dashboard).
   static const String oauthRedirect = 'io.reparto.app://login-callback/';

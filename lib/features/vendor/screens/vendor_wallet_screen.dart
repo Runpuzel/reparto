@@ -49,7 +49,7 @@ class _VendorWalletScreenState extends ConsumerState<VendorWalletScreen> {
             Text('COD marketplace fee wallet', style: AppTextStyles.headlineSmall),
             const SizedBox(height: 4),
             Text(
-              'The marketplace fee is reserved when you confirm a Cash on Delivery order and charged only after delivery.',
+              'The marketplace fee is reserved when you confirm a Cash on Delivery order and charged only after delivery. Top-ups credit the full amount to your wallet.',
               style: AppTextStyles.bodyMedium.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
@@ -197,6 +197,13 @@ class _TopUpPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Add funds', style: AppTextStyles.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Your wallet receives the full top-up amount. Ujustbuy covers the payment processing fee.',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: controller,

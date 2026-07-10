@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -39,8 +40,11 @@ class ServicePostedScreen extends ConsumerStatefulWidget {
 class _ServicePostedScreenState extends ConsumerState<ServicePostedScreen> {
   bool _updatingStatus = false;
 
+  String _serviceLink(String id) =>
+      '${AppConstants.publicBaseUrl}/student/service/$id';
+
   Future<void> _shareToWhatsApp(String title, String id) async {
-    final link = 'https://ujustbuy.com/s/$id';
+    final link = _serviceLink(id);
     final text = Uri.encodeComponent('Hi! Check out my service on UjustBUY: $title\n\nBook here: $link');
     final url = 'https://wa.me/?text=$text';
     try {
@@ -56,7 +60,7 @@ class _ServicePostedScreenState extends ConsumerState<ServicePostedScreen> {
   }
 
   Future<void> _copyLink(String title, String id) async {
-    final link = 'https://ujustbuy.com/s/$id';
+    final link = _serviceLink(id);
     await Clipboard.setData(ClipboardData(text: link));
     if (mounted) {
       ConfirmActions.toast(context, 'Link copied to clipboard');
