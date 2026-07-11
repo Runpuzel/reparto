@@ -75,7 +75,10 @@ class AppError {
       return 'No account found with this email.';
     }
     if (m.contains('authorized javascript origins') ||
-        m.contains('not configured for this web address')) {
+        m.contains('not configured for this web address') ||
+        m.contains('unregistered_origin') ||
+        m.contains('origin is not allowed') ||
+        m.contains('given origin')) {
       return 'Google sign-in is not configured for this web address. Add this site origin in Google Cloud Console.';
     }
     return 'Sign-in failed. Please try again.';
@@ -114,6 +117,13 @@ class AppError {
     final lower = raw.toLowerCase();
     if (lower.contains('timeout') || lower.contains('timed out')) {
       return 'The request took too long. Please try again.';
+    }
+    if (lower.contains('unregistered_origin') ||
+        lower.contains('origin is not allowed') ||
+        lower.contains('given origin') ||
+        lower.contains('authorized javascript origins') ||
+        lower.contains('not a registered origin')) {
+      return 'Google sign-in is not configured for this web address. Add this site origin in Google Cloud Console.';
     }
     if (lower.contains('not verified') || lower.contains('payment')) {
       return _stripPgPrefix(raw);

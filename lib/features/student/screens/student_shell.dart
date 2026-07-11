@@ -348,20 +348,21 @@ class _ShellNavIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final iconSize = icon == AppIcons.more ? 27.0 : 24.0;
 
     if (!selected) {
-      return Icon(icon, color: scheme.onSurfaceVariant, size: 24);
+      return Icon(icon, color: scheme.onSurface, size: iconSize);
     }
 
     return Container(
-      width: 38,
-      height: 30,
+      width: 44,
+      height: 34,
       decoration: BoxDecoration(
         color: scheme.primary,
         borderRadius: BorderRadius.circular(100),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, color: scheme.onPrimary, size: 22),
+      child: Icon(icon, color: scheme.onPrimary, size: iconSize),
     );
   }
 }

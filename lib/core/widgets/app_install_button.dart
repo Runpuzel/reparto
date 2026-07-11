@@ -16,11 +16,12 @@ class AppInstallButton extends StatelessWidget {
       child: IconButton(
         tooltip: 'Install app',
         style: IconButton.styleFrom(
-          backgroundColor: scheme.primary.withValues(alpha: 0.12),
-          foregroundColor: scheme.primary,
-          fixedSize: const Size(42, 42),
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
+          fixedSize: const Size(44, 44),
+          iconSize: 23,
         ),
-        icon: Icon(AppIcons.download),
+        icon: const Icon(AppIcons.download),
         onPressed: () async {
           if (!kIsWeb) {
             ScaffoldMessenger.of(context).showSnackBar(

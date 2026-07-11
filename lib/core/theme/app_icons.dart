@@ -49,7 +49,7 @@ class AppIcons {
   static const IconData flash = Icons.bolt_rounded;
   static const IconData grid = Icons.grid_view_outlined;
   static const IconData gridFill = Icons.grid_view_rounded;
-  static const IconData more = Icons.menu_rounded;
+  static const IconData more = Icons.more_horiz_rounded;
   static const IconData tag = Icons.sell_outlined;
 
   // Browse, search, and actions
