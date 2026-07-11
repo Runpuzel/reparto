@@ -64,7 +64,7 @@ class AppIcons {
   static const IconData account = Icons.account_circle_outlined;
   static const IconData cod = Icons.payments_outlined;
   static const IconData note = Icons.sticky_note_2_outlined;
-  static const IconData download = Icons.download_for_offline_outlined;
+  static const IconData download = Icons.download_rounded;
   static const IconData trash = Icons.delete_outline_rounded;
   static const IconData sweep = Icons.delete_sweep_outlined;
   static const IconData minus = Icons.remove_rounded;

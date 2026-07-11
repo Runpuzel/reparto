@@ -20,28 +20,35 @@ class ThemeModeTile extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.brightness_6_outlined,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.brightness_6_outlined,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 12),
-                Text('Appearance',
-                    style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  'Appearance',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
               ],
             ),
             const SizedBox(height: 12),
             SegmentedButton<ThemeMode>(
               segments: const [
                 ButtonSegment(
-                    value: ThemeMode.system,
-                    icon: Icon(Icons.brightness_auto),
-                    label: Text('System')),
+                  value: ThemeMode.system,
+                  icon: Icon(Icons.brightness_auto),
+                  label: Text('System'),
+                ),
                 ButtonSegment(
-                    value: ThemeMode.light,
-                    icon: Icon(Icons.light_mode),
-                    label: Text('Light')),
+                  value: ThemeMode.light,
+                  icon: Icon(Icons.light_mode),
+                  label: Text('Light'),
+                ),
                 ButtonSegment(
-                    value: ThemeMode.dark,
-                    icon: Icon(Icons.dark_mode),
-                    label: Text('Dark')),
+                  value: ThemeMode.dark,
+                  icon: Icon(Icons.dark_mode),
+                  label: Text('Dark'),
+                ),
               ],
               selected: {mode},
               showSelectedIcon: false,
@@ -61,15 +68,26 @@ class ThemeToggleButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(themeModeProvider);
+    final scheme = Theme.of(context).colorScheme;
     final icon = switch (mode) {
       ThemeMode.system => Icons.brightness_auto,
       ThemeMode.light => Icons.light_mode,
       ThemeMode.dark => Icons.dark_mode,
     };
-    return IconButton(
-      tooltip: 'Toggle theme',
-      icon: Icon(icon),
-      onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: IconButton(
+        tooltip: 'Toggle theme',
+        style: IconButton.styleFrom(
+          backgroundColor: scheme.surfaceContainerHighest.withValues(
+            alpha: 0.72,
+          ),
+          foregroundColor: scheme.primary,
+          fixedSize: const Size(42, 42),
+        ),
+        icon: Icon(icon),
+        onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+      ),
     );
   }
 }

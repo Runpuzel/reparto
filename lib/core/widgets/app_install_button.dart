@@ -9,29 +9,46 @@ class AppInstallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
 
-    return IconButton(
-      tooltip: 'Install app',
-      icon: Icon(AppIcons.download),
-      onPressed: () async {
-        final status = await promptAppInstall();
-        if (!context.mounted) return;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: IconButton(
+        tooltip: 'Install app',
+        style: IconButton.styleFrom(
+          backgroundColor: scheme.primary.withValues(alpha: 0.12),
+          foregroundColor: scheme.primary,
+          fixedSize: const Size(42, 42),
+        ),
+        icon: Icon(AppIcons.download),
+        onPressed: () async {
+          if (!kIsWeb) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Open UjustBUY in your browser to install it.'),
+              ),
+            );
+            return;
+          }
 
-        final message = switch (status) {
-          AppInstallStatus.accepted => 'Installing UjustBUY...',
-          AppInstallStatus.installed => 'UjustBUY is already installed.',
-          AppInstallStatus.dismissed => 'Install dismissed.',
-          AppInstallStatus.unavailable =>
-            'Use your browser menu and choose Add to Home screen.',
-          AppInstallStatus.failed =>
-            'Could not start install. Use your browser menu and choose Add to Home screen.',
-        };
+          final status = await promptAppInstall();
+          if (!context.mounted) return;
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
-      },
+          final message = switch (status) {
+            AppInstallStatus.accepted => 'Installing UjustBUY...',
+            AppInstallStatus.installed => 'UjustBUY is already installed.',
+            AppInstallStatus.dismissed => 'Install dismissed.',
+            AppInstallStatus.unavailable =>
+              'Use your browser menu and choose Add to Home screen.',
+            AppInstallStatus.failed =>
+              'Could not start install. Use your browser menu and choose Add to Home screen.',
+          };
+
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(message)));
+        },
+      ),
     );
   }
 }
