@@ -95,12 +95,12 @@ class AppColors {
   // ---------------------------------------------------------------------------
   // SURFACES — dark mode (warm greys, never pure black)
   // ---------------------------------------------------------------------------
-  static const Color backgroundDark = Color(0xFF120F11);
-  static const Color surfaceDark = Color(0xFF1D191C);
-  static const Color surfaceElevatedDark = Color(0xFF272126);
-  static const Color surfaceMutedDark = Color(0xFF332B31);
-  static const Color dividerDark = Color(0xFF4A4047);
-  static const Color borderDark = Color(0xFF5B4E57);
+  static const Color backgroundDark = Color(0xFF0E1519);
+  static const Color surfaceDark = Color(0xFF151E23);
+  static const Color surfaceElevatedDark = Color(0xFF1C272D);
+  static const Color surfaceMutedDark = Color(0xFF243038);
+  static const Color dividerDark = Color(0xFF2F3D46);
+  static const Color borderDark = Color(0xFF3B4D58);
 
   // ---------------------------------------------------------------------------
   // TEXT
