@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/widgets/sign_in_prompt.dart';
+import '../../../core/widgets/theme_mode_tile.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../shared/providers/shared_providers.dart';
 import '../../shared/screens/chat_inbox_screen.dart';
@@ -25,77 +26,46 @@ class StudentShell extends ConsumerStatefulWidget {
 class _StudentShellState extends ConsumerState<StudentShell> {
   int _index = 0;
 
-  static const _pages = [
-    BrowseScreen(),
-    ShopsScreen(),
-    CartScreen(),
-    ChatInboxScreen(),
-  ];
+  void _openPage(String title, Widget page) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: Text(title)),
+          body: SafeArea(child: page),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final unread = ref.watch(unreadNotificationsProvider).valueOrNull ?? 0;
     final cartCount = ref.watch(cartCountProvider);
     final isGuest = ref.watch(isGuestProvider);
-    final titles = ['Browse', 'Shops', 'My Cart', 'Chats'];
+    final titles = ['Browse', 'Shops', 'My Cart', 'More'];
 
-    // Tabs that require an account (Favorites, Cart, Orders).
-    const guarded = {2: 'use your cart', 3: 'view chats'};
+    final pages = [
+      const BrowseScreen(),
+      const ShopsScreen(),
+      const CartScreen(),
+      _StudentMoreScreen(
+        unread: unread,
+        isGuest: isGuest,
+        openPage: _openPage,
+      ),
+    ];
+
+    const guarded = {2: 'use your cart'};
 
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[_index]),
         actions: [
-          if (!isGuest) ...[
-            IconButton(
-              tooltip: 'Favorites',
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => Scaffold(
-                      appBar: AppBar(title: const Text('Favorites')),
-                      body: const FavoritesScreen()))),
-              icon: Icon(AppIcons.heart),
-            ),
-            IconButton(
-              tooltip: 'Orders',
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => Scaffold(
-                      appBar: AppBar(title: const Text('My Orders')),
-                      body: const OrdersScreen()))),
-              icon: Icon(AppIcons.receipt),
-            ),
-          ],
-          IconButton(
-            tooltip: 'Services',
-            onPressed: () => context.push('/student/services'),
-            icon: Icon(AppIcons.services),
-          ),
-          if (isGuest)
-            TextButton(
-              onPressed: () => context.push('/login'),
-              child: const Text('Sign In'),
-            )
-          else ...[
-            IconButton(
-              tooltip: 'Notifications',
-              onPressed: () => context.push('/notifications'),
-              icon: Badge(
-                isLabelVisible: unread > 0,
-                label: Text('$unread'),
-                child: Icon(AppIcons.notification),
-              ),
-            ),
-            IconButton(
-              tooltip: 'Profile',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const _ProfilePage()),
-              ),
-              icon: Icon(AppIcons.account),
-            ),
-          ],
+          const ThemeToggleButton(),
           const SizedBox(width: 4),
         ],
       ),
-      body: IndexedStack(index: _index, children: _pages),
+      body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) {
@@ -127,23 +97,206 @@ class _StudentShellState extends ConsumerState<StudentShell> {
               ),
               label: 'Cart'),
           NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble),
-              label: 'Chat'),
+              icon: Icon(AppIcons.grid),
+              selectedIcon: Icon(AppIcons.gridFill),
+              label: 'More'),
         ],
       ),
     );
   }
 }
 
-/// Profile opened from the app bar (kept off the bottom nav to reduce clutter).
-class _ProfilePage extends StatelessWidget {
-  const _ProfilePage();
+class _StudentMoreScreen extends ConsumerWidget {
+  const _StudentMoreScreen({
+    required this.unread,
+    required this.isGuest,
+    required this.openPage,
+  });
+
+  final int unread;
+  final bool isGuest;
+  final void Function(String title, Widget page) openPage;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tools = <_StudentTool>[
+      _StudentTool(
+        'Student services',
+        'Find repairs, tutoring, beauty, laundry, food and more',
+        AppIcons.services,
+        () => context.push('/student/services'),
+      ),
+      _StudentTool(
+        'About UjustBUY',
+        'Policies, support, and platform information',
+        AppIcons.info,
+        () => context.push('/about'),
+      ),
+    ];
+
+    if (isGuest) {
+      tools.add(
+        _StudentTool(
+          'Sign in',
+          'Access chats, orders, favorites, and notifications',
+          AppIcons.signIn,
+          () => context.push('/login'),
+        ),
+      );
+    } else {
+      tools.insertAll(1, [
+        _StudentTool(
+          'Chats',
+          'Continue conversations with sellers',
+          AppIcons.chat,
+          () => openPage('Chats', const ChatInboxScreen()),
+        ),
+        _StudentTool(
+          'Favorites',
+          'Saved products you want to revisit',
+          AppIcons.heart,
+          () => openPage('Favorites', const FavoritesScreen()),
+        ),
+        _StudentTool(
+          'My orders',
+          'Track purchases, delivery, and receipts',
+          AppIcons.receipt,
+          () => openPage('My Orders', const OrdersScreen()),
+        ),
+        _StudentTool(
+          'Notifications',
+          unread == 0
+              ? 'You are all caught up'
+              : '$unread unread update${unread == 1 ? '' : 's'}',
+          AppIcons.notification,
+          () => context.push('/notifications'),
+          badge: unread > 0 ? '$unread' : null,
+        ),
+        _StudentTool(
+          'Profile',
+          'Account, seller mode, referrals, and preferences',
+          AppIcons.account,
+          () => openPage('Profile', const StudentProfileScreen()),
+        ),
+        _StudentTool(
+          'Referral rewards',
+          'Invite friends and manage your tokens',
+          AppIcons.tag,
+          () => context.push('/referrals'),
+        ),
+        _StudentTool(
+          'Sign out',
+          'Leave this account on this device',
+          AppIcons.logout,
+          () => ref.read(authRepositoryProvider).signOut(),
+        ),
+      ]);
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 1000
+            ? 3
+            : constraints.maxWidth >= 620
+                ? 2
+                : 1;
+        final horizontalPadding = constraints.maxWidth < 400 ? 12.0 : 20.0;
+
+        return ListView(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            16,
+            horizontalPadding,
+            24,
+          ),
+          children: [
+            const ThemeModeTile(),
+            const SizedBox(height: 16),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                mainAxisExtent: 88,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: tools.length,
+              itemBuilder: (context, i) => _StudentToolTile(tool: tools[i]),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _StudentTool {
+  const _StudentTool(
+    this.title,
+    this.subtitle,
+    this.icon,
+    this.onTap, {
+    this.badge,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+  final String? badge;
+}
+
+class _StudentToolTile extends StatelessWidget {
+  const _StudentToolTile({required this.tool});
+
+  final _StudentTool tool;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: const StudentProfileScreen(),
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(8),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: tool.onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Badge(
+                isLabelVisible: tool.badge != null,
+                label: Text(tool.badge ?? ''),
+                child: Icon(tool.icon, color: scheme.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tool.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      tool.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(AppIcons.caretRight, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
