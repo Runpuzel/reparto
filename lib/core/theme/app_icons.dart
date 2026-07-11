@@ -31,7 +31,7 @@ class AppIcons {
   static const IconData phone = Icons.phone_outlined;
   static const IconData phoneBusiness = Icons.call_outlined;
   static const IconData wallet = Icons.account_balance_wallet_outlined;
-  static const IconData whatsapp = Icons.chat_rounded;
+  static const IconData whatsapp = Icons.message_rounded;
   static const IconData chat = Icons.chat_bubble_outline_rounded;
 
   // Shopping and orders
@@ -46,10 +46,10 @@ class AppIcons {
   static const IconData receiptFill = Icons.receipt_long;
   static const IconData package = Icons.inventory_2_outlined;
   static const IconData truck = Icons.local_shipping_outlined;
-  static const IconData flash = Icons.flash_on_rounded;
+  static const IconData flash = Icons.bolt_rounded;
   static const IconData grid = Icons.grid_view_outlined;
   static const IconData gridFill = Icons.grid_view_rounded;
-  static const IconData more = Icons.more_horiz_rounded;
+  static const IconData more = Icons.menu_rounded;
   static const IconData tag = Icons.sell_outlined;
 
   // Browse, search, and actions
@@ -97,7 +97,7 @@ class AppIcons {
   static const IconData reviews = Icons.reviews_outlined;
   static const IconData label = Icons.label_outline_rounded;
   static const IconData category = Icons.category_outlined;
-  static const IconData price = Icons.payments_outlined;
+  static const IconData price = Icons.attach_money_rounded;
   static const IconData numbers = Icons.numbers_rounded;
   static const IconData save = Icons.save_outlined;
   static const IconData addBox = Icons.add_box_outlined;
@@ -111,6 +111,20 @@ class AppIcons {
   static const IconData store = Icons.store_mall_directory_outlined;
   static const IconData revenue = Icons.payments_outlined;
   static const IconData edit = Icons.edit_outlined;
+
+  // Additional icons centralised from inline usage
+  static const IconData share = Icons.share_outlined;
+  static const IconData bolt = Icons.bolt_rounded;
+  static const IconData designServices = Icons.design_services_outlined;
+  static const IconData visibility = Icons.visibility_rounded;
+  static const IconData visibilityOffIcon = Icons.visibility_off_rounded;
+  static const IconData timerAlert = Icons.timer_outlined;
+  static const IconData eventAvailable = Icons.event_available_outlined;
+  static const IconData cardMembership = Icons.card_membership_outlined;
+  static const IconData searchOff = Icons.search_off_rounded;
+  static const IconData analytics = Icons.analytics_outlined;
+  static const IconData brokenImage = Icons.broken_image_rounded;
+  static const IconData errorOutline = Icons.error_outline_rounded;
 
   // Services and service categories
   static const IconData services = Icons.handyman_outlined;

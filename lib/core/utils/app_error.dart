@@ -7,8 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AppError {
   static const String offlineMessage =
       'You are offline. Please check your internet connection and try again.';
-  
-  static const String genericMessage = 
+
+  static const String genericMessage =
       'Something went wrong. Please try again later.';
 
   static String friendly(Object? error) {
@@ -34,7 +34,7 @@ class AppError {
   static bool isOffline(Object? error) {
     if (error == null) return false;
     final raw = error.toString().toLowerCase();
-    
+
     // Common Flutter/Dart/Supabase offline indicators
     return raw.contains('socketexception') ||
         raw.contains('failed host lookup') ||
@@ -52,7 +52,8 @@ class AppError {
                 raw.contains('issue'))) ||
         // Supabase specific offline states
         raw.contains('postgresterror(message: , code: 0') ||
-        raw.contains('null check operator used on a null value') && raw.contains('auth');
+        raw.contains('null check operator used on a null value') &&
+            raw.contains('auth');
   }
 
   static String _auth(String message) {
@@ -72,6 +73,10 @@ class AppError {
     }
     if (m.contains('user not found')) {
       return 'No account found with this email.';
+    }
+    if (m.contains('authorized javascript origins') ||
+        m.contains('not configured for this web address')) {
+      return 'Google sign-in is not configured for this web address. Add this site origin in Google Cloud Console.';
     }
     return 'Sign-in failed. Please try again.';
   }
@@ -96,7 +101,7 @@ class AppError {
     if (lower.contains('insufficient stock')) {
       return cleaned; // already friendly from our RPC
     }
-    
+
     // Check if it's a code 0 (usually network/offline)
     if (e.code == '0' || e.code == null) return offlineMessage;
 
@@ -124,8 +129,9 @@ class AppError {
     var out = s.trim();
     out = out.replaceFirst(RegExp(r'^Exception:\s*'), '');
     // "PostgrestException(message: X, code: ...)" -> X
-    final m = RegExp(r'message:\s*(.+?)(?:,\s*code:|,\s*details:|\))')
-        .firstMatch(out);
+    final m = RegExp(
+      r'message:\s*(.+?)(?:,\s*code:|,\s*details:|\))',
+    ).firstMatch(out);
     if (m != null) out = m.group(1)!.trim();
     // Drop trailing "(SQLSTATE ...)" style noise.
     out = out.replaceFirst(RegExp(r'\s*\(SQLSTATE.*\)$'), '');
@@ -135,7 +141,17 @@ class AppError {
   static bool _looksHumanReadable(String s) {
     if (s.isEmpty) return false;
     // Avoid showing things that still look technical.
-    final bad = ['null', 'exception', 'stacktrace', '#0', 'dart:', 'package:', 'postgresql', 'supabase', 'flutter'];
+    final bad = [
+      'null',
+      'exception',
+      'stacktrace',
+      '#0',
+      'dart:',
+      'package:',
+      'postgresql',
+      'supabase',
+      'flutter',
+    ];
     final lower = s.toLowerCase();
     if (bad.any(lower.contains)) return false;
     // Sentence should start with a letter and not look like a class name

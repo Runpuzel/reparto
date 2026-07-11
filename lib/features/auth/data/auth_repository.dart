@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -10,6 +11,9 @@ import '../../../models/models.dart';
 
 /// Handles all authentication & profile bootstrap concerns.
 class AuthRepository {
+  GoogleSignIn? _googleSignInInstance;
+  String? _googleSignInClientId;
+
   /// Email + password sign-up. Profile row is created server-side by the
   /// `handle_new_user` trigger using the metadata supplied here.
   Future<AuthResponse> signUpStudent({
@@ -22,11 +26,7 @@ class AuthRepository {
       email: email,
       password: password,
       emailRedirectTo: kIsWeb ? null : AppConstants.oauthRedirect,
-      data: {
-        'full_name': fullName,
-        'role': 'student',
-        'campus_id': campusId,
-      },
+      data: {'full_name': fullName, 'role': 'student', 'campus_id': campusId},
     );
   }
 
@@ -70,27 +70,41 @@ class AuthRepository {
 
   /// Google sign-in.
   ///
-  /// • Mobile (Android/iOS): native `google_sign_in` → exchange the id token
-  ///   with Supabase via `signInWithIdToken` (no browser round-trip, reliable).
-  /// • Web: Supabase OAuth redirect flow.
+  /// Uses the Google SDK to get an ID token, then exchanges that token with
+  /// Supabase. This keeps the visible Google sign-in screen branded by the
+  /// Google OAuth app instead of the Supabase project URL.
   Future<void> signInWithGoogle() async {
+    final googleSignIn = this.googleSignIn;
     if (kIsWeb) {
-      await supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: Uri.base.origin,
-      );
+      final account =
+          googleSignIn.currentUser ??
+          await googleSignIn.signInSilently(suppressErrors: true);
+      if (account == null) {
+        throw const AuthException(
+          'Use the Google button to sign in on the web.',
+        );
+      }
+      await signInWithGoogleAccount(account);
       return;
     }
 
-    // Native flow. serverClientId must be the *Web* OAuth client id.
-    final googleSignIn = GoogleSignIn(
-      serverClientId:
-      Env.googleWebClientId.isEmpty ? null : Env.googleWebClientId,
-      scopes: const ['email', 'profile'],
-    );
+    final GoogleSignInAccount? account;
+    try {
+      account = await googleSignIn.signIn();
+    } on PlatformException catch (e) {
+      if (_isGoogleOriginMismatch(e)) {
+        throw const AuthException(
+          'Google sign-in is not configured for this web address. Add this site origin to Authorized JavaScript origins in Google Cloud Console.',
+        );
+      }
+      rethrow;
+    }
+    if (account == null) return; // User cancelled.
 
-    final account = await googleSignIn.signIn();
-    if (account == null) return; // user cancelled
+    await signInWithGoogleAccount(account);
+  }
+
+  Future<void> signInWithGoogleAccount(GoogleSignInAccount account) async {
     final googleAuth = await account.authentication;
     final idToken = googleAuth.idToken;
     final accessToken = googleAuth.accessToken;
@@ -111,12 +125,22 @@ class AuthRepository {
         await PushService.clearToken();
       } catch (_) {}
     }
-    if (!kIsWeb) {
-      try {
-        await GoogleSignIn().signOut();
-      } catch (_) {}
-    }
+
+    try {
+      await _googleSignIn(Env.googleWebClientId.trim()).signOut();
+    } catch (_) {}
+
     await supabase.auth.signOut();
+  }
+
+  GoogleSignIn get googleSignIn {
+    final webClientId = Env.googleWebClientId.trim();
+    if (kIsWeb && webClientId.isEmpty) {
+      throw const AuthException(
+        'Google sign-in is missing GOOGLE_WEB_CLIENT_ID.',
+      );
+    }
+    return _googleSignIn(webClientId);
   }
 
   Future<void> resetPassword(String email) =>
@@ -126,8 +150,11 @@ class AuthRepository {
   Future<AppUser?> fetchProfile() async {
     final uid = currentAuthUser?.id;
     if (uid == null) return null;
-    final data =
-    await supabase.from('users').select().eq('user_id', uid).maybeSingle();
+    final data = await supabase
+        .from('users')
+        .select()
+        .eq('user_id', uid)
+        .maybeSingle();
     if (data == null) return null;
     return AppUser.fromMap(data);
   }
@@ -151,7 +178,8 @@ class AuthRepository {
     if (uid == null) return;
     await supabase
         .from('users')
-        .update({'campus_id': campusId}).eq('user_id', uid);
+        .update({'campus_id': campusId})
+        .eq('user_id', uid);
   }
 
   /// Upgrade the signed-in student account to a Student Seller while keeping
@@ -187,6 +215,27 @@ class AuthRepository {
       if (logoUrl != null) 'logo_url': logoUrl,
       if (ghanaCardImageUrl != null) 'ghana_card_image_url': ghanaCardImageUrl,
     }, onConflict: 'user_id');
+  }
+
+  GoogleSignIn _googleSignIn(String webClientId) {
+    if (_googleSignInInstance != null && _googleSignInClientId == webClientId) {
+      return _googleSignInInstance!;
+    }
+
+    _googleSignInClientId = webClientId;
+    _googleSignInInstance = GoogleSignIn(
+      clientId: kIsWeb && webClientId.isNotEmpty ? webClientId : null,
+      serverClientId: !kIsWeb && webClientId.isNotEmpty ? webClientId : null,
+      scopes: const ['email', 'profile'],
+    );
+    return _googleSignInInstance!;
+  }
+
+  bool _isGoogleOriginMismatch(PlatformException error) {
+    final raw = '${error.code} ${error.message} ${error.details}'.toLowerCase();
+    return raw.contains('origin_mismatch') ||
+        raw.contains('javascript origin') ||
+        raw.contains('not a registered origin');
   }
 
   Stream<AuthState> get authStateChanges => supabase.auth.onAuthStateChange;

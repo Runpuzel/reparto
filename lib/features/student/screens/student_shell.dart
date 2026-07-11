@@ -58,15 +58,16 @@ class _StudentShellState extends ConsumerState<StudentShell> {
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[_index]),
-        actions: [
-          const AppInstallButton(),
-          const ThemeToggleButton(),
-          const SizedBox(width: 4),
+        actions: const [
+          AppInstallButton(),
+          ThemeToggleButton(),
+          SizedBox(width: 4),
         ],
       ),
       body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
+        indicatorColor: Colors.transparent,
         onDestinationSelected: (i) {
           if (isGuest && guarded.containsKey(i)) {
             SignInPrompt.show(context, action: guarded[i]!);
@@ -75,7 +76,7 @@ class _StudentShellState extends ConsumerState<StudentShell> {
           setState(() => _index = i);
         },
         destinations: [
-          NavigationDestination(
+          const NavigationDestination(
             icon: _ShellNavIcon(icon: AppIcons.grid),
             selectedIcon: _ShellNavIcon(
               icon: AppIcons.gridFill,
@@ -83,7 +84,7 @@ class _StudentShellState extends ConsumerState<StudentShell> {
             ),
             label: 'Browse',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: _ShellNavIcon(icon: AppIcons.storefront),
             selectedIcon: _ShellNavIcon(
               icon: AppIcons.storefrontFill,
@@ -95,16 +96,19 @@ class _StudentShellState extends ConsumerState<StudentShell> {
             icon: Badge(
               isLabelVisible: cartCount > 0,
               label: Text('$cartCount'),
-              child: _ShellNavIcon(icon: AppIcons.cart),
+              child: const _ShellNavIcon(icon: AppIcons.cart),
             ),
             selectedIcon: Badge(
               isLabelVisible: cartCount > 0,
               label: Text('$cartCount'),
-              child: _ShellNavIcon(icon: AppIcons.cartFill, selected: true),
+              child: const _ShellNavIcon(
+                icon: AppIcons.cartFill,
+                selected: true,
+              ),
             ),
             label: 'Cart',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: _ShellNavIcon(icon: AppIcons.more),
             selectedIcon: _ShellNavIcon(icon: AppIcons.more, selected: true),
             label: 'More',

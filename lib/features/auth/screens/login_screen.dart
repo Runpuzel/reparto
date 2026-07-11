@@ -10,8 +10,8 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/app_error.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
-import '../../../core/widgets/common_widgets.dart';
 import '../providers/auth_providers.dart';
+import '../widgets/google_auth_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -26,7 +26,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _password = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
-  bool _googleLoading = false;
 
   @override
   void dispose() {
@@ -39,27 +38,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await ref.read(authRepositoryProvider).signIn(
-        email: _email.text.trim(),
-        password: _password.text,
-      );
+      await ref
+          .read(authRepositoryProvider)
+          .signIn(email: _email.text.trim(), password: _password.text);
       ref.invalidate(currentUserProvider);
     } catch (e) {
       _showError(e);
     } finally {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _google() async {
-    setState(() => _googleLoading = true);
-    try {
-      await ref.read(authRepositoryProvider).signInWithGoogle();
-      ref.invalidate(currentUserProvider);
-    } catch (e) {
-      _showError(e);
-    } finally {
-      if (mounted) setState(() => _googleLoading = false);
     }
   }
 
@@ -90,94 +76,121 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: AppSpacing.md),
-                    // Brand logo on a soft card for a polished first impression.
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerLowest,
-                          borderRadius: AppRadius.brXl,
-                          border: Border.all(color: scheme.outlineVariant),
-                        ),
-                        child: Image.asset(
-                          'assets/ujustbuy_logo.jpeg',
-                          height: 72,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    Text('Welcome back 👋',
-                        style: AppTextStyles.headlineMedium
-                            .copyWith(color: scheme.onSurface)),
-                    const SizedBox(height: AppSpacing.xs + 2),
-                    Text('Sign in to your campus marketplace',
-                        style: AppTextStyles.bodyLarge
-                            .copyWith(color: scheme.onSurfaceVariant)),
-                    const SizedBox(height: AppSpacing.xl),
-                    AppTextField(
-                      controller: _email,
-                      label: 'Email',
-                      prefixIcon: AppIcons.email,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      validator: (v) => (v == null || !v.contains('@'))
-                          ? 'Enter a valid email'
-                          : null,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    AppTextField(
-                      controller: _password,
-                      label: 'Password',
-                      prefixIcon: AppIcons.lock,
-                      obscureText: _obscure,
-                      textInputAction: TextInputAction.done,
-                      suffixIcon: _obscure ? AppIcons.eyeOff : AppIcons.eye,
-                      onSuffixTap: () => setState(() => _obscure = !_obscure),
-                      onSubmitted: (_) => _signIn(),
-                      validator: (v) => (v == null || v.isEmpty)
-                          ? 'Enter your password'
-                          : null,
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => context.push('/forgot-passcode'),
-                        child: const Text('Forgot passcode?'),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    AppButton(
-                      label: _loading ? 'Signing in…' : 'Sign in',
-                      icon: _loading ? null : AppIcons.signIn,
-                      loading: _loading,
-                      onPressed: _signIn,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Row(children: [
-                      Expanded(child: Divider(color: scheme.outlineVariant)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md),
-                        child: Text('or',
-                            style: AppTextStyles.bodyMedium
-                                .copyWith(color: scheme.onSurfaceVariant)),
-                      ),
-                      Expanded(child: Divider(color: scheme.outlineVariant)),
-                    ]),
-                    const SizedBox(height: AppSpacing.md),
-                    _googleLoading
-                        ? const Center(child: _Spinner(dark: true))
-                        : GoogleButton(onPressed: _google),
-                    const SizedBox(height: AppSpacing.xl),
-                    const _SignupRow(),
-                  ]
-                      .animate(interval: 60.ms)
-                      .fadeIn(duration: 350.ms)
-                      .slideY(begin: 0.04, end: 0),
+                  children:
+                      [
+                            const SizedBox(height: AppSpacing.md),
+                            // Brand logo on a soft card for a polished first impression.
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                  vertical: AppSpacing.md,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: scheme.surfaceContainerLowest,
+                                  borderRadius: AppRadius.brXl,
+                                  border: Border.all(
+                                    color: scheme.outlineVariant,
+                                  ),
+                                ),
+                                child: Image.asset(
+                                  'assets/ujustbuy_logo.jpeg',
+                                  height: 72,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xl),
+                            Text(
+                              'Welcome back 👋',
+                              style: AppTextStyles.headlineMedium.copyWith(
+                                color: scheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs + 2),
+                            Text(
+                              'Sign in to your campus marketplace',
+                              style: AppTextStyles.bodyLarge.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xl),
+                            AppTextField(
+                              controller: _email,
+                              label: 'Email',
+                              prefixIcon: AppIcons.email,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              validator: (v) => (v == null || !v.contains('@'))
+                                  ? 'Enter a valid email'
+                                  : null,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            AppTextField(
+                              controller: _password,
+                              label: 'Password',
+                              prefixIcon: AppIcons.lock,
+                              obscureText: _obscure,
+                              textInputAction: TextInputAction.done,
+                              suffixIcon: _obscure
+                                  ? AppIcons.eyeOff
+                                  : AppIcons.eye,
+                              onSuffixTap: () =>
+                                  setState(() => _obscure = !_obscure),
+                              onSubmitted: (_) => _signIn(),
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'Enter your password'
+                                  : null,
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () =>
+                                    context.push('/forgot-passcode'),
+                                child: const Text('Forgot passcode?'),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            AppButton(
+                              label: _loading ? 'Signing in…' : 'Sign in',
+                              icon: _loading ? null : AppIcons.signIn,
+                              loading: _loading,
+                              onPressed: _signIn,
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Divider(color: scheme.outlineVariant),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                  ),
+                                  child: Text(
+                                    'or',
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Divider(color: scheme.outlineVariant),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            GoogleAuthButton(
+                              onSignedIn: () =>
+                                  ref.invalidate(currentUserProvider),
+                              onError: _showError,
+                            ),
+                            const SizedBox(height: AppSpacing.xl),
+                            const _SignupRow(),
+                          ]
+                          .animate(interval: 60.ms)
+                          .fadeIn(duration: 350.ms)
+                          .slideY(begin: 0.04, end: 0),
                 ),
               ),
             ),
@@ -216,18 +229,4 @@ class _SignupRow extends StatelessWidget {
       ],
     );
   }
-}
-
-class _Spinner extends StatelessWidget {
-  final bool dark;
-  const _Spinner({this.dark = false});
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 22,
-    width: 22,
-    child: CircularProgressIndicator(
-      strokeWidth: 2.4,
-      color: dark ? Theme.of(context).colorScheme.primary : Colors.white,
-    ),
-  );
 }

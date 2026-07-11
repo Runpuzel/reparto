@@ -45,8 +45,9 @@ grant each user write access only to their own folder.
 
 ## 2. Google Sign-In (make it actually work)
 
-The app now uses a **reliable native flow** on Android/iOS (via `google_sign_in`
-+ Supabase `signInWithIdToken`) and the OAuth redirect on web.
+The app uses `google_sign_in` to get a Google ID token, then exchanges it with
+Supabase via `signInWithIdToken`. On web, Google requires every site origin
+that launches sign-in to be registered on the Web OAuth client.
 
 ### Steps
 1. **Supabase** → Authentication → Providers → **Google**: enable it.
@@ -54,6 +55,11 @@ The app now uses a **reliable native flow** on Android/iOS (via `google_sign_in`
    - **Web application** client → copy its **Client ID** + **Secret** into the
      Supabase Google provider. This Web client ID is also your
      `GOOGLE_WEB_CLIENT_ID`.
+   - In the same Web client, add each exact **Authorized JavaScript origin**:
+     `https://ujustbuy.store`, your Netlify preview/custom domains, and local
+     dev origins such as `http://localhost:5000` or `http://localhost:7357`.
+     Origins include scheme + host + optional port only; do not add paths.
+   - In **OAuth consent screen**, set the app name to **UjustBUY**.
    - **Android** client → set package name `io.reparto.app` and your signing
      SHA-1 (`./gradlew signingReport` or `keytool`).
 3. Put the **Web client ID** in `.env`:

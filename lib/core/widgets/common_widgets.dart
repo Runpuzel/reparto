@@ -10,7 +10,12 @@ class AsyncView<T> extends StatelessWidget {
   final AsyncValue<T> value;
   final Widget Function(T data) data;
   final VoidCallback? onRetry;
-  const AsyncView({super.key, required this.value, required this.data, this.onRetry});
+  const AsyncView({
+    super.key,
+    required this.value,
+    required this.data,
+    this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +32,7 @@ class ErrorState extends StatelessWidget {
   final Object? error;
   final VoidCallback? onRetry;
 
-  const ErrorState({
-    super.key,
-    this.message,
-    this.error,
-    this.onRetry,
-  });
+  const ErrorState({super.key, this.message, this.error, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +41,10 @@ class ErrorState extends StatelessWidget {
 
     // Ensure even if a technical string is passed in 'message', we show a friendly one.
     final displayMessage = AppError.friendly(error ?? message);
-    
-    final icon = isOffline ? Icons.wifi_off_rounded : Icons.error_outline_rounded;
+
+    final icon = isOffline
+        ? Icons.wifi_off_rounded
+        : Icons.error_outline_rounded;
     final title = isOffline ? 'No Internet Connection' : 'Something went wrong';
 
     return Center(
@@ -55,27 +57,39 @@ class ErrorState extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: (isOffline ? scheme.primary : scheme.error).withValues(alpha: 0.12),
+                color: (isOffline ? scheme.primary : scheme.error).withValues(
+                  alpha: 0.12,
+                ),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon,
-                  size: 36, color: isOffline ? scheme.primary : scheme.error),
+              child: Icon(
+                icon,
+                size: 36,
+                color: isOffline ? scheme.primary : scheme.error,
+              ),
             ),
             const SizedBox(height: 16),
-            Text(title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center),
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 6),
-            Text(displayMessage,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4)),
+            Text(
+              displayMessage,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+            ),
             if (onRetry != null) ...[
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: onRetry,
-                icon: Icon(isOffline ? Icons.refresh : Icons.replay_rounded, size: 18),
+                icon: Icon(
+                  isOffline ? Icons.refresh : Icons.replay_rounded,
+                  size: 18,
+                ),
                 label: Text(isOffline ? 'Try Reconnecting' : 'Try again'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(160, 48),
@@ -123,19 +137,22 @@ class EmptyState extends StatelessWidget {
               child: Icon(icon, size: 44, color: scheme.primary),
             ),
             const SizedBox(height: 20),
-            Text(title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
-                textAlign: TextAlign.center),
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+            ),
             if (subtitle != null) ...[
               const SizedBox(height: 8),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 300),
-                child: Text(subtitle!,
-                    style: TextStyle(color: muted, height: 1.5),
-                    textAlign: TextAlign.center),
+                child: Text(
+                  subtitle!,
+                  style: TextStyle(color: muted, height: 1.5),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
             if (action != null) ...[const SizedBox(height: 24), action!],
@@ -172,8 +189,11 @@ class UjustBuyLogo extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(Icons.storefront_rounded,
-              color: Colors.white, size: size * 0.55),
+          child: Icon(
+            Icons.storefront_rounded,
+            color: Colors.white,
+            size: size * 0.55,
+          ),
         ),
         if (showText) ...[
           const SizedBox(width: 12),
@@ -204,19 +224,54 @@ class GoogleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const _GoogleG(size: 20),
-          const SizedBox(width: 12),
-          Text(label,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-        ],
+    final scheme = Theme.of(context).colorScheme;
+    final enabled = onPressed != null;
+
+    return AnimatedOpacity(
+      opacity: enabled ? 1 : 0.58,
+      duration: const Duration(milliseconds: 160),
+      child: SizedBox(
+        height: 48,
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: onPressed,
+          style:
+              OutlinedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: scheme.primary,
+                side: BorderSide(
+                  color: scheme.primary.withValues(alpha: 0.55),
+                  width: 1.4,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                elevation: 0,
+              ).copyWith(
+                overlayColor: WidgetStatePropertyAll(
+                  scheme.primary.withValues(alpha: 0.08),
+                ),
+              ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const _GoogleG(size: 20),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -242,7 +297,9 @@ class _GoogleGPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
     final rect = Rect.fromLTWH(0, 0, w, h);
-    final p = Paint()..style = PaintingStyle.stroke..strokeWidth = w * 0.22;
+    final p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.22;
 
     // Four arcs in Google brand colors.
     p.color = const Color(0xFF4285F4); // blue
@@ -256,10 +313,7 @@ class _GoogleGPainter extends CustomPainter {
 
     // Horizontal bar of the G.
     final bar = Paint()..color = const Color(0xFF4285F4);
-    canvas.drawRect(
-      Rect.fromLTWH(w * 0.5, h * 0.42, w * 0.42, h * 0.16),
-      bar,
-    );
+    canvas.drawRect(Rect.fromLTWH(w * 0.5, h * 0.42, w * 0.42, h * 0.16), bar);
   }
 
   @override
@@ -270,34 +324,39 @@ class StatusPill extends StatelessWidget {
   final String label;
   final Color color;
   final IconData? icon;
-  const StatusPill(
-      {super.key, required this.label, required this.color, this.icon});
+  const StatusPill({
+    super.key,
+    required this.label,
+    required this.color,
+    this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
-      final displayColor = Theme.of(context).brightness == Brightness.dark
-          ? Color.lerp(color, Colors.white, 0.22)!
-          : color;
-      return Container(
+    final displayColor = Theme.of(context).brightness == Brightness.dark
+        ? Color.lerp(color, Colors.white, 0.22)!
+        : color;
+    return Container(
       padding: EdgeInsets.fromLTRB(icon != null ? 7 : 10, 4, 10, 4),
       decoration: BoxDecoration(
-          color: displayColor.withValues(alpha: 0.16),
+        color: displayColor.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(AppTheme.radiusPill),
-          border: Border.all(color: displayColor.withValues(alpha: 0.45)),
+        border: Border.all(color: displayColor.withValues(alpha: 0.45)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-              Icon(icon, size: 13, color: displayColor),
+            Icon(icon, size: 13, color: displayColor),
             const SizedBox(width: 4),
           ],
           Text(
             label,
             style: TextStyle(
-                  color: displayColor,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11.5),
+              color: displayColor,
+              fontWeight: FontWeight.w700,
+              fontSize: 11.5,
+            ),
           ),
         ],
       ),
