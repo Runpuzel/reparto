@@ -57,6 +57,33 @@
   </div>
 
   <!-- Required by passkeys_web. Load it before Flutter initializes plugins. -->
+  <script>
+    window.ujustbuyDeferredInstallPrompt = null;
+
+    window.ujustbuyInstallApp = async function() {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true;
+      if (standalone) return 'installed';
+
+      const promptEvent = window.ujustbuyDeferredInstallPrompt;
+      if (!promptEvent) return 'unavailable';
+
+      promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      window.ujustbuyDeferredInstallPrompt = null;
+      return choice && choice.outcome ? choice.outcome : 'dismissed';
+    };
+
+    window.addEventListener('beforeinstallprompt', function(event) {
+      event.preventDefault();
+      window.ujustbuyDeferredInstallPrompt = event;
+    });
+
+    window.addEventListener('appinstalled', function() {
+      window.ujustbuyDeferredInstallPrompt = null;
+    });
+  </script>
+
   <script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 

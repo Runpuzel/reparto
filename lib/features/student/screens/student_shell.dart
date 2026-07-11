@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_icons.dart';
+import '../../../core/widgets/app_install_button.dart';
 import '../../../core/widgets/sign_in_prompt.dart';
 import '../../../core/widgets/theme_mode_tile.dart';
 import '../../auth/providers/auth_providers.dart';
@@ -48,11 +49,7 @@ class _StudentShellState extends ConsumerState<StudentShell> {
       const BrowseScreen(),
       const ShopsScreen(),
       const CartScreen(),
-      _StudentMoreScreen(
-        unread: unread,
-        isGuest: isGuest,
-        openPage: _openPage,
-      ),
+      _StudentMoreScreen(unread: unread, isGuest: isGuest, openPage: _openPage),
     ];
 
     const guarded = {2: 'use your cart'};
@@ -61,6 +58,7 @@ class _StudentShellState extends ConsumerState<StudentShell> {
       appBar: AppBar(
         title: Text(titles[_index]),
         actions: [
+          const AppInstallButton(),
           const ThemeToggleButton(),
           const SizedBox(width: 4),
         ],
@@ -77,29 +75,33 @@ class _StudentShellState extends ConsumerState<StudentShell> {
         },
         destinations: [
           NavigationDestination(
-              icon: Icon(AppIcons.grid),
-              selectedIcon: Icon(AppIcons.gridFill),
-              label: 'Browse'),
+            icon: Icon(AppIcons.grid),
+            selectedIcon: Icon(AppIcons.gridFill),
+            label: 'Browse',
+          ),
           NavigationDestination(
-              icon: Icon(AppIcons.storefront),
-              selectedIcon: Icon(AppIcons.storefrontFill),
-              label: 'Shops'),
+            icon: Icon(AppIcons.storefront),
+            selectedIcon: Icon(AppIcons.storefrontFill),
+            label: 'Shops',
+          ),
           NavigationDestination(
-              icon: Badge(
-                isLabelVisible: cartCount > 0,
-                label: Text('$cartCount'),
-                child: Icon(AppIcons.cart),
-              ),
-              selectedIcon: Badge(
-                isLabelVisible: cartCount > 0,
-                label: Text('$cartCount'),
-                child: Icon(AppIcons.cartFill),
-              ),
-              label: 'Cart'),
+            icon: Badge(
+              isLabelVisible: cartCount > 0,
+              label: Text('$cartCount'),
+              child: Icon(AppIcons.cart),
+            ),
+            selectedIcon: Badge(
+              isLabelVisible: cartCount > 0,
+              label: Text('$cartCount'),
+              child: Icon(AppIcons.cartFill),
+            ),
+            label: 'Cart',
+          ),
           NavigationDestination(
-              icon: Icon(AppIcons.grid),
-              selectedIcon: Icon(AppIcons.gridFill),
-              label: 'More'),
+            icon: Icon(AppIcons.grid),
+            selectedIcon: Icon(AppIcons.gridFill),
+            label: 'More',
+          ),
         ],
       ),
     );
@@ -198,8 +200,8 @@ class _StudentMoreScreen extends ConsumerWidget {
         final columns = constraints.maxWidth >= 1000
             ? 3
             : constraints.maxWidth >= 620
-                ? 2
-                : 1;
+            ? 2
+            : 1;
         final horizontalPadding = constraints.maxWidth < 400 ? 12.0 : 20.0;
 
         return ListView(

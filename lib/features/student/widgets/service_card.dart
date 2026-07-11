@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_card.dart';
@@ -13,11 +14,7 @@ class ServiceCard extends StatelessWidget {
   final Service service;
   final bool showVendor;
 
-  const ServiceCard({
-    super.key,
-    required this.service,
-    this.showVendor = true,
-  });
+  const ServiceCard({super.key, required this.service, this.showVendor = true});
 
   @override
   Widget build(BuildContext context) {
@@ -27,40 +24,83 @@ class ServiceCard extends StatelessWidget {
 
     return AppCard(
       onTap: () => context.push('/student/service/${service.serviceId}'),
+      padding: const EdgeInsets.all(AppSpacing.sm + 2),
+      borderRadius: AppRadius.brLg,
+      shadows: AppShadows.level1,
+      border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.82)),
       child: Row(
         children: [
           ClipRRect(
-            borderRadius: AppRadius.brLg,
+            borderRadius: AppRadius.brMd,
             child: SizedBox(
-              width: 64,
-              height: 64,
-              child: cover != null
-                  ? AppNetworkImage(url: cover, fallbackIcon: icon)
-                  : Container(
-                      color: scheme.primaryContainer,
-                      child: Icon(
-                        icon,
-                        color: scheme.onPrimaryContainer,
-                        size: 26,
+              width: 76,
+              height: 76,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  cover != null
+                      ? AppNetworkImage(url: cover, fallbackIcon: icon)
+                      : DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                scheme.primaryContainer,
+                                scheme.secondaryContainer.withValues(
+                                  alpha: 0.8,
+                                ),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Icon(
+                            icon,
+                            color: scheme.onPrimaryContainer,
+                            size: 28,
+                          ),
+                        ),
+                  if (service.gallery.length > 1)
+                    Positioned(
+                      left: AppSpacing.xs,
+                      top: AppSpacing.xs,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.50),
+                          borderRadius: AppRadius.brFull,
+                        ),
+                        child: Icon(
+                          AppIcons.images,
+                          color: Colors.white,
+                          size: 12,
+                        ),
                       ),
                     ),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _CategoryTag(label: service.category.label, icon: icon),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   service.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.titleSmall.copyWith(
                     color: scheme.onSurface,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0,
                   ),
                 ),
-                const SizedBox(height: 3),
-                _CategoryTag(label: service.category.label, icon: icon),
                 const SizedBox(height: AppSpacing.xs),
                 Row(
                   children: [
@@ -75,7 +115,7 @@ class ServiceCard extends StatelessWidget {
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          '- ${service.vendorName}',
+                          service.vendorName!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.bodySmall.copyWith(
@@ -89,7 +129,16 @@ class ServiceCard extends StatelessWidget {
               ],
             ),
           ),
-          Icon(AppIcons.caretRight, color: scheme.onSurfaceVariant, size: 18),
+          const SizedBox(width: AppSpacing.sm),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(AppIcons.caretRight, color: scheme.primary, size: 19),
+          ),
         ],
       ),
     );
@@ -106,9 +155,12 @@ class _CategoryTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
-        color: scheme.secondaryContainer.withValues(alpha: 0.6),
+        color: scheme.secondaryContainer.withValues(alpha: 0.62),
         borderRadius: AppRadius.brFull,
       ),
       child: Row(
@@ -118,8 +170,11 @@ class _CategoryTag extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: AppTextStyles.labelSmall.copyWith(
               color: scheme.onSecondaryContainer,
+              letterSpacing: 0.2,
             ),
           ),
         ],
