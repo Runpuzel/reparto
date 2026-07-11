@@ -61,7 +61,7 @@ class _GoogleAuthButtonState extends ConsumerState<GoogleAuthButton> {
         builder: (context, constraints) {
           final buttonWidth = constraints.maxWidth
               .clamp(200.0, 400.0)
-              .round();
+              .toDouble();
           return Semantics(
             button: true,
             label: 'Continue with Google',
