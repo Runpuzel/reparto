@@ -342,6 +342,29 @@ class StudentRepository {
     return service;
   }
 
+  Future<List<Service>> fetchServicesByVendor(String vendorId) async {
+    final settings = await supabase
+        .from('platform_settings')
+        .select('service_auth_fee')
+        .order('updated_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    final freeMode = ((settings?['service_auth_fee'] as num?) ?? 0) == 0;
+    var query = supabase
+        .from('services')
+        .select('*, vendors(business_name), service_images(image_url, position)')
+        .eq('vendor_id', vendorId)
+        .eq('status', 'available');
+    if (!freeMode) {
+      query = query.or(
+          'is_authorized.eq.true,expires_at.gt.${DateTime.now().toUtc().toIso8601String()}');
+    }
+    final rows = await query.order('created_at', ascending: false);
+    return (rows as List)
+        .map((e) => Service.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
   // ---- Escrow / disputes (spec Section C) -----------------------------------
   /// Buyer confirms receipt → releases payment to the seller (status completed).
   Future<void> confirmReceipt(String orderId) async {

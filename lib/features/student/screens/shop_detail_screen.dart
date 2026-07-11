@@ -12,10 +12,12 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_network_image.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../models/models.dart';
 import '../providers/student_providers.dart';
 import '../widgets/product_card.dart';
+import '../widgets/service_card.dart';
 
 /// A shop's storefront: header with logo + rating, all its products, reviews.
 /// v1.0 adds: verified badge, store hours / location / contact block.
@@ -27,6 +29,7 @@ class ShopDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final shop = ref.watch(shopProvider(vendorId));
     final products = ref.watch(shopProductsProvider(vendorId));
+    final services = ref.watch(shopServicesProvider(vendorId));
     final reviews = ref.watch(vendorReviewsProvider(vendorId));
 
     return Scaffold(
@@ -98,6 +101,7 @@ class ShopDetailScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(shopProductsProvider(vendorId));
+              ref.invalidate(shopServicesProvider(vendorId));
               ref.invalidate(vendorReviewsProvider(vendorId));
               ref.invalidate(shopProvider(vendorId));
             },
@@ -351,6 +355,70 @@ class ShopDetailScreen extends ConsumerWidget {
                               product: list[i], showVendor: false),
                           childCount: list.length,
                         ),
+                      ),
+                    );
+                  },
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md,
+                        AppSpacing.lg,
+                        AppSpacing.md,
+                        AppSpacing.sm),
+                    child: Row(
+                      children: [
+                        Text('Services',
+                            style: AppTextStyles.titleLarge),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text('(${services.valueOrNull?.length ?? 0})',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant)),
+                      ],
+                    ),
+                  ),
+                ),
+                services.when(
+                  loading: () => const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      child: SkeletonList(itemCount: 2, itemHeight: 96),
+                    ),
+                  ),
+                  error: (e, _) => SliverToBoxAdapter(
+                    child: ErrorState(message: '$e'),
+                  ),
+                  data: (list) {
+                    if (list.isEmpty) {
+                      return const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: EmptyState(
+                            icon: Icons.handyman_outlined,
+                            title: 'No services yet',
+                            subtitle:
+                            'This shop has no available services.',
+                          ),
+                        ),
+                      );
+                    }
+                    return SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, i) => Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.sm + 4,
+                            0,
+                            AppSpacing.sm + 4,
+                            AppSpacing.sm,
+                          ),
+                          child: ServiceCard(
+                            service: list[i],
+                            showVendor: false,
+                          ),
+                        ),
+                        childCount: list.length,
                       ),
                     );
                   },

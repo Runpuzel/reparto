@@ -4,11 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../shared/providers/shared_providers.dart';
 import '../providers/student_providers.dart';
 import '../widgets/product_card.dart';
+import '../widgets/service_card.dart';
 
 class BrowseScreen extends ConsumerStatefulWidget {
   const BrowseScreen({super.key});
@@ -29,6 +31,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   @override
   Widget build(BuildContext context) {
     final products = ref.watch(productsProvider);
+    final services = ref.watch(browseServicesProvider);
     final categories = ref.watch(categoriesProvider);
     final selectedCat = ref.watch(selectedCategoryProvider);
 
@@ -36,6 +39,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
       onRefresh: () async {
         ref.invalidate(categoriesProvider);
         ref.invalidate(productsProvider);
+        ref.invalidate(browseServicesProvider);
       },
       child: CustomScrollView(
         slivers: [
@@ -118,35 +122,92 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xs)),
           products.when(
             data: (list) {
-              if (list.isEmpty) {
+              final serviceList = services.valueOrNull ?? [];
+              if (list.isEmpty && services.isLoading) {
+                return const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(AppSpacing.md),
+                    child: SkeletonList(itemCount: 3, itemHeight: 96),
+                  ),
+                );
+              }
+              if (list.isEmpty && serviceList.isEmpty) {
                 return const SliverFillRemaining(
                   hasScrollBody: false,
                   child: EmptyState(
-                    icon: Icons.inventory_2_outlined,
-                    title: 'No products found',
+                    icon: Icons.search_rounded,
+                    title: 'No matches found',
                     subtitle: 'Try a different search or category.',
                   ),
                 );
               }
-              return SliverPadding(
-                padding: const EdgeInsets.all(AppSpacing.sm + 4),
-                sliver: SliverGrid(
-                  gridDelegate:
-                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 220,
-                    mainAxisSpacing: AppSpacing.sm + 4,
-                    crossAxisSpacing: AppSpacing.sm + 4,
-                    childAspectRatio: 0.66,
+              return SliverList(
+                delegate: SliverChildListDelegate([
+                  if (list.isNotEmpty) ...[
+                    _sectionHeader(context, 'Products', list.length),
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.sm + 4),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220,
+                          mainAxisSpacing: AppSpacing.sm + 4,
+                          crossAxisSpacing: AppSpacing.sm + 4,
+                          childAspectRatio: 0.66,
+                        ),
+                        itemCount: list.length,
+                        itemBuilder: (context, i) => ProductCard(
+                          product: list[i],
+                        )
+                            .animate()
+                            .fadeIn(
+                              delay: (40 * (i % 8)).ms,
+                              duration: 300.ms,
+                            )
+                            .slideY(begin: 0.06, end: 0),
+                      ),
+                    ),
+                  ],
+                  services.when(
+                    data: (serviceList) {
+                      if (serviceList.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _sectionHeader(context, 'Services', serviceList.length),
+                          ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.sm + 4,
+                              AppSpacing.sm,
+                              AppSpacing.sm + 4,
+                              AppSpacing.md,
+                            ),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: serviceList.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: AppSpacing.sm),
+                            itemBuilder: (context, i) =>
+                                ServiceCard(service: serviceList[i])
+                                    .animate()
+                                    .fadeIn(
+                                      delay: (40 * (i % 8)).ms,
+                                      duration: 300.ms,
+                                    )
+                                    .slideY(begin: 0.05, end: 0),
+                          ),
+                        ],
+                      );
+                    },
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(AppSpacing.md),
+                      child: SkeletonList(itemCount: 3, itemHeight: 96),
+                    ),
+                    error: (_, __) => const SizedBox.shrink(),
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                        (context, i) => ProductCard(product: list[i])
-                        .animate()
-                        .fadeIn(
-                        delay: (40 * (i % 8)).ms, duration: 300.ms)
-                        .slideY(begin: 0.06, end: 0),
-                    childCount: list.length,
-                  ),
-                ),
+                ]),
               );
             },
             loading: () => const SliverToBoxAdapter(
@@ -156,6 +217,29 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
               child: ErrorState(
                   error: e,
                   onRetry: () => ref.invalidate(productsProvider)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionHeader(BuildContext context, String title, int count) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        0,
+      ),
+      child: Row(
+        children: [
+          Text(title, style: AppTextStyles.titleLarge),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            '($count)',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],

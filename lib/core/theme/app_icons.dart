@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 class AppIcons {
   AppIcons._();
 
-  // Auth / identity
+  // Account and identity
   static const IconData email = Icons.mail_outline_rounded;
   static const IconData lock = Icons.lock_outline_rounded;
   static const IconData lockReset = Icons.lock_reset_rounded;
@@ -25,7 +25,7 @@ class AppIcons {
   static const IconData badge = Icons.badge_outlined;
   static const IconData shield = Icons.verified_user_outlined;
 
-  // Places / contact
+  // Places and contact
   static const IconData campus = Icons.apartment_rounded;
   static const IconData mapPin = Icons.location_on_outlined;
   static const IconData phone = Icons.phone_outlined;
@@ -34,7 +34,7 @@ class AppIcons {
   static const IconData whatsapp = Icons.chat_rounded;
   static const IconData chat = Icons.chat_bubble_outline_rounded;
 
-  // Commerce
+  // Shopping and orders
   static const IconData storefront = Icons.storefront_outlined;
   static const IconData storefrontFill = Icons.storefront;
   static const IconData student = Icons.school_outlined;
@@ -51,7 +51,7 @@ class AppIcons {
   static const IconData gridFill = Icons.grid_view_rounded;
   static const IconData tag = Icons.sell_outlined;
 
-  // Browse / search / favorites
+  // Browse, search, and actions
   static const IconData search = Icons.search_rounded;
   static const IconData close = Icons.close_rounded;
   static const IconData heart = Icons.favorite_border_rounded;
@@ -73,7 +73,7 @@ class AppIcons {
   static const IconData cancelFill = Icons.cancel_rounded;
   static const IconData role = Icons.badge_outlined;
 
-  // Feedback / generic
+  // Feedback and navigation
   static const IconData info = Icons.info_outline_rounded;
   static const IconData check = Icons.check_circle_outline_rounded;
   static const IconData checkFill = Icons.check_circle_rounded;
@@ -82,7 +82,7 @@ class AppIcons {
   static const IconData circle = Icons.radio_button_unchecked_rounded;
   static const IconData openInNew = Icons.open_in_new_rounded;
 
-  // Vendor / admin dashboards
+  // Dashboards and management
   static const IconData dashboard = Icons.dashboard_outlined;
   static const IconData dashboardFill = Icons.dashboard_rounded;
   static const IconData packageFill = Icons.inventory_2_rounded;
@@ -110,11 +110,59 @@ class AppIcons {
   static const IconData revenue = Icons.payments_outlined;
   static const IconData edit = Icons.edit_outlined;
 
-  // Services
+  // Services and service categories
   static const IconData services = Icons.handyman_outlined;
   static const IconData servicesFill = Icons.handyman_rounded;
   static const IconData clock = Icons.schedule_rounded;
   static const IconData scissors = Icons.content_cut_rounded;
+  static const IconData beauty = Icons.face_retouching_natural_outlined;
+  static const IconData repair = Icons.build_outlined;
+  static const IconData academic = Icons.menu_book_outlined;
+  static const IconData printing = Icons.print_outlined;
+  static const IconData creative = Icons.brush_outlined;
+  static const IconData laundry = Icons.local_laundry_service_outlined;
+  static const IconData delivery = Icons.delivery_dining_outlined;
+  static const IconData transport = Icons.directions_car_outlined;
+  static const IconData cleaning = Icons.cleaning_services_outlined;
+  static const IconData events = Icons.celebration_outlined;
+  static const IconData food = Icons.restaurant_outlined;
+  static const IconData fitness = Icons.fitness_center_outlined;
+  static const IconData homeServices = Icons.home_repair_service_outlined;
+
+  static IconData serviceCategory(String category) {
+    switch (category) {
+      case 'hair_grooming':
+        return scissors;
+      case 'beauty_makeup':
+        return beauty;
+      case 'technical_repairs':
+        return repair;
+      case 'academic_support':
+        return academic;
+      case 'printing_typing':
+        return printing;
+      case 'creative_services':
+        return creative;
+      case 'laundry_cleaning':
+        return laundry;
+      case 'delivery_errands':
+        return delivery;
+      case 'transport_errands':
+        return transport;
+      case 'room_cleaning':
+        return cleaning;
+      case 'event_support':
+        return events;
+      case 'food_catering':
+        return food;
+      case 'fitness_sports':
+        return fitness;
+      case 'home_room_services':
+        return homeServices;
+      default:
+        return services;
+    }
+  }
 
   // Admin
   static const IconData verified = Icons.verified_user_outlined;

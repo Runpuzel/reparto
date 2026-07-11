@@ -53,6 +53,12 @@ final servicesProvider = FutureProvider<List<Service>>((ref) async {
   return repo.fetchServices(category: category?.db, search: search);
 });
 
+final browseServicesProvider = FutureProvider<List<Service>>((ref) async {
+  final repo = ref.watch(studentRepositoryProvider);
+  final search = ref.watch(productSearchProvider);
+  return repo.fetchServices(search: search);
+});
+
 final serviceProvider =
 FutureProvider.family<Service?, String>((ref, serviceId) async {
   return ref.watch(studentRepositoryProvider).fetchService(serviceId);
@@ -88,6 +94,11 @@ FutureProvider.family<Vendor?, String>((ref, vendorId) async {
 final shopProductsProvider =
 FutureProvider.family<List<Product>, String>((ref, vendorId) async {
   return ref.watch(studentRepositoryProvider).fetchProductsByVendor(vendorId);
+});
+
+final shopServicesProvider =
+FutureProvider.family<List<Service>, String>((ref, vendorId) async {
+  return ref.watch(studentRepositoryProvider).fetchServicesByVendor(vendorId);
 });
 
 // ---- Favorites --------------------------------------------------------------
