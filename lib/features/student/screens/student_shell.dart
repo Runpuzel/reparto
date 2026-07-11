@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/services/app_install_service.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/widgets/app_install_button.dart';
 import '../../../core/widgets/sign_in_prompt.dart';
@@ -75,31 +76,37 @@ class _StudentShellState extends ConsumerState<StudentShell> {
         },
         destinations: [
           NavigationDestination(
-            icon: Icon(AppIcons.grid),
-            selectedIcon: Icon(AppIcons.gridFill),
+            icon: _ShellNavIcon(icon: AppIcons.grid),
+            selectedIcon: _ShellNavIcon(
+              icon: AppIcons.gridFill,
+              selected: true,
+            ),
             label: 'Browse',
           ),
           NavigationDestination(
-            icon: Icon(AppIcons.storefront),
-            selectedIcon: Icon(AppIcons.storefrontFill),
+            icon: _ShellNavIcon(icon: AppIcons.storefront),
+            selectedIcon: _ShellNavIcon(
+              icon: AppIcons.storefrontFill,
+              selected: true,
+            ),
             label: 'Shops',
           ),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: cartCount > 0,
               label: Text('$cartCount'),
-              child: Icon(AppIcons.cart),
+              child: _ShellNavIcon(icon: AppIcons.cart),
             ),
             selectedIcon: Badge(
               isLabelVisible: cartCount > 0,
               label: Text('$cartCount'),
-              child: Icon(AppIcons.cartFill),
+              child: _ShellNavIcon(icon: AppIcons.cartFill, selected: true),
             ),
             label: 'Cart',
           ),
           NavigationDestination(
-            icon: Icon(AppIcons.grid),
-            selectedIcon: Icon(AppIcons.gridFill),
+            icon: _ShellNavIcon(icon: AppIcons.more),
+            selectedIcon: _ShellNavIcon(icon: AppIcons.more, selected: true),
             label: 'More',
           ),
         ],
@@ -133,6 +140,12 @@ class _StudentMoreScreen extends ConsumerWidget {
         'Policies, support, and platform information',
         AppIcons.info,
         () => context.push('/about'),
+      ),
+      _StudentTool(
+        'Install app',
+        'Download UjustBUY to this device',
+        AppIcons.download,
+        () => _showInstallPrompt(context),
       ),
     ];
 
@@ -191,6 +204,7 @@ class _StudentMoreScreen extends ConsumerWidget {
           'Leave this account on this device',
           AppIcons.logout,
           () => ref.read(authRepositoryProvider).signOut(),
+          destructive: true,
         ),
       ]);
     }
@@ -240,6 +254,7 @@ class _StudentTool {
     this.icon,
     this.onTap, {
     this.badge,
+    this.destructive = false,
   });
 
   final String title;
@@ -247,6 +262,7 @@ class _StudentTool {
   final IconData icon;
   final VoidCallback onTap;
   final String? badge;
+  final bool destructive;
 }
 
 class _StudentToolTile extends StatelessWidget {
@@ -257,6 +273,11 @@ class _StudentToolTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final accent = tool.destructive ? scheme.error : scheme.primary;
+    final bg = tool.destructive
+        ? scheme.errorContainer.withValues(alpha: 0.88)
+        : scheme.primary.withValues(alpha: 0.12);
+
     return Material(
       color: scheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(8),
@@ -267,10 +288,21 @@ class _StudentToolTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Badge(
-                isLabelVisible: tool.badge != null,
-                label: Text(tool.badge ?? ''),
-                child: Icon(tool.icon, color: scheme.primary),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: accent.withValues(alpha: 0.22)),
+                ),
+                child: Center(
+                  child: Badge(
+                    isLabelVisible: tool.badge != null,
+                    label: Text(tool.badge ?? ''),
+                    child: Icon(tool.icon, color: accent, size: 23),
+                  ),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -301,4 +333,48 @@ class _StudentToolTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ShellNavIcon extends StatelessWidget {
+  const _ShellNavIcon({required this.icon, this.selected = false});
+
+  final IconData icon;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    if (!selected) {
+      return Icon(icon, color: scheme.onSurfaceVariant, size: 24);
+    }
+
+    return Container(
+      width: 38,
+      height: 30,
+      decoration: BoxDecoration(
+        color: scheme.primary,
+        borderRadius: BorderRadius.circular(100),
+      ),
+      alignment: Alignment.center,
+      child: Icon(icon, color: scheme.onPrimary, size: 22),
+    );
+  }
+}
+
+Future<void> _showInstallPrompt(BuildContext context) async {
+  final status = await promptAppInstall();
+  if (!context.mounted) return;
+
+  final message = switch (status) {
+    AppInstallStatus.accepted => 'Installing UjustBUY...',
+    AppInstallStatus.installed => 'UjustBUY is already installed.',
+    AppInstallStatus.dismissed => 'Install dismissed.',
+    AppInstallStatus.unavailable =>
+      'Use your browser menu and choose Add to Home screen.',
+    AppInstallStatus.failed =>
+      'Could not start install. Use your browser menu and choose Add to Home screen.',
+  };
+
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }
