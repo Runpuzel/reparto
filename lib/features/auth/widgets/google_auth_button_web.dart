@@ -54,20 +54,35 @@ class _GoogleAuthButtonState extends ConsumerState<GoogleAuthButton> {
       return const _GoogleButtonShell(child: _GoogleSpinner());
     }
 
-    return _GoogleButtonShell(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        child: google_web.renderButton(
-          configuration: google_web.GSIButtonConfiguration(
-            type: google_web.GSIButtonType.standard,
-            theme: google_web.GSIButtonTheme.outline,
-            size: google_web.GSIButtonSize.large,
-            text: google_web.GSIButtonText.continueWith,
-            shape: google_web.GSIButtonShape.rectangular,
-            logoAlignment: google_web.GSIButtonLogoAlignment.left,
-            minimumWidth: 400,
-          ),
-        ),
+    return SizedBox(
+      height: 48,
+      width: double.infinity,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final buttonWidth = constraints.maxWidth
+              .clamp(200.0, 400.0)
+              .round();
+          return Semantics(
+            button: true,
+            label: 'Continue with Google',
+            child: Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                child: google_web.renderButton(
+                  configuration: google_web.GSIButtonConfiguration(
+                    type: google_web.GSIButtonType.standard,
+                    theme: google_web.GSIButtonTheme.outline,
+                    size: google_web.GSIButtonSize.large,
+                    text: google_web.GSIButtonText.continueWith,
+                    shape: google_web.GSIButtonShape.rectangular,
+                    logoAlignment: google_web.GSIButtonLogoAlignment.left,
+                    minimumWidth: buttonWidth,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

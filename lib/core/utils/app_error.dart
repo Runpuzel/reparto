@@ -74,6 +74,29 @@ class AppError {
     if (m.contains('user not found')) {
       return 'No account found with this email.';
     }
+    if (m.contains('passed nonce') && m.contains('id_token')) {
+      return 'Google sign-in nonce validation failed. Enable Skip nonce check in the Supabase Google provider settings.';
+    }
+    if (m.contains('unacceptable audience') ||
+        m.contains('invalid audience') ||
+        (m.contains('audience') && m.contains('id_token'))) {
+      return 'Google sign-in does not match the client IDs configured in Supabase.';
+    }
+    if (m.contains('provider is not enabled') ||
+        m.contains('unsupported provider')) {
+      return 'Google sign-in is not enabled in Supabase.';
+    }
+    if (m.contains('deleted_client')) {
+      return 'This Google sign-in client was deleted. Update the app and Supabase to use the active client.';
+    }
+    if (m.contains('invalid_client')) {
+      return 'The Google Web client ID or secret configured in Supabase is invalid.';
+    }
+    if (m.contains('missing id token') ||
+        m.contains('invalid id token') ||
+        m.contains('bad id token')) {
+      return 'Google did not provide a valid sign-in token. Please try again.';
+    }
     if (m.contains('authorized javascript origins') ||
         m.contains('not configured for this web address') ||
         m.contains('unregistered_origin') ||

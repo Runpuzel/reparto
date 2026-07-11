@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/supabase_client.dart';
 import '../../../models/models.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../data/student_repository.dart';
 
 final studentRepositoryProvider =
@@ -18,6 +20,8 @@ final productsProvider = FutureProvider<List<Product>>((ref) async {
 });
 
 final cartProvider = FutureProvider<List<CartItem>>((ref) async {
+  ref.watch(authStateProvider);
+  if (currentAuthUser == null) return const <CartItem>[];
   return ref.watch(studentRepositoryProvider).fetchCart();
 });
 

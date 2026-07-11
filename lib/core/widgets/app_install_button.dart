@@ -9,15 +9,15 @@ class AppInstallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    const downloadBlue = Color(0xFF1976D2);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: IconButton(
         tooltip: 'Install app',
         style: IconButton.styleFrom(
-          backgroundColor: scheme.primary,
-          foregroundColor: scheme.onPrimary,
+          backgroundColor: downloadBlue.withValues(alpha: 0.14),
+          foregroundColor: downloadBlue,
           fixedSize: const Size(44, 44),
           iconSize: 23,
         ),
