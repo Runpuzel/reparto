@@ -9,8 +9,14 @@
   <meta name="author" content="Ujustbuy">
   <meta name="robots" content="index, follow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#8E153E">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Ujustbuy">
   <meta name="google-signin-client_id" content="462208558450-ksclni4ftcnsncv2gdut8gouesbp4s7l.apps.googleusercontent.com">
   <link rel="canonical" href="https://ujustbuy.store/">
+  <link rel="preconnect" href="https://eidqnjldlnlwqnblruep.supabase.co" crossorigin>
+  <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 
   <title>Ujustbuy - Online Shopping Store</title>
   <meta property="og:site_name" content="Ujustbuy">
@@ -23,7 +29,9 @@
   <meta name="twitter:title" content="Ujustbuy - Online Shopping Store">
   <meta name="twitter:description" content="Shop products and services from student sellers with Ujustbuy.">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="app_icon.png"/>
+  <link rel="icon" type="image/png" href="icons/Icon-192.png"/>
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="preload" href="icons/Icon-192.png" as="image" fetchpriority="high">
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -38,38 +46,132 @@
   </script>
 
   <style>
-    body { margin: 0; background: #F6F3F5; overflow: hidden; }
-    #loading {
-      position: fixed; inset: 0; display: flex; align-items: center;
-      justify-content: center; flex-direction: column; font-family: sans-serif;
-      color: #8E153E; background: #F6F3F5; z-index: 9999;
+    html, body { margin: 0; width: 100%; min-height: 100%; }
+    body {
+      background: #F6F3F5; overflow: hidden; color: #241A1E;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
     }
-    #loading img { width: 80px; height: auto; margin-bottom: 20px; }
+    #loading {
+      position: fixed; inset: 0; display: grid; place-items: center;
+      padding: 24px; color: #8E153E; background: #F6F3F5; z-index: 9999;
+      box-sizing: border-box;
+    }
+    .loading-shell { width: min(100%, 400px); }
+    .loading-brand {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      margin-bottom: 28px; color: #241A1E; font-size: 21px; font-weight: 800;
+    }
+    .loading-brand img {
+      width: 52px; height: 52px; object-fit: cover; border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(36, 26, 30, 0.12);
+    }
+    #loading-copy { margin: 0; text-align: center; font-size: 14px; font-weight: 650; }
+    .loading-track {
+      width: 112px; height: 4px; margin: 14px auto 0; overflow: hidden;
+      border-radius: 999px; background: rgba(142, 21, 62, 0.14);
+    }
+    .loading-track::after {
+      content: ''; display: block; width: 48%; height: 100%; border-radius: inherit;
+      background: #8E153E; animation: loading-slide 1s ease-in-out infinite alternate;
+    }
+    @keyframes loading-slide {
+      from { transform: translateX(0); }
+      to { transform: translateX(118%); }
+    }
+    #offline-preview { display: none; }
+    html.is-offline #loading-copy, html.is-offline .loading-track { display: none; }
+    html.is-offline #offline-preview { display: block; }
+    .offline-status {
+      display: flex; align-items: center; gap: 9px; margin-bottom: 18px;
+      color: #241A1E; font-size: 16px; font-weight: 750;
+    }
+    .offline-dot { width: 9px; height: 9px; border-radius: 50%; background: #D14343; }
+    .offline-search {
+      height: 46px; margin-bottom: 16px; border: 1px solid #DED4D8;
+      border-radius: 8px; background: #FFFFFF;
+    }
+    .preview-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .preview-item {
+      min-width: 0; overflow: hidden; border: 1px solid #E5DDE0;
+      border-radius: 8px; background: #FFFFFF;
+    }
+    .preview-image { aspect-ratio: 4 / 3; background: #E9E1E4; }
+    .preview-lines { padding: 11px; }
+    .preview-line { height: 8px; border-radius: 999px; background: #DED4D8; }
+    .preview-line + .preview-line { width: 62%; margin-top: 9px; background: #E9E1E4; }
+    .offline-note {
+      margin: 18px 0 0; color: #6D5B62; font-size: 13px;
+      line-height: 1.45; text-align: center;
+    }
     @media (prefers-color-scheme: dark) {
       body, #loading { background: #120F11; }
-      #loading { color: #8E153E; }
+      .loading-brand, .offline-status { color: #F5EDF0; }
+      .offline-search, .preview-item { background: #211A1D; border-color: #3B3035; }
+      .preview-image, .preview-line { background: #3B3035; }
+      .preview-line + .preview-line { background: #30272B; }
+      .offline-note { color: #B9A8AF; }
     }
   </style>
 </head>
 <body>
   <div id="loading">
-    <img src="app_icon.png" alt="UjustBUY" />
-    <p>Loading UjustBUY…</p>
+    <div class="loading-shell">
+      <div class="loading-brand">
+        <img src="icons/Icon-192.png" alt="" />
+        <span>UjustBUY</span>
+      </div>
+      <p id="loading-copy">Opening your marketplace...</p>
+      <div class="loading-track" aria-hidden="true"></div>
+      <section id="offline-preview" aria-live="polite">
+        <div class="offline-status"><span class="offline-dot"></span>You're offline</div>
+        <div class="offline-search" aria-hidden="true"></div>
+        <div class="preview-grid" aria-hidden="true">
+          <div class="preview-item">
+            <div class="preview-image"></div>
+            <div class="preview-lines"><div class="preview-line"></div><div class="preview-line"></div></div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-image"></div>
+            <div class="preview-lines"><div class="preview-line"></div><div class="preview-line"></div></div>
+          </div>
+        </div>
+        <p class="offline-note">Your marketplace preview is ready. Live products and services will refresh when you're connected.</p>
+      </section>
+    </div>
   </div>
 
   <!-- Required by passkeys_web. Load it before Flutter initializes plugins. -->
   <script>
     window.ujustbuyDeferredInstallPrompt = null;
+    window.ujustbuyInstallPromptWaiters = [];
+
+    window.ujustbuyWaitForInstallPrompt = function() {
+      if (window.ujustbuyDeferredInstallPrompt) {
+        return Promise.resolve(window.ujustbuyDeferredInstallPrompt);
+      }
+
+      return new Promise(function(resolve) {
+        let settled = false;
+        const complete = function(promptEvent) {
+          if (settled) return;
+          settled = true;
+          resolve(promptEvent);
+        };
+        window.ujustbuyInstallPromptWaiters.push(complete);
+        setTimeout(function() { complete(null); }, 1800);
+      });
+    };
 
     window.ujustbuyInstallApp = async function() {
       const standalone = window.matchMedia('(display-mode: standalone)').matches ||
         window.navigator.standalone === true;
       if (standalone) return 'installed';
 
-      const promptEvent = window.ujustbuyDeferredInstallPrompt;
+      const promptEvent = window.ujustbuyDeferredInstallPrompt ||
+        await window.ujustbuyWaitForInstallPrompt();
       if (!promptEvent) return 'unavailable';
 
-      promptEvent.prompt();
+      await promptEvent.prompt();
       const choice = await promptEvent.userChoice;
       window.ujustbuyDeferredInstallPrompt = null;
       return choice && choice.outcome ? choice.outcome : 'dismissed';
@@ -78,6 +180,8 @@
     window.addEventListener('beforeinstallprompt', function(event) {
       event.preventDefault();
       window.ujustbuyDeferredInstallPrompt = event;
+      const waiters = window.ujustbuyInstallPromptWaiters.splice(0);
+      waiters.forEach(function(complete) { complete(event); });
     });
 
     window.addEventListener('appinstalled', function() {
@@ -85,29 +189,42 @@
     });
   </script>
 
-  <script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js"></script>
-  <script src="flutter_bootstrap.js" async></script>
+  <script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js" defer></script>
 
   <script>
-    // Flutter 3.22+ bootstrap: Hide loader once the app is rendered
-    window.addEventListener('load', function() {
-      const observer = new MutationObserver(function(mutations) {
-        if (document.querySelector('flutter-view')) {
-          const loader = document.getElementById('loading');
-          if (loader) loader.style.display = 'none';
-          observer.disconnect();
-        }
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
+    let flutterStarted = false;
 
-      // Fallback: Force hide after 12 seconds
-      setTimeout(function() {
-        const loader = document.getElementById('loading');
-        if (loader && loader.style.display !== 'none') {
-          loader.style.display = 'none';
-        }
-      }, 12000);
+    function startFlutter() {
+      if (flutterStarted || !navigator.onLine) return;
+      flutterStarted = true;
+      document.documentElement.classList.remove('is-offline');
+
+      const script = document.createElement('script');
+      script.src = 'flutter_bootstrap.js';
+      script.async = true;
+      script.onerror = function() {
+        flutterStarted = false;
+        if (!navigator.onLine) document.documentElement.classList.add('is-offline');
+      };
+      document.body.appendChild(script);
+    }
+
+    if (!navigator.onLine) document.documentElement.classList.add('is-offline');
+
+    window.addEventListener('DOMContentLoaded', startFlutter);
+    window.addEventListener('online', startFlutter);
+    window.addEventListener('offline', function() {
+      document.documentElement.classList.add('is-offline');
     });
+
+    const observer = new MutationObserver(function() {
+      if (document.querySelector('flutter-view')) {
+        const loader = document.getElementById('loading');
+        if (loader) loader.style.display = 'none';
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   </script>
 </body>
 </html>

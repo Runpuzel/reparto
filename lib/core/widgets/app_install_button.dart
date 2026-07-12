@@ -9,6 +9,8 @@ class AppInstallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!kIsWeb) return const SizedBox.shrink();
+
     const downloadBlue = Color(0xFF1976D2);
 
     return Padding(
@@ -23,31 +25,20 @@ class AppInstallButton extends StatelessWidget {
         ),
         icon: const Icon(AppIcons.download),
         onPressed: () async {
-          if (!kIsWeb) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Open UjustBUY in your browser to install it.'),
-              ),
-            );
-            return;
-          }
-
           final status = await promptAppInstall();
           if (!context.mounted) return;
 
           final message = switch (status) {
             AppInstallStatus.accepted => 'Installing UjustBUY...',
             AppInstallStatus.installed => 'UjustBUY is already installed.',
-            AppInstallStatus.dismissed => 'Install dismissed.',
-            AppInstallStatus.unavailable =>
-              'Use your browser menu and choose Add to Home screen.',
-            AppInstallStatus.failed =>
-              'Could not start install. Use your browser menu and choose Add to Home screen.',
+            _ => null,
           };
 
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(message)));
+          if (message != null) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
+          }
         },
       ),
     );

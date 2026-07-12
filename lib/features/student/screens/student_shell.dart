@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -145,13 +146,18 @@ class _StudentMoreScreen extends ConsumerWidget {
         AppIcons.info,
         () => context.push('/about'),
       ),
-      _StudentTool(
-        'Install app',
-        'Download UjustBUY to this device',
-        AppIcons.download,
-        () => _showInstallPrompt(context),
-      ),
     ];
+
+    if (kIsWeb) {
+      tools.add(
+        _StudentTool(
+          'Install app',
+          'Download UjustBUY to this device',
+          AppIcons.download,
+          () => _showInstallPrompt(context),
+        ),
+      );
+    }
 
     if (isGuest) {
       tools.add(
@@ -374,12 +380,10 @@ Future<void> _showInstallPrompt(BuildContext context) async {
   final message = switch (status) {
     AppInstallStatus.accepted => 'Installing UjustBUY...',
     AppInstallStatus.installed => 'UjustBUY is already installed.',
-    AppInstallStatus.dismissed => 'Install dismissed.',
-    AppInstallStatus.unavailable =>
-      'Use your browser menu and choose Add to Home screen.',
-    AppInstallStatus.failed =>
-      'Could not start install. Use your browser menu and choose Add to Home screen.',
+    _ => null,
   };
 
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  if (message != null) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
 }
