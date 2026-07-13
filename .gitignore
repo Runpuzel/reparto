@@ -16,3 +16,10 @@ supabase/.temp/
 # client config (Supabase URL + anon key, Google web client id, feature flags).
 # Row Level Security protects your data. Never put server secrets (service_role
 # key, Paystack secret key, FCM server key) in this file.
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
