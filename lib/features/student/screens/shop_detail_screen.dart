@@ -10,6 +10,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/operating_hours.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_network_image.dart';
 import '../../../core/widgets/app_skeleton.dart';
@@ -52,28 +53,22 @@ class ShopDetailScreen extends ConsumerWidget {
           final revs = reviews.valueOrNull ?? [];
           final avg = revs.isEmpty
               ? 0.0
-              : revs.map((r) => r.rating).reduce((a, b) => a + b) /
-              revs.length;
+              : revs.map((r) => r.rating).reduce((a, b) => a + b) / revs.length;
           final productList = products.valueOrNull ?? [];
 
-          // v1.0 – read store details with safe casts
-          final isVerified = (v as dynamic).isVerified as bool? ?? false;
-          final workingDays = (v as dynamic).workingDays as List? ?? const [];
-          final openingTime = (v as dynamic).openingTime as String? ?? '08:00';
-          final closingTime = (v as dynamic).closingTime as String? ?? '20:00';
-          final isClosedToday =
-              (v as dynamic).isClosedToday as bool? ?? false;
-          final holidayMode = (v as dynamic).holidayMode as bool? ?? false;
-          final storeLocation =
-              (v as dynamic).storeLocation as String? ?? '';
-          final sellerBio = (v as dynamic).sellerBio as String?;
-          final specialties =
-              ((v as dynamic).specialties as List?)?.cast<String>() ??
-                  const [];
-          final customNote = (v as dynamic).customNote as String?;
+          final isVerified = v.isVerified;
+          final workingDays = v.workingDays;
+          final openingTime = v.openingTime;
+          final closingTime = v.closingTime;
+          final holidayMode = v.holidayMode;
+          final storeLocation = v.storeLocation ?? '';
+          final sellerBio = v.sellerBio;
+          final specialties = v.specialties;
+          final customNote = v.customNote;
 
-          // simple "open now" heuristic – Africa/Accra local
-          final now = DateTime.now();
+          // Ghana stays on UTC year-round, so this remains correct even if a
+          // visitor's device is configured for another timezone.
+          final now = DateTime.now().toUtc();
           final weekdayMap = {
             1: 'Mon',
             2: 'Tue',
@@ -85,6 +80,12 @@ class ShopDetailScreen extends ConsumerWidget {
           };
           final todayStr = weekdayMap[now.weekday] ?? 'Mon';
           final isOpenDay = workingDays.contains(todayStr);
+          final isClosedToday = v.isClosedOn(now);
+          final isWithinHours = OperatingHours.isOpenAt(
+            now: now,
+            openingTime: openingTime,
+            closingTime: closingTime,
+          );
           String openStatus;
           Color openColor;
           if (holidayMode) {
@@ -92,6 +93,9 @@ class ShopDetailScreen extends ConsumerWidget {
             openColor = AppColors.warning;
           } else if (isClosedToday || !isOpenDay) {
             openStatus = 'Closed today';
+            openColor = AppColors.error;
+          } else if (!isWithinHours) {
+            openStatus = 'Closed now';
             openColor = AppColors.error;
           } else {
             openStatus = 'Open now';
@@ -146,8 +150,7 @@ class ShopDetailScreen extends ConsumerWidget {
                                     mainAxisSize: MainAxisSize.min,
                                     children: const [
                                       Icon(Icons.verified,
-                                          size: 14,
-                                          color: AppColors.success),
+                                          size: 14, color: AppColors.success),
                                       SizedBox(width: 4),
                                       Text(
                                         'Approved Student Seller',
@@ -198,7 +201,7 @@ class ShopDetailScreen extends ConsumerWidget {
                               Expanded(
                                 child: Text(
                                   workingDays.isNotEmpty
-                                      ? '${workingDays.join(' · ')}  •  ${openingTime.substring(0, 5)}–${closingTime.substring(0, 5)}'
+                                      ? '${workingDays.join(' · ')}  •  ${OperatingHours.display(openingTime)} – ${OperatingHours.display(closingTime)}'
                                       : 'Hours not set',
                                   style: AppTextStyles.bodyMedium,
                                 ),
@@ -211,11 +214,9 @@ class ShopDetailScreen extends ConsumerWidget {
                                 style: AppTextStyles.titleSmall),
                             const SizedBox(height: AppSpacing.xs),
                             Row(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.place_outlined,
-                                    size: 16),
+                                const Icon(Icons.place_outlined, size: 16),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
@@ -230,7 +231,7 @@ class ShopDetailScreen extends ConsumerWidget {
                                           horizontal: 8),
                                       minimumSize: const Size(0, 30),
                                       tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
+                                          MaterialTapTargetSize.shrinkWrap,
                                     ),
                                     onPressed: () {
                                       // TODO: launch maps
@@ -253,17 +254,14 @@ class ShopDetailScreen extends ConsumerWidget {
                               runSpacing: 4,
                               children: specialties
                                   .map((s) => Chip(
-                                label: Text(
-                                  s,
-                                  style: const TextStyle(
-                                      fontSize: 11),
-                                ),
-                                visualDensity:
-                                VisualDensity.compact,
-                                materialTapTargetSize:
-                                MaterialTapTargetSize
-                                    .shrinkWrap,
-                              ))
+                                        label: Text(
+                                          s,
+                                          style: const TextStyle(fontSize: 11),
+                                        ),
+                                        visualDensity: VisualDensity.compact,
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ))
                                   .toList(),
                             ),
                           ],
@@ -273,15 +271,14 @@ class ShopDetailScreen extends ConsumerWidget {
                               width: double.infinity,
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: AppColors.warning
-                                    .withValues(alpha: 0.07),
+                                color:
+                                    AppColors.warning.withValues(alpha: 0.07),
                                 borderRadius: AppRadius.brMd,
                               ),
                               child: Text(
                                 '“$customNote”',
                                 style: AppTextStyles.bodySmall
-                                    .copyWith(
-                                    fontStyle: FontStyle.italic),
+                                    .copyWith(fontStyle: FontStyle.italic),
                               ),
                             ),
                           ],
@@ -293,15 +290,11 @@ class ShopDetailScreen extends ConsumerWidget {
 
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md,
-                        AppSpacing.lg,
-                        AppSpacing.md,
-                        AppSpacing.sm),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.md,
+                        AppSpacing.lg, AppSpacing.md, AppSpacing.sm),
                     child: Row(
                       children: [
-                        Text('Products',
-                            style: AppTextStyles.titleLarge),
+                        Text('Products', style: AppTextStyles.titleLarge),
                         const SizedBox(width: AppSpacing.sm),
                         Text('(${productList.length})',
                             style: AppTextStyles.bodyMedium.copyWith(
@@ -330,29 +323,25 @@ class ShopDetailScreen extends ConsumerWidget {
                           child: EmptyState(
                             icon: Icons.inventory_2_outlined,
                             title: 'No products yet',
-                            subtitle:
-                            'This shop has no available items.',
+                            subtitle: 'This shop has no available items.',
                           ),
                         ),
                       );
                     }
                     return SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.sm + 4,
-                          0,
-                          AppSpacing.sm + 4,
-                          AppSpacing.sm + 4),
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.sm + 4, 0,
+                          AppSpacing.sm + 4, AppSpacing.sm + 4),
                       sliver: SliverGrid(
                         gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 220,
                           mainAxisSpacing: AppSpacing.sm + 4,
                           crossAxisSpacing: AppSpacing.sm + 4,
                           childAspectRatio: 0.66,
                         ),
                         delegate: SliverChildBuilderDelegate(
-                              (context, i) => ProductCard(
-                              product: list[i], showVendor: false),
+                          (context, i) =>
+                              ProductCard(product: list[i], showVendor: false),
                           childCount: list.length,
                         ),
                       ),
@@ -361,15 +350,11 @@ class ShopDetailScreen extends ConsumerWidget {
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md,
-                        AppSpacing.lg,
-                        AppSpacing.md,
-                        AppSpacing.sm),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.md,
+                        AppSpacing.lg, AppSpacing.md, AppSpacing.sm),
                     child: Row(
                       children: [
-                        Text('Services',
-                            style: AppTextStyles.titleLarge),
+                        Text('Services', style: AppTextStyles.titleLarge),
                         const SizedBox(width: AppSpacing.sm),
                         Text('(${services.valueOrNull?.length ?? 0})',
                             style: AppTextStyles.bodyMedium.copyWith(
@@ -398,8 +383,7 @@ class ShopDetailScreen extends ConsumerWidget {
                           child: EmptyState(
                             icon: Icons.handyman_outlined,
                             title: 'No services yet',
-                            subtitle:
-                            'This shop has no available services.',
+                            subtitle: 'This shop has no available services.',
                           ),
                         ),
                       );
@@ -425,23 +409,16 @@ class ShopDetailScreen extends ConsumerWidget {
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md,
-                        AppSpacing.sm + 4,
-                        AppSpacing.md,
-                        AppSpacing.sm),
-                    child: Text('Reviews',
-                        style: AppTextStyles.titleLarge),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.md,
+                        AppSpacing.sm + 4, AppSpacing.md, AppSpacing.sm),
+                    child: Text('Reviews', style: AppTextStyles.titleLarge),
                   ),
                 ),
                 if (revs.isEmpty)
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.md,
-                          0,
-                          AppSpacing.md,
-                          AppSpacing.lg),
+                          AppSpacing.md, 0, AppSpacing.md, AppSpacing.lg),
                       child: Text('No reviews yet.',
                           style: AppTextStyles.bodyMedium.copyWith(
                               color: Theme.of(context)
@@ -452,12 +429,9 @@ class ShopDetailScreen extends ConsumerWidget {
                 else
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
-                          (context, i) => Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.sm + 4,
-                            0,
-                            AppSpacing.sm + 4,
-                            AppSpacing.sm),
+                      (context, i) => Padding(
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.sm + 4, 0,
+                            AppSpacing.sm + 4, AppSpacing.sm),
                         child: ReviewCard(review: revs[i]),
                       ),
                       childCount: revs.length,
@@ -481,14 +455,13 @@ class ShopHeader extends StatelessWidget {
   final bool isVerified;
   const ShopHeader(
       {required this.shop,
-        required this.avg,
-        required this.reviewCount,
-        this.isVerified = false});
+      required this.avg,
+      required this.reviewCount,
+      this.isVerified = false});
 
   @override
   Widget build(BuildContext context) {
-    final hasLogo =
-        shop.logoUrl != null && shop.logoUrl!.isNotEmpty;
+    final hasLogo = shop.logoUrl != null && shop.logoUrl!.isNotEmpty;
     return SliverAppBar(
       pinned: true,
       expandedHeight: 220,
@@ -502,24 +475,20 @@ class ShopHeader extends StatelessWidget {
               child: Text(shop.businessName,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700)),
+                      color: Colors.white, fontWeight: FontWeight.w700)),
             ),
             if (isVerified) ...[
               const SizedBox(width: 6),
-              const Icon(Icons.verified,
-                  color: Colors.white, size: 18),
+              const Icon(Icons.verified, color: Colors.white, size: 18),
             ],
           ],
         ),
-        titlePadding:
-        const EdgeInsets.only(left: 56, bottom: 16, right: 16),
+        titlePadding: const EdgeInsets.only(left: 56, bottom: 16, right: 16),
         background: Stack(
           fit: StackFit.expand,
           children: [
             const DecoratedBox(
-              decoration:
-              BoxDecoration(gradient: AppTheme.brandGradient),
+              decoration: BoxDecoration(gradient: AppTheme.brandGradient),
             ),
             DecoratedBox(
               decoration: BoxDecoration(
@@ -534,8 +503,7 @@ class ShopHeader extends StatelessWidget {
               ),
             ),
             Padding(
-              padding:
-              const EdgeInsets.fromLTRB(16, 60, 16, 56),
+              padding: const EdgeInsets.fromLTRB(16, 60, 16, 56),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -552,10 +520,10 @@ class ShopHeader extends StatelessWidget {
                         clipBehavior: Clip.antiAlias,
                         child: hasLogo
                             ? AppNetworkImage(
-                            url: shop.logoUrl,
-                            fallbackIcon: AppIcons.storefront)
+                                url: shop.logoUrl,
+                                fallbackIcon: AppIcons.storefront)
                             : Icon(AppIcons.storefrontFill,
-                            color: AppTheme.primary, size: 36),
+                                color: AppTheme.primary, size: 36),
                       ),
                       if (isVerified)
                         Positioned(
@@ -566,8 +534,7 @@ class ShopHeader extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: AppColors.success,
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: Colors.white, width: 2),
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
                             child: const Icon(
                               Icons.check,
@@ -582,8 +549,7 @@ class ShopHeader extends StatelessWidget {
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (isVerified)
                           Container(
@@ -591,12 +557,10 @@ class ShopHeader extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: Colors.white
-                                  .withValues(alpha: 0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: AppRadius.brFull,
                               border: Border.all(
-                                  color: Colors.white
-                                      .withValues(alpha: 0.5)),
+                                  color: Colors.white.withValues(alpha: 0.5)),
                             ),
                             child: const Text(
                               '✓ Verified Student Seller',
@@ -612,8 +576,7 @@ class ShopHeader extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white
-                                  .withValues(alpha: 0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: AppRadius.brFull,
                             ),
                             child: Row(
@@ -669,16 +632,13 @@ class ReviewCard extends StatelessWidget {
                 Row(
                   children: List.generate(
                     5,
-                        (i) => Icon(
-                        i < review.rating
-                            ? AppIcons.starFill
-                            : AppIcons.star,
+                    (i) => Icon(
+                        i < review.rating ? AppIcons.starFill : AppIcons.star,
                         size: 16,
                         color: Colors.amber),
                   ),
                 ),
-                if (review.comment != null &&
-                    review.comment!.isNotEmpty) ...[
+                if (review.comment != null && review.comment!.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Text(review.comment!,
                       style: AppTextStyles.bodyMedium

@@ -23,6 +23,7 @@ import '../../../core/widgets/confirm_actions.dart';
 import '../../../core/widgets/consent_dialog.dart';
 import '../../../models/models.dart';
 import '../../shared/providers/shared_providers.dart';
+import '../data/student_repository.dart';
 import '../providers/student_providers.dart';
 
 /// Collects delivery address, contact phone and payment method, shows an order
@@ -51,8 +52,8 @@ class CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   // v1.0 – vendor verification gating
   bool _vendorChecked = false;
-  bool _vendorVerified = false;
-  String? _vendorName;
+  bool _prepaymentEligible = false;
+  String? _prepaymentBlockReason;
   bool _checkingVendor = true;
 
   List<PaymentMethod> get methods => [
@@ -95,52 +96,66 @@ class CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     try {
       final cart = await ref.read(cartProvider.future);
       if (cart.isEmpty) {
+        if (!mounted) return;
         setState(() {
           _vendorChecked = true;
+          _prepaymentEligible = false;
+          _prepaymentBlockReason = null;
           _checkingVendor = false;
         });
         return;
       }
-      // assume single-vendor cart – take first product's vendor
-      // product model may not include vendor_id directly in cart join – use student repo
-      // fallback: try to resolve via shopProvider if we can get vendorId
-      String? vendorId;
-      // CartItem.product?.vendorId exists?
-      try {
-        // ignore: avoid_dynamic_calls
-        vendorId = (cart.first.product as dynamic)?.vendorId as String?;
-      } catch (_) {}
-      if (vendorId != null) {
-        final repo = ref.read(studentRepositoryProvider);
-        // v1.0 method – may not exist yet – try/catch
-        bool verified = false;
-        String? vName;
-        try {
-          // ignore: avoid_dynamic_calls
-          verified = await repo.isVendorPrepaymentEligible(vendorId);
-          final v = await repo.fetchVendor(vendorId);
-          vName = v?.businessName;
-          // also read isVerified directly if model has it
-        } catch (_) {
-          verified = false; // fail closed: prepayment requires confirmed KYC
-        }
-        setState(() {
-          _vendorVerified = verified;
-          _vendorName = vName;
-          _vendorChecked = true;
-          if (!verified) {
-            method = PaymentMethod.cashOnDelivery;
-          }
-        });
-      } else {
-        setState(() {
-          _vendorVerified = false;
-          _vendorChecked = true;
-        });
+
+      final vendorIds = cart
+          .map((item) => item.product?.vendorId)
+          .whereType<String>()
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      var allEligible = vendorIds.isNotEmpty;
+      String? blockReason;
+      final repo = ref.read(studentRepositoryProvider);
+
+      for (final vendorId in vendorIds) {
+        final eligibility = await repo.vendorPrepaymentEligibility(vendorId);
+        if (eligibility.eligible) continue;
+        allEligible = false;
+        blockReason ??= _eligibilityMessage(eligibility);
       }
+      blockReason ??= allEligible
+          ? null
+          : 'Seller payment setup could not be verified.';
+
+      if (!mounted) return;
+      setState(() {
+        _prepaymentEligible = allEligible;
+        _prepaymentBlockReason = blockReason;
+        _vendorChecked = true;
+        if (!allEligible) method = PaymentMethod.cashOnDelivery;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _prepaymentEligible = false;
+        _prepaymentBlockReason =
+            'Seller payment setup could not be verified.';
+        _vendorChecked = true;
+        method = PaymentMethod.cashOnDelivery;
+      });
     } finally {
       if (mounted) setState(() => _checkingVendor = false);
     }
+  }
+
+  String _eligibilityMessage(VendorPrepaymentEligibility eligibility) {
+    final name = eligibility.vendorName?.trim();
+    final shop = name == null || name.isEmpty ? 'This shop' : name;
+    if (!eligibility.identityVerified && !eligibility.payoutConfigured) {
+      return '$shop still needs identity verification and payout setup.';
+    }
+    if (!eligibility.payoutConfigured) {
+      return '$shop has not added a valid Mobile Money payout number.';
+    }
+    return '$shop has not completed identity verification.';
   }
 
   Future<void> submit() async {
@@ -150,10 +165,12 @@ class CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       return;
     }
 
-    // v1.0 – enforce COD only for unverified
-    if (!_vendorVerified && method.isOnline) {
+    if (!_prepaymentEligible && method.isOnline) {
       ConfirmActions.showError(
-          context, 'This seller is not yet verified – Cash on Delivery only.');
+        context,
+        '${_prepaymentBlockReason ?? 'Prepayment is unavailable for this seller.'} '
+        'Use Cash on Delivery.',
+      );
       setState(() => method = PaymentMethod.cashOnDelivery);
       return;
     }
@@ -172,19 +189,19 @@ class CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       bodyMarkdown: '''
 **Order & Delivery – v1.0**
 
-• ${_vendorVerified ? 'Prepayment via Mobile Money is protected by escrow.' : 'Unverified seller – Cash on Delivery ONLY.'}
+• ${_prepaymentEligible ? 'Prepayment via Mobile Money is protected by escrow.' : 'Prepayment is unavailable – Cash on Delivery ONLY.'}
 • Delivery address must be accurate – campus location preferred.
 • 48hr buyer confirmation window, then auto-release to seller.
 • Disputes: raise within 48hrs via My Orders → Report.
 • Pending Cash on Delivery orders may be cancelled. Paid Mobile Money orders cannot be cancelled; use the dispute process if there is a problem.
 
-${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your safety, prepayment is disabled – pay cash on delivery only.'}
+${_prepaymentEligible ? '' : '\n${_prepaymentBlockReason ?? 'Seller payment setup is incomplete.'} Pay cash when the order is delivered.'}
 ''',
       requiredCheckboxes: [
         'I agree to the purchase & delivery policy v1.0',
         'I understand delivery times are estimates and may vary during peak/exams',
-        if (!_vendorVerified)
-          'I understand this seller is unverified – I will pay cash on delivery only',
+        if (!_prepaymentEligible)
+          'I understand prepayment is unavailable – I will pay cash on delivery only',
       ],
     );
     if (!consented) return;
@@ -194,7 +211,7 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
       title: 'Place order?',
       message: method.isOnline
           ? 'You will pay ${Formatters.money(payable)} securely via Mobile Money. '
-          'Your payment goes to the shop\'s Mobile Money account.'
+          'UJustBuy protects the payment until delivery is confirmed.'
           : 'Place this order for ${Formatters.money(payable)} (cash on delivery)?',
       confirmLabel: method.isOnline ? 'Pay now' : 'Place order',
       icon: method.icon,
@@ -211,13 +228,13 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
           policyVersion: policySettings.currentPolicyVersion,
           metadata: {
             'payment_method': method.db,
-            'vendor_verified': _vendorVerified,
+            'prepayment_eligible': _prepaymentEligible,
             'total': total,
           },
         );
       } catch (_) {}
 
-      if (method.isOnline && _vendorVerified) {
+      if (method.isOnline && _prepaymentEligible) {
         await payWithPaystack();
       } else {
         await placeCashOrder();
@@ -335,7 +352,8 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
     final discount = useTokens ? tokenDiscountPesewas / 100 : 0.0;
     final payable = (total - discount).clamp(0, total).toDouble();
 
-    final unverifiedLock = _vendorChecked && !_vendorVerified;
+    final codOnlyLock =
+        _vendorChecked && cart.isNotEmpty && !_prepaymentEligible;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Checkout')),
@@ -345,8 +363,7 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.md),
             children: [
-              // v1.0 – unverified seller banner
-              if (unverifiedLock) ...[
+              if (codOnlyLock) ...[
                 AppCard(
                   color: AppColors.warning.withValues(alpha: 0.08),
                   child: Row(
@@ -360,7 +377,7 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Unverified seller – Cash on Delivery only',
+                              'Cash on Delivery only',
                               style: AppTextStyles.titleSmall.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.warning,
@@ -368,9 +385,8 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${_vendorName ?? 'This shop'} has not yet completed ID verification. '
-                                  'For your safety, prepayment is disabled. '
-                                  'Pay cash when your order is delivered.',
+                              '${_prepaymentBlockReason ?? 'Seller payment setup is incomplete.'} '
+                              'Pay cash when your order is delivered.',
                               style: AppTextStyles.bodySmall,
                             ),
                           ],
@@ -421,7 +437,7 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
               sectionTitle(context, 'Payment method', AppIcons.wallet),
               const SizedBox(height: AppSpacing.sm + 4),
               ...methods.map((m) {
-                final disabled = m.isOnline && unverifiedLock;
+                final disabled = m.isOnline && codOnlyLock;
                 return Opacity(
                   opacity: disabled ? 0.5 : 1,
                   child: PaymentOption(
@@ -430,12 +446,14 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
                     onTap: disabled
                         ? () {
                       ConfirmActions.showError(
-                          context,
-                          'Prepayment is disabled – this seller is not yet verified. Cash on Delivery only.');
+                        context,
+                        '${_prepaymentBlockReason ?? 'Prepayment is unavailable for this seller.'} '
+                        'Use Cash on Delivery.',
+                      );
                     }
                         : () => setState(() => method = m),
                     disabledReason: disabled
-                        ? 'Unverified seller – COD only'
+                        ? 'Prepayment unavailable – COD only'
                         : null,
                   ),
                 );
@@ -448,7 +466,7 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
                     style: AppTextStyles.bodySmall,
                   ),
                 ),
-              if (unverifiedLock)
+              if (codOnlyLock)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.xs),
                   child: Row(
@@ -458,7 +476,7 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Verify seller ID in Shop Detail to unlock prepayment.',
+                          'Prepayment becomes available after the seller completes identity and payout setup.',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.warning,
                             fontWeight: FontWeight.w600,
@@ -549,9 +567,9 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                   ),
                   subtitle: Text(
-                    _vendorVerified
+                    _prepaymentEligible
                         ? '48hr confirmation • escrow protected • dispute within 48hr'
-                        : 'Cash on Delivery only – unverified seller • 48hr dispute window',
+                        : 'Cash on Delivery only • 48hr dispute window',
                     style: AppTextStyles.bodySmall,
                   ),
                 ),
@@ -571,10 +589,10 @@ ${_vendorVerified ? '' : '\n⚠️ This shop is not yet ID-verified. For your sa
             child: AppButton(
               label: loading
                   ? 'Processing…'
-                  : '${method.isOnline && _vendorVerified ? 'Pay' : 'Place Order'} · ${Formatters.money(payable)}',
+                  : '${method.isOnline && _prepaymentEligible ? 'Pay' : 'Place Order'} · ${Formatters.money(payable)}',
               icon: loading
                   ? null
-                  : (method.isOnline && _vendorVerified
+                  : (method.isOnline && _prepaymentEligible
                   ? AppIcons.lock
                   : AppIcons.checkFill),
               loading: loading,

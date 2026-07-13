@@ -12,6 +12,12 @@ int toInt(dynamic v) =>
     v == null ? 0 : (v is num ? v.toInt() : int.tryParse('$v') ?? 0);
 DateTime? date(dynamic v) =>
     v == null ? null : DateTime.tryParse('$v')?.toLocal();
+DateTime? calendarDate(dynamic v) {
+  if (v == null) return null;
+  final parsed = DateTime.tryParse('$v');
+  if (parsed == null) return null;
+  return DateTime.utc(parsed.year, parsed.month, parsed.day);
+}
 List<String> toStringList(dynamic v) {
   if (v == null) return [];
   if (v is List) return v.map((e) => '$e').toList();
@@ -99,6 +105,7 @@ class Vendor {
   final String? openingTime;
   final String? closingTime;
   final bool isClosedToday;
+  final DateTime? closedTodayDate;
   final bool holidayMode;
   final int deliveryRadiusKm;
   final String? sellerBio;
@@ -152,6 +159,7 @@ class Vendor {
     this.openingTime = '08:00:00',
     this.closingTime = '20:00:00',
     this.isClosedToday = false,
+    this.closedTodayDate,
     this.holidayMode = false,
     this.deliveryRadiusKm = 2,
     this.sellerBio,
@@ -202,6 +210,7 @@ class Vendor {
     openingTime: m['opening_time'] as String? ?? '08:00:00',
     closingTime: m['closing_time'] as String? ?? '20:00:00',
     isClosedToday: m['is_closed_today'] as bool? ?? false,
+    closedTodayDate: calendarDate(m['closed_today_date']),
     holidayMode: m['holiday_mode'] as bool? ?? false,
     deliveryRadiusKm: toInt(m['delivery_radius_km'] ?? 2),
     sellerBio: m['seller_bio'] as String?,
@@ -226,7 +235,32 @@ class Vendor {
   );
 
   bool get isApproved => approvalStatus == ApprovalStatus.approved;
-  bool get canAcceptPrepayment => isVerified;
+  bool get hasPayoutDetails {
+    final number = momoNumber?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+    final network = momoNetwork
+            ?.toLowerCase()
+            .replaceAll(RegExp(r'[^a-z]'), '') ??
+        '';
+    const supportedNetworks = {
+      'mtn',
+      'vodafone',
+      'telecel',
+      'airteltigo',
+    };
+    return number.length == 10 &&
+        number.startsWith('0') &&
+        supportedNetworks.contains(network);
+  }
+
+  bool get canAcceptPrepayment => isVerified && hasPayoutDetails;
+  bool isClosedOn(DateTime value) {
+    final closedDate = closedTodayDate;
+    if (!isClosedToday || closedDate == null) return false;
+    final utc = value.toUtc();
+    return closedDate.year == utc.year &&
+        closedDate.month == utc.month &&
+        closedDate.day == utc.day;
+  }
   String get displayStoreName => (storeName?.isNotEmpty == true) ? storeName! : businessName;
   String get displayDescription => (storeDescription?.isNotEmpty == true) ? storeDescription! : (description ?? '');
 }

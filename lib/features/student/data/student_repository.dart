@@ -1,6 +1,20 @@
 import '../../../core/config/supabase_client.dart';
 import '../../../models/models.dart';
 
+class VendorPrepaymentEligibility {
+  const VendorPrepaymentEligibility({
+    required this.eligible,
+    required this.identityVerified,
+    required this.payoutConfigured,
+    this.vendorName,
+  });
+
+  final bool eligible;
+  final bool identityVerified;
+  final bool payoutConfigured;
+  final String? vendorName;
+}
+
 /// Data access for the student experience: browsing, cart, orders, reviews.
 /// Campus isolation is enforced by RLS; queries here stay simple.
 class StudentRepository {
@@ -170,23 +184,39 @@ class StudentRepository {
     }
   }
 
-  Future<bool> isVendorPrepaymentEligible(String vendorId) async {
+  Future<VendorPrepaymentEligibility> vendorPrepaymentEligibility(
+      String vendorId) async {
     final settings = await supabase
         .from('platform_settings')
         .select('verification_required_for_prepayment')
         .order('updated_at', ascending: false)
         .limit(1)
         .maybeSingle();
-    if (settings?['verification_required_for_prepayment'] == false) {
-      return true;
+    final vendor = await fetchVendor(vendorId);
+    if (vendor == null) {
+      return const VendorPrepaymentEligibility(
+        eligible: false,
+        identityVerified: false,
+        payoutConfigured: false,
+      );
     }
-    final row = await supabase
-        .from('vendors')
-        .select('is_verified, verification_status')
-        .eq('vendor_id', vendorId)
-        .maybeSingle();
-    return row?['is_verified'] == true &&
-        row?['verification_status'] == 'approved';
+
+    final verificationRequired =
+        settings?['verification_required_for_prepayment'] != false;
+    final identityVerified = !verificationRequired ||
+        (vendor.isVerified && vendor.verificationStatus == 'approved');
+    final payoutConfigured = vendor.hasPayoutDetails;
+    return VendorPrepaymentEligibility(
+      eligible: identityVerified && payoutConfigured,
+      identityVerified: identityVerified,
+      payoutConfigured: payoutConfigured,
+      vendorName: vendor.businessName,
+    );
+  }
+
+  Future<bool> isVendorPrepaymentEligible(String vendorId) async {
+    final eligibility = await vendorPrepaymentEligibility(vendorId);
+    return eligibility.eligible;
   }
 
   Future<Map<String, dynamic>> checkoutTokenQuote() async {

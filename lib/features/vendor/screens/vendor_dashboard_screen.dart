@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
@@ -26,6 +27,7 @@ class VendorDashboardScreen extends ConsumerWidget {
 
     return RefreshIndicator(
       onRefresh: () async {
+        ref.invalidate(currentVendorProvider);
         ref.invalidate(salesSummaryProvider);
         ref.invalidate(vendorOrdersProvider);
         ref.invalidate(myProductsProvider);
@@ -59,6 +61,15 @@ class VendorDashboardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 18),
+              if (vendor != null && !vendor.hasPayoutDetails) ...[
+                _PayoutSetupBanner(
+                  onSetup: () async {
+                    await context.push('/vendor/store/edit');
+                    ref.invalidate(currentVendorProvider);
+                  },
+                ),
+                const SizedBox(height: 18),
+              ],
               AsyncView<SalesSummary>(
                 value: summary,
                 onRetry: () => ref.invalidate(salesSummaryProvider),
@@ -128,6 +139,71 @@ class VendorDashboardScreen extends ConsumerWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _PayoutSetupBanner extends StatelessWidget {
+  const _PayoutSetupBanner({required this.onSetup});
+  final VoidCallback onSetup;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.warning.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 14,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 220, maxWidth: 680),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.account_balance_wallet_outlined,
+                    color: AppColors.warning),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Cash on Delivery only',
+                        style: AppTextStyles.titleSmall.copyWith(
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Add a valid Mobile Money payout number before buyers can prepay for your products.',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: onSetup,
+            icon: const Icon(Icons.add_card_outlined, size: 18),
+            label: const Text('Add payout details'),
+          ),
+        ],
       ),
     );
   }

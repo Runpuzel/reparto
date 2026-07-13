@@ -3,14 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/widgets/confirm_actions.dart';
-import '../../../core/widgets/theme_mode_tile.dart';
 import '../../../models/models.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../shared/providers/shared_providers.dart';
@@ -83,29 +79,10 @@ class StudentProfileScreen extends ConsumerWidget {
                             ? () => context.go('/vendor')
                             : () => _becomeSeller(context, ref),
                       ),
-                      _ProfileAction(
-                        icon: AppIcons.tag,
-                        title: 'Referral rewards',
-                        subtitle: '$tokens token${tokens == 1 ? '' : 's'} available',
-                        onTap: () => context.push('/referrals'),
-                      ),
-                      _ProfileAction(
-                        icon: AppIcons.notification,
-                        title: 'Notifications',
-                        subtitle: unread == 0
-                            ? 'You are all caught up'
-                            : '$unread unread notification${unread == 1 ? '' : 's'}',
-                        badge: unread > 0 ? '$unread' : null,
-                        onTap: () => context.push('/notifications'),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const _SectionTitle('Preferences'),
-                  const SizedBox(height: 8),
-                  const _SettingsGroup(children: [ThemeModeTile()]),
-                  const SizedBox(height: 20),
-                  const _SectionTitle('Security and support'),
+                  const _SectionTitle('Security'),
                   const SizedBox(height: 8),
                   _SettingsGroup(
                     children: [
@@ -115,20 +92,7 @@ class StudentProfileScreen extends ConsumerWidget {
                         subtitle: 'Recover access to your account',
                         onTap: () => context.push('/forgot-passcode'),
                       ),
-                      _ProfileAction(
-                        icon: Icons.info_outline,
-                        title: 'About UjustBUY',
-                        subtitle: 'Policies, platform information, and support',
-                        onTap: () => context.push('/about'),
-                      ),
                     ],
-                  ),
-                  const SizedBox(height: 24),
-                  AppButton(
-                    label: 'Sign out',
-                    icon: AppIcons.logout,
-                    variant: AppButtonVariant.secondary,
-                    onPressed: () => _signOut(context, ref),
                   ),
                 ],
               );
@@ -137,17 +101,6 @@ class StudentProfileScreen extends ConsumerWidget {
         );
       },
     );
-  }
-
-  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-    final confirmed = await ConfirmActions.confirm(
-      context,
-      title: 'Sign out?',
-      message: 'You will need to sign in again to access your orders and saved items.',
-      confirmLabel: 'Sign out',
-      icon: AppIcons.logout,
-    );
-    if (confirmed) await ref.read(authRepositoryProvider).signOut();
   }
 
   Future<void> _becomeSeller(BuildContext context, WidgetRef ref) async {
@@ -255,8 +208,8 @@ class _StudentSummary extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant),
+          border:
+              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
@@ -334,8 +287,8 @@ class _SettingsGroup extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant),
+          border:
+              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -355,13 +308,11 @@ class _ProfileAction extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.badge,
   });
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final String? badge;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -371,16 +322,6 @@ class _ProfileAction extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (badge != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.error,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(badge!,
-                    style: const TextStyle(color: Colors.white, fontSize: 11)),
-              ),
             const SizedBox(width: 4),
             Icon(AppIcons.caretRight, size: 18),
           ],

@@ -22,6 +22,11 @@ final allUsersProvider = FutureProvider<List<AppUser>>((ref) async {
   return ref.watch(adminRepositoryProvider).fetchUsers();
 });
 
+final adminBroadcastsProvider =
+    FutureProvider<List<AdminBroadcast>>((ref) async {
+  return ref.watch(adminRepositoryProvider).fetchBroadcasts();
+});
+
 final platformReportProvider = FutureProvider<PlatformReport>((ref) async {
   return ref.watch(adminRepositoryProvider).fetchReport();
 });

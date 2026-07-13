@@ -141,6 +141,15 @@ class AppError {
     if (lower.contains('timeout') || lower.contains('timed out')) {
       return 'The request took too long. Please try again.';
     }
+    if (lower.contains('seller_payout_required') ||
+        lower.contains('valid mobile money payout') ||
+        lower.contains('seller payout details are incomplete')) {
+      return 'This seller has not completed payout setup. Use Cash on Delivery.';
+    }
+    if (lower.contains('seller_verification_required') ||
+        lower.contains('seller identity verification is incomplete')) {
+      return 'This seller has not completed identity verification. Use Cash on Delivery.';
+    }
     if (lower.contains('unregistered_origin') ||
         lower.contains('origin is not allowed') ||
         lower.contains('given origin') ||

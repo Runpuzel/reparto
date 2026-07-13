@@ -52,6 +52,34 @@ class DisputeKpis {
   });
 }
 
+class AdminBroadcast {
+  const AdminBroadcast({
+    required this.broadcastId,
+    required this.audience,
+    required this.title,
+    required this.body,
+    required this.recipientCount,
+    required this.createdAt,
+  });
+
+  final String broadcastId;
+  final String audience;
+  final String title;
+  final String body;
+  final int recipientCount;
+  final DateTime createdAt;
+
+  factory AdminBroadcast.fromMap(Map<String, dynamic> map) => AdminBroadcast(
+        broadcastId: map['broadcast_id'] as String,
+        audience: map['audience'] as String? ?? 'all',
+        title: map['title'] as String? ?? '',
+        body: map['body'] as String? ?? '',
+        recipientCount: (map['recipient_count'] as num?)?.toInt() ?? 0,
+        createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0),
+      );
+}
+
 /// Data access for administrator tooling: campuses, vendor approvals,
 /// account suspension and reporting.
 class AdminRepository {
@@ -94,7 +122,8 @@ class AdminRepository {
 
   // ---- Categories -----------------------------------------------------------
   Future<List<Category>> fetchCategories() async {
-    final rows = await supabase.from('categories').select().order('category_name');
+    final rows =
+        await supabase.from('categories').select().order('category_name');
     return (rows as List)
         .map((e) => Category.fromMap(Map<String, dynamic>.from(e)))
         .toList();
@@ -121,13 +150,16 @@ class AdminRepository {
 
   // ---- Services (v1.0) ------------------------------------------------------
   Future<List<Service>> fetchServices(AdminServiceQuery query) async {
-    var q = supabase.from('services').select('*, vendors(business_name, is_verified)');
+    var q = supabase
+        .from('services')
+        .select('*, vendors(business_name, is_verified)');
 
     if (query.status != 'all') {
       if (query.status == 'active') {
         q = q.eq('status', 'available');
       } else if (query.status == 'pending_auth') {
-        q = q.eq('is_authorized', false).lt('expires_at', DateTime.now().add(const Duration(days: 3)).toIso8601String());
+        q = q.eq('is_authorized', false).lt('expires_at',
+            DateTime.now().add(const Duration(days: 3)).toIso8601String());
       } else if (query.status == 'expired') {
         q = q.lt('expires_at', DateTime.now().toIso8601String());
       } else if (query.status == 'authorized') {
@@ -228,28 +260,30 @@ class AdminRepository {
         .eq('service_id', serviceId)
         .single();
     final expiresAt = DateTime.tryParse(service['expires_at'] as String? ?? '');
-    final baseline =
-        expiresAt != null && expiresAt.isAfter(DateTime.now())
-            ? expiresAt
-            : DateTime.now();
+    final baseline = expiresAt != null && expiresAt.isAfter(DateTime.now())
+        ? expiresAt
+        : DateTime.now();
     final next = baseline.add(Duration(days: days));
-    await supabase
-        .from('services')
-        .update({'expires_at': next.toIso8601String()})
-        .eq('service_id', serviceId);
+    await supabase.from('services').update(
+        {'expires_at': next.toIso8601String()}).eq('service_id', serviceId);
   }
 
-  Future<void> authorizeService(String serviceId, bool auth, String reason) async {
+  Future<void> authorizeService(
+      String serviceId, bool auth, String reason) async {
     await supabase.from('services').update({
       'is_authorized': auth,
       'authorization_paid_at': auth ? DateTime.now().toIso8601String() : null,
-      'authorization_expires_at': auth ? DateTime.now().add(const Duration(days: 30)).toIso8601String() : null,
+      'authorization_expires_at': auth
+          ? DateTime.now().add(const Duration(days: 30)).toIso8601String()
+          : null,
       'status': auth ? 'available' : 'available',
     }).eq('service_id', serviceId);
   }
 
   Future<void> setServiceStatus(String serviceId, String status) async {
-    await supabase.from('services').update({'status': status}).eq('service_id', serviceId);
+    await supabase
+        .from('services')
+        .update({'status': status}).eq('service_id', serviceId);
   }
 
   Future<void> deleteService(String serviceId) async {
@@ -271,13 +305,18 @@ class AdminRepository {
     await supabase.from('services').update({
       'is_authorized': auth,
       'authorization_paid_at': auth ? DateTime.now().toIso8601String() : null,
-      'authorization_expires_at': auth ? DateTime.now().add(const Duration(days: 30)).toIso8601String() : null,
+      'authorization_expires_at': auth
+          ? DateTime.now().add(const Duration(days: 30)).toIso8601String()
+          : null,
     }).inFilter('service_id', ids);
   }
 
   // ---- Users ----------------------------------------------------------------
   Future<List<AppUser>> fetchUsers() async {
-    final rows = await supabase.from('users').select().order('created_at', ascending: false);
+    final rows = await supabase
+        .from('users')
+        .select()
+        .order('created_at', ascending: false);
     return (rows as List)
         .map((e) => AppUser.fromMap(Map<String, dynamic>.from(e)))
         .toList();
@@ -349,6 +388,31 @@ class AdminRepository {
     }
   }
 
+  Future<int> sendBroadcast({
+    required String title,
+    required String body,
+    required String audience,
+  }) async {
+    final result = await supabase.rpc('send_admin_broadcast', params: {
+      'p_title': title.trim(),
+      'p_body': body.trim(),
+      'p_audience': audience,
+    });
+    final data = Map<String, dynamic>.from(result as Map);
+    return (data['recipient_count'] as num?)?.toInt() ?? 0;
+  }
+
+  Future<List<AdminBroadcast>> fetchBroadcasts() async {
+    final rows = await supabase
+        .from('admin_broadcasts')
+        .select()
+        .order('created_at', ascending: false)
+        .limit(30);
+    return (rows as List)
+        .map((row) => AdminBroadcast.fromMap(Map<String, dynamic>.from(row)))
+        .toList();
+  }
+
   Future<void> markDisputeUnderReview(String disputeId) async {
     await supabase.rpc('review_dispute', params: {'p_dispute': disputeId});
   }
@@ -359,7 +423,8 @@ class AdminRepository {
     final users = await supabase.from('users').select('role');
     final vendors = await supabase.from('vendors').select('approval_status');
     final products = await supabase.from('products').select('product_id');
-    final orders = await supabase.from('orders').select('total_amount, order_status');
+    final orders =
+        await supabase.from('orders').select('total_amount, order_status');
 
     int students = 0, vendorUsers = 0;
     for (final u in users as List) {
@@ -369,9 +434,15 @@ class AdminRepository {
     int approvedVendors = 0, pendingVendors = 0, suspendedVendors = 0;
     for (final v in vendors as List) {
       switch (v['approval_status']) {
-        case 'approved': approvedVendors++; break;
-        case 'pending': pendingVendors++; break;
-        case 'suspended': suspendedVendors++; break;
+        case 'approved':
+          approvedVendors++;
+          break;
+        case 'pending':
+          pendingVendors++;
+          break;
+        case 'suspended':
+          suspendedVendors++;
+          break;
       }
     }
     double gmv = 0;

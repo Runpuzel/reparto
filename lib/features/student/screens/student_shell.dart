@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/services/app_install_service.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/widgets/app_install_button.dart';
+import '../../../core/widgets/confirm_actions.dart';
 import '../../../core/widgets/sign_in_prompt.dart';
 import '../../../core/widgets/theme_mode_tile.dart';
 import '../../auth/providers/auth_providers.dart';
@@ -133,34 +134,18 @@ class _StudentMoreScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tools = <_StudentTool>[
+    final marketplace = <_StudentTool>[
       _StudentTool(
         'Student services',
         'Find repairs, tutoring, beauty, laundry, food and more',
         AppIcons.services,
         () => context.push('/student/services'),
       ),
-      _StudentTool(
-        'About UjustBUY',
-        'Policies, support, and platform information',
-        AppIcons.info,
-        () => context.push('/about'),
-      ),
     ];
-
-    if (kIsWeb) {
-      tools.add(
-        _StudentTool(
-          'Install app',
-          'Download UjustBUY to this device',
-          AppIcons.download,
-          () => _showInstallPrompt(context),
-        ),
-      );
-    }
+    final account = <_StudentTool>[];
 
     if (isGuest) {
-      tools.add(
+      account.add(
         _StudentTool(
           'Sign in',
           'Access chats, orders, favorites, and notifications',
@@ -169,7 +154,7 @@ class _StudentMoreScreen extends ConsumerWidget {
         ),
       );
     } else {
-      tools.insertAll(1, [
+      marketplace.addAll([
         _StudentTool(
           'Chats',
           'Continue conversations with sellers',
@@ -177,16 +162,24 @@ class _StudentMoreScreen extends ConsumerWidget {
           () => openPage('Chats', const ChatInboxScreen()),
         ),
         _StudentTool(
+          'My orders',
+          'Track purchases, delivery, and receipts',
+          AppIcons.receipt,
+          () => openPage('My Orders', const OrdersScreen()),
+        ),
+        _StudentTool(
           'Favorites',
           'Saved products you want to revisit',
           AppIcons.heart,
           () => openPage('Favorites', const FavoritesScreen()),
         ),
+      ]);
+      account.addAll([
         _StudentTool(
-          'My orders',
-          'Track purchases, delivery, and receipts',
-          AppIcons.receipt,
-          () => openPage('My Orders', const OrdersScreen()),
+          'Profile',
+          'Account details, security, and seller mode',
+          AppIcons.account,
+          () => openPage('Profile', const StudentProfileScreen()),
         ),
         _StudentTool(
           'Notifications',
@@ -198,34 +191,41 @@ class _StudentMoreScreen extends ConsumerWidget {
           badge: unread > 0 ? '$unread' : null,
         ),
         _StudentTool(
-          'Profile',
-          'Account, seller mode, referrals, and preferences',
-          AppIcons.account,
-          () => openPage('Profile', const StudentProfileScreen()),
-        ),
-        _StudentTool(
           'Referral rewards',
           'Invite friends and manage your tokens',
           AppIcons.tag,
           () => context.push('/referrals'),
         ),
-        _StudentTool(
-          'Sign out',
-          'Leave this account on this device',
-          AppIcons.logout,
-          () => ref.read(authRepositoryProvider).signOut(),
-          destructive: true,
-        ),
       ]);
     }
+
+    if (kIsWeb) {
+      account.add(
+        _StudentTool(
+          'Install app',
+          'Download UjustBUY to this device',
+          AppIcons.download,
+          () => _showInstallPrompt(context),
+        ),
+      );
+    }
+
+    final support = [
+      _StudentTool(
+        'About UjustBUY',
+        'Policies, support, and platform information',
+        AppIcons.info,
+        () => context.push('/about'),
+      ),
+    ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns = constraints.maxWidth >= 1000
             ? 3
             : constraints.maxWidth >= 620
-            ? 2
-            : 1;
+                ? 2
+                : 1;
         final horizontalPadding = constraints.maxWidth < 400 ? 12.0 : 20.0;
 
         return ListView(
@@ -236,25 +236,88 @@ class _StudentMoreScreen extends ConsumerWidget {
             24,
           ),
           children: [
-            const ThemeModeTile(),
-            const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: columns,
-                mainAxisExtent: 88,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: tools.length,
-              itemBuilder: (context, i) => _StudentToolTile(tool: tools[i]),
+            _MoreSection(
+              title: 'Marketplace',
+              tools: marketplace,
+              columns: columns,
             ),
+            const SizedBox(height: 24),
+            _MoreSection(
+              title: 'Account',
+              tools: account,
+              columns: columns,
+            ),
+            const SizedBox(height: 24),
+            Text('PREFERENCES', style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(height: 8),
+            const ThemeModeTile(),
+            const SizedBox(height: 24),
+            _MoreSection(
+              title: 'Support',
+              tools: support,
+              columns: columns,
+            ),
+            if (!isGuest) ...[
+              const SizedBox(height: 24),
+              _StudentToolTile(
+                tool: _StudentTool(
+                  'Sign out',
+                  'Leave this account on this device',
+                  AppIcons.logout,
+                  () => _signOut(context, ref),
+                  destructive: true,
+                ),
+              ),
+            ],
           ],
         );
       },
     );
   }
+
+  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final confirmed = await ConfirmActions.confirm(
+      context,
+      title: 'Sign out?',
+      message: 'You will need to sign in again to access your account.',
+      confirmLabel: 'Sign out',
+      icon: AppIcons.logout,
+    );
+    if (confirmed) await ref.read(authRepositoryProvider).signOut();
+  }
+}
+
+class _MoreSection extends StatelessWidget {
+  const _MoreSection({
+    required this.title,
+    required this.tools,
+    required this.columns,
+  });
+  final String title;
+  final List<_StudentTool> tools;
+  final int columns;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title.toUpperCase(),
+              style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 8),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              mainAxisExtent: 88,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: tools.length,
+            itemBuilder: (context, i) => _StudentToolTile(tool: tools[i]),
+          ),
+        ],
+      );
 }
 
 class _StudentTool {
@@ -384,6 +447,7 @@ Future<void> _showInstallPrompt(BuildContext context) async {
   };
 
   if (message != null) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }

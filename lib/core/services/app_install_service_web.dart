@@ -1,17 +1,12 @@
-import 'dart:html' as html;
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
+
+@JS('ujustbuyInstallApp')
+external JSPromise<JSString> _ujustbuyInstallApp();
 
 Future<String> promptAppInstall() async {
   try {
-    final raw = js_util.callMethod<Object?>(
-      html.window,
-      'ujustbuyInstallApp',
-      const [],
-    );
-    if (raw == null) return 'unavailable';
-
-    final result = await js_util.promiseToFuture<Object?>(raw);
-    return result?.toString() ?? 'unavailable';
+    final result = await _ujustbuyInstallApp().toDart;
+    return result.toDart;
   } catch (_) {
     return 'failed';
   }

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/config/supabase_client.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -58,7 +59,7 @@ class _StoreDetailsUpdateScreenState
   bool holidayMode = false;
   double deliveryRadiusKm = 2.0;
   List<String> specialties = [];
-  
+
   bool saving = false;
   bool _hydrated = false;
   PickedImage? _newLogo;
@@ -68,9 +69,19 @@ class _StoreDetailsUpdateScreenState
   @override
   void dispose() {
     for (final c in [
-      storeNameCtrl, ownerNameCtrl, storeDescriptionCtrl, sellerBioCtrl,
-      programYearCtrl, locationCtrl, hallCtrl, whatsappCtrl, storePhoneCtrl,
-      personalPhoneCtrl, momoNumberCtrl, specialtyInputCtrl, customNoteCtrl
+      storeNameCtrl,
+      ownerNameCtrl,
+      storeDescriptionCtrl,
+      sellerBioCtrl,
+      programYearCtrl,
+      locationCtrl,
+      hallCtrl,
+      whatsappCtrl,
+      storePhoneCtrl,
+      personalPhoneCtrl,
+      momoNumberCtrl,
+      specialtyInputCtrl,
+      customNoteCtrl
     ]) {
       c.dispose();
     }
@@ -91,20 +102,23 @@ class _StoreDetailsUpdateScreenState
     programYearCtrl.text = v.programYear ?? '';
     locationCtrl.text = v.storeLocation ?? '';
     hallCtrl.text = v.hallHostel ?? '';
-    whatsappCtrl.text = v.whatsappNumber ?? '';
-    storePhoneCtrl.text = v.storePhone ?? '';
+    whatsappCtrl.text =
+        v.whatsappNumber ?? v.businessPhone ?? v.phoneNumber ?? '';
+    storePhoneCtrl.text = v.storePhone ?? v.businessPhone ?? '';
     personalPhoneCtrl.text = v.phoneNumber ?? '';
     momoNumberCtrl.text = v.momoNumber ?? '';
     momoNetwork = v.momoNetwork ?? 'MTN';
     customNoteCtrl.text = v.customNote ?? '';
     selectedCampusId = v.campusId;
-    isClosedToday = v.isClosedToday;
+    isClosedToday = v.isClosedOn(DateTime.now().toUtc());
     holidayMode = v.holidayMode;
     deliveryRadiusKm = v.deliveryRadiusKm.toDouble();
     specialties = List<String>.from(v.specialties);
-    
-    if (v.workingDays.isNotEmpty) workingDays = List<String>.from(v.workingDays);
-    
+
+    if (v.workingDays.isNotEmpty) {
+      workingDays = List<String>.from(v.workingDays);
+    }
+
     // Parse times
     try {
       if (v.openingTime != null && v.openingTime!.length >= 5) {
@@ -120,6 +134,15 @@ class _StoreDetailsUpdateScreenState
 
   String _fmtTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:00';
+
+  String _todayDate() {
+    final now = DateTime.now().toUtc();
+    return '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+  }
+
+  int _timeMinutes(TimeOfDay value) => value.hour * 60 + value.minute;
 
   Future<void> _pickTime(bool isOpen) async {
     final picked = await showTimePicker(
@@ -141,6 +164,13 @@ class _StoreDetailsUpdateScreenState
     if (!_formKey.currentState!.validate()) return;
     if (workingDays.isEmpty) {
       ConfirmActions.showError(context, 'Select at least one working day');
+      return;
+    }
+    if (_timeMinutes(closingTime) <= _timeMinutes(openingTime)) {
+      ConfirmActions.showError(
+        context,
+        'Closing time must be later than opening time.',
+      );
       return;
     }
 
@@ -170,13 +200,17 @@ class _StoreDetailsUpdateScreenState
         'campus_id': selectedCampusId,
         'whatsapp_number': whatsappCtrl.text.trim(),
         'store_phone': storePhoneCtrl.text.trim(),
+        'business_phone': storePhoneCtrl.text.trim().isNotEmpty
+            ? storePhoneCtrl.text.trim()
+            : whatsappCtrl.text.trim(),
         'phone_number': personalPhoneCtrl.text.trim(),
         'momo_number': momoNumberCtrl.text.trim(),
         'momo_network': momoNetwork,
-        'working_days': workingDays,
+        'working_days': allDays.where(workingDays.contains).toList(),
         'opening_time': _fmtTime(openingTime),
         'closing_time': _fmtTime(closingTime),
         'is_closed_today': isClosedToday,
+        'closed_today_date': isClosedToday ? _todayDate() : null,
         'holiday_mode': holidayMode,
         'delivery_radius_km': deliveryRadiusKm.round(),
         'specialties': specialties,
@@ -187,11 +221,14 @@ class _StoreDetailsUpdateScreenState
 
       await ref.read(vendorRepositoryProvider).updateStoreDetails(payload);
       // Sync main account name
-      await supabase.from('users').update({'full_name': ownerNameCtrl.text.trim()}).eq('user_id', uid);
+      await supabase
+          .from('users')
+          .update({'full_name': ownerNameCtrl.text.trim()}).eq('user_id', uid);
 
       ref.invalidate(currentVendorProvider);
       if (!mounted) return;
-      ConfirmActions.toast(context, 'Profile updated successfully', success: true);
+      ConfirmActions.toast(context, 'Profile updated successfully',
+          success: true);
       context.pop();
     } catch (e) {
       if (mounted) ConfirmActions.showError(context, e);
@@ -205,6 +242,13 @@ class _StoreDetailsUpdateScreenState
     final vendorAsync = ref.watch(currentVendorProvider);
     final campusesAsync = ref.watch(campusesProvider);
     final scheme = Theme.of(context).colorScheme;
+    final hoursStatus = holidayMode
+        ? 'On break'
+        : isClosedToday
+            ? 'Closed today'
+            : '${openingTime.format(context)} – ${closingTime.format(context)}';
+    final hoursStatusColor =
+        holidayMode || isClosedToday ? AppColors.warning : AppColors.success;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Store Profile')),
@@ -282,26 +326,38 @@ class _StoreDetailsUpdateScreenState
                         prefixIcon: Icons.school_outlined,
                       ),
                       const SizedBox(height: 16),
-                      const Text('Skills & Specialties (Max 5)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      const Text('Skills & Specialties (Max 5)',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13)),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
-                        children: specialties.map((s) => Chip(
-                          label: Text(s, style: const TextStyle(fontSize: 12)),
-                          onDeleted: () => setState(() => specialties.remove(s)),
-                        )).toList(),
+                        children: specialties
+                            .map((s) => Chip(
+                                  label: Text(s,
+                                      style: const TextStyle(fontSize: 12)),
+                                  onDeleted: () =>
+                                      setState(() => specialties.remove(s)),
+                                ))
+                            .toList(),
                       ),
                       if (specialties.length < 5)
                         Row(
                           children: [
-                            Expanded(child: AppTextField(controller: specialtyInputCtrl, hint: 'e.g. Graphics Design')),
+                            Expanded(
+                                child: AppTextField(
+                                    controller: specialtyInputCtrl,
+                                    hint: 'e.g. Graphics Design')),
                             const SizedBox(width: 8),
                             IconButton.filled(
                               icon: const Icon(Icons.add),
                               onPressed: () {
                                 final t = specialtyInputCtrl.text.trim();
                                 if (t.isNotEmpty && !specialties.contains(t)) {
-                                  setState(() { specialties.add(t); specialtyInputCtrl.clear(); });
+                                  setState(() {
+                                    specialties.add(t);
+                                    specialtyInputCtrl.clear();
+                                  });
                                 }
                               },
                             ),
@@ -322,30 +378,49 @@ class _StoreDetailsUpdateScreenState
                         data: (list) => DropdownButtonFormField<String>(
                           initialValue: selectedCampusId,
                           isExpanded: true,
-                          decoration: const InputDecoration(labelText: 'Primary Campus *', prefixIcon: Icon(Icons.apartment)),
-                          items: list.map((c) => DropdownMenuItem(value: c.campusId, child: Text(c.campusName))).toList(),
-                          onChanged: (x) => setState(() => selectedCampusId = x),
+                          decoration: const InputDecoration(
+                              labelText: 'Primary Campus *',
+                              prefixIcon: Icon(Icons.apartment)),
+                          items: list
+                              .map((c) => DropdownMenuItem(
+                                  value: c.campusId, child: Text(c.campusName)))
+                              .toList(),
+                          onChanged: (x) =>
+                              setState(() => selectedCampusId = x),
                           validator: (x) => x == null ? 'Select campus' : null,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      AppTextField(controller: hallCtrl, label: 'Hall / Hostel', prefixIcon: Icons.home_work_outlined),
+                      AppTextField(
+                          controller: hallCtrl,
+                          label: 'Hall / Hostel',
+                          prefixIcon: Icons.home_work_outlined),
                       const SizedBox(height: 16),
-                      AppTextField(controller: locationCtrl, label: 'Specific Location *', hint: 'e.g. Room B20 or Near Gate 2', validator: (s) => Validators.required(s, 'Location')),
+                      AppTextField(
+                          controller: locationCtrl,
+                          label: 'Specific Location *',
+                          hint: 'e.g. Room B20 or Near Gate 2',
+                          validator: (s) => Validators.required(s, 'Location')),
                       const SizedBox(height: 16),
                       Row(
                         children: [
                           Icon(
                             Icons.delivery_dining,
                             size: 20,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 12),
-                          Expanded(child: Text('Delivery Radius: ${deliveryRadiusKm.round()} km')),
+                          Expanded(
+                              child: Text(
+                                  'Delivery Radius: ${deliveryRadiusKm.round()} km')),
                         ],
                       ),
                       Slider(
-                        value: deliveryRadiusKm, min: 0, max: 10, divisions: 10,
+                        value: deliveryRadiusKm,
+                        min: 0,
+                        max: 10,
+                        divisions: 10,
                         label: '${deliveryRadiusKm.round()} km',
                         onChanged: (v) => setState(() => deliveryRadiusKm = v),
                       ),
@@ -359,25 +434,60 @@ class _StoreDetailsUpdateScreenState
                 AppCard(
                   child: Column(
                     children: [
-                      AppTextField(controller: whatsappCtrl, label: 'WhatsApp Number *', prefixIcon: AppIcons.whatsapp, keyboardType: TextInputType.phone, validator: Validators.phone),
+                      AppTextField(
+                          controller: whatsappCtrl,
+                          label: 'WhatsApp Number *',
+                          prefixIcon: AppIcons.whatsapp,
+                          keyboardType: TextInputType.phone,
+                          validator: Validators.phone),
                       const SizedBox(height: 16),
-                      AppTextField(controller: storePhoneCtrl, label: 'Business Call Line', prefixIcon: AppIcons.phoneBusiness, keyboardType: TextInputType.phone),
+                      AppTextField(
+                          controller: storePhoneCtrl,
+                          label: 'Business Call Line',
+                          prefixIcon: AppIcons.phoneBusiness,
+                          keyboardType: TextInputType.phone),
                       const SizedBox(height: 16),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 120,
-                            child: DropdownButtonFormField<String>(
-                              initialValue: momoNetwork,
-                              decoration: const InputDecoration(labelText: 'Network'),
-                              items: ['MTN', 'Vodafone', 'AirtelTigo'].map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
-                              onChanged: (v) => setState(() => momoNetwork = v!),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(child: AppTextField(controller: momoNumberCtrl, label: 'MoMo Number *', prefixIcon: AppIcons.wallet, validator: Validators.momo)),
-                        ],
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final networkField = DropdownButtonFormField<String>(
+                            initialValue: momoNetwork,
+                            decoration:
+                                const InputDecoration(labelText: 'Network'),
+                            items: ['MTN', 'Vodafone', 'AirtelTigo']
+                                .map((n) =>
+                                    DropdownMenuItem(value: n, child: Text(n)))
+                                .toList(),
+                            onChanged: (v) => setState(() => momoNetwork = v!),
+                          );
+                          final numberField = AppTextField(
+                            controller: momoNumberCtrl,
+                            label: 'MoMo Number (optional)',
+                            helper: 'Required only to accept prepaid orders',
+                            prefixIcon: AppIcons.wallet,
+                            keyboardType: TextInputType.phone,
+                            validator: (value) =>
+                                value == null || value.trim().isEmpty
+                                    ? null
+                                    : Validators.momo(value),
+                          );
+                          if (constraints.maxWidth < 390) {
+                            return Column(
+                              children: [
+                                networkField,
+                                const SizedBox(height: 16),
+                                numberField,
+                              ],
+                            );
+                          }
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(width: 120, child: networkField),
+                              const SizedBox(width: 12),
+                              Expanded(child: numberField),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -390,35 +500,116 @@ class _StoreDetailsUpdateScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Working Days *', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: hoursStatusColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              holidayMode || isClosedToday
+                                  ? Icons.do_not_disturb_on_outlined
+                                  : Icons.schedule_outlined,
+                              color: hoursStatusColor,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                hoursStatus,
+                                style: AppTextStyles.titleSmall.copyWith(
+                                  color: hoursStatusColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Working Days *',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         children: allDays.map((d) {
                           final sel = workingDays.contains(d);
                           return FilterChip(
-                            label: Text(d, style: TextStyle(fontSize: 12, color: sel ? scheme.onPrimary : null)),
+                            label: Text(d,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: sel ? scheme.onPrimary : null)),
                             selected: sel,
                             selectedColor: scheme.primary,
-                            onSelected: (v) => setState(() => v ? workingDays.add(d) : workingDays.remove(d)),
+                            onSelected: (v) => setState(() =>
+                                v ? workingDays.add(d) : workingDays.remove(d)),
                           );
                         }).toList(),
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.access_time, size: 18), label: Text(openingTime.format(context)), onPressed: () => _pickTime(true))),
-                          const SizedBox(width: 12),
-                          Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.bedtime_outlined, size: 18), label: Text(closingTime.format(context)), onPressed: () => _pickTime(false))),
-                        ],
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final openButton = OutlinedButton.icon(
+                            icon: const Icon(Icons.access_time, size: 18),
+                            label: Text('Opens ${openingTime.format(context)}'),
+                            onPressed: () => _pickTime(true),
+                          );
+                          final closeButton = OutlinedButton.icon(
+                            icon: const Icon(Icons.bedtime_outlined, size: 18),
+                            label:
+                                Text('Closes ${closingTime.format(context)}'),
+                            onPressed: () => _pickTime(false),
+                          );
+                          if (constraints.maxWidth < 390) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                openButton,
+                                const SizedBox(height: 10),
+                                closeButton,
+                              ],
+                            );
+                          }
+                          return Row(
+                            children: [
+                              Expanded(child: openButton),
+                              const SizedBox(width: 12),
+                              Expanded(child: closeButton),
+                            ],
+                          );
+                        },
                       ),
-                      SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Holiday Mode'), subtitle: const Text('Shows "On Break" to students'), value: holidayMode, onChanged: (v) => setState(() => holidayMode = v)),
-                      AppTextField(controller: customNoteCtrl, label: 'Custom Status Note', hint: 'e.g. Slower replies during exams', maxLength: 60),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Closed today'),
+                        subtitle: const Text('Automatically resets tomorrow'),
+                        value: isClosedToday,
+                        onChanged: (v) => setState(() => isClosedToday = v),
+                      ),
+                      SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Holiday Mode'),
+                          subtitle: const Text('Shows "On Break" to students'),
+                          value: holidayMode,
+                          onChanged: (v) => setState(() => holidayMode = v)),
+                      AppTextField(
+                          controller: customNoteCtrl,
+                          label: 'Custom Status Note',
+                          hint: 'e.g. Slower replies during exams',
+                          maxLength: 60),
                     ],
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                AppButton(label: 'Save Changes', icon: AppIcons.save, loading: saving, onPressed: _save),
+                AppButton(
+                    label: 'Save Changes',
+                    icon: AppIcons.save,
+                    loading: saving,
+                    onPressed: _save),
                 const SizedBox(height: 48),
               ],
             ),
@@ -429,7 +620,11 @@ class _StoreDetailsUpdateScreenState
   }
 
   Widget _sectionHeader(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, left: 4),
-    child: Text(text.toUpperCase(), style: AppTextStyles.labelMedium.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-  );
+        padding: const EdgeInsets.only(bottom: 8, left: 4),
+        child: Text(text.toUpperCase(),
+            style: AppTextStyles.labelMedium.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2)),
+      );
 }

@@ -10,7 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/app_button.dart';
+import '../../../core/utils/operating_hours.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../models/models.dart';
@@ -36,15 +36,40 @@ class VendorProfileScreen extends ConsumerWidget {
         }
         final user = userAsync.valueOrNull;
         final isVerified = v.isVerified;
+        final payoutReady = v.hasPayoutDetails;
         final profileCompleted = v.profileCompleted;
         final storeName = v.displayStoreName;
         final storeDesc = v.displayDescription;
         // operating hours display
-        final hours = (_shortTime(v.openingTime) != null &&
-                _shortTime(v.closingTime) != null)
-            ? '${_shortTime(v.openingTime)} – ${_shortTime(v.closingTime)}'
+        final hours = (OperatingHours.minutes(v.openingTime) != null &&
+                OperatingHours.minutes(v.closingTime) != null)
+            ? '${OperatingHours.display(v.openingTime)} – ${OperatingHours.display(v.closingTime)}'
             : 'Set hours';
-        final workingDays = v.workingDays.isNotEmpty ? v.workingDays.join(' · ') : '—';
+        final workingDays =
+            v.workingDays.isNotEmpty ? v.workingDays.join(' · ') : '—';
+        final now = DateTime.now().toUtc();
+        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        final isClosedToday = v.isClosedOn(now);
+        final isOpenNow = !v.holidayMode &&
+            !isClosedToday &&
+            v.workingDays.contains(dayNames[now.weekday - 1]) &&
+            OperatingHours.isOpenAt(
+              now: now,
+              openingTime: v.openingTime,
+              closingTime: v.closingTime,
+            );
+        final availabilityLabel = v.holidayMode
+            ? 'On break'
+            : isClosedToday
+                ? 'Closed today'
+                : isOpenNow
+                    ? 'Open now'
+                    : 'Closed now';
+        final availabilityColor = isOpenNow
+            ? AppColors.success
+            : v.holidayMode
+                ? AppColors.warning
+                : AppColors.error;
 
         return ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -58,9 +83,10 @@ class VendorProfileScreen extends ConsumerWidget {
                     radius: 50,
                     backgroundColor: scheme.primaryContainer,
                     foregroundColor: scheme.onPrimaryContainer,
-                    backgroundImage: (v.logoUrl != null && v.logoUrl!.isNotEmpty)
-                        ? NetworkImage(v.logoUrl!)
-                        : null,
+                    backgroundImage:
+                        (v.logoUrl != null && v.logoUrl!.isNotEmpty)
+                            ? NetworkImage(v.logoUrl!)
+                            : null,
                     child: (v.logoUrl == null || v.logoUrl!.isEmpty)
                         ? Icon(AppIcons.storefrontFill, size: 44)
                         : null,
@@ -76,7 +102,8 @@ class VendorProfileScreen extends ConsumerWidget {
                           shape: BoxShape.circle,
                           border: Border.all(color: scheme.surface, width: 3),
                         ),
-                        child: const Icon(Icons.verified, color: Colors.white, size: 20),
+                        child: const Icon(Icons.verified,
+                            color: Colors.white, size: 20),
                       ),
                     ),
                 ],
@@ -86,12 +113,21 @@ class VendorProfileScreen extends ConsumerWidget {
             Center(
               child: Column(
                 children: [
-                  Text(storeName, style: AppTextStyles.titleLarge.copyWith(color: scheme.onSurface), textAlign: TextAlign.center),
+                  Text(storeName,
+                      style: AppTextStyles.titleLarge
+                          .copyWith(color: scheme.onSurface),
+                      textAlign: TextAlign.center),
                   const SizedBox(height: 4),
                   // Verified badge pill
                   StatusPill(
-                    label: isVerified ? 'Verified Student Seller' : _verificationLabel(v.verificationStatus),
-                    color: isVerified ? AppColors.success : v.verificationStatus == 'pending' ? AppColors.warning : AppColors.neutral500,
+                    label: isVerified
+                        ? 'Verified Student Seller'
+                        : _verificationLabel(v.verificationStatus),
+                    color: isVerified
+                        ? AppColors.success
+                        : v.verificationStatus == 'pending'
+                            ? AppColors.warning
+                            : AppColors.neutral500,
                     icon: isVerified ? AppIcons.check : AppIcons.pending,
                   ),
                 ],
@@ -103,7 +139,8 @@ class VendorProfileScreen extends ConsumerWidget {
                 child: Text(
                   storeDesc,
                   textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyMedium.copyWith(color: scheme.onSurfaceVariant),
+                  style: AppTextStyles.bodyMedium
+                      .copyWith(color: scheme.onSurfaceVariant),
                 ),
               ),
             ],
@@ -117,11 +154,31 @@ class VendorProfileScreen extends ConsumerWidget {
                 children: [
                   _rowTile(context, AppIcons.user, 'Owner', v.ownerName ?? '—'),
                   const Divider(height: 20),
-                  _rowTile(context, AppIcons.mapPin, 'Location',
-                      v.storeLocation?.isNotEmpty == true ? v.storeLocation! : 'Not set – tap Edit Store'),
+                  _rowTile(
+                      context,
+                      AppIcons.mapPin,
+                      'Location',
+                      v.storeLocation?.isNotEmpty == true
+                          ? v.storeLocation!
+                          : 'Not set – tap Edit Store'),
                   const Divider(height: 20),
-                  _rowTile(context, AppIcons.phone, 'WhatsApp',
-                      v.whatsappNumber ?? v.businessPhone ?? v.phoneNumber ?? '—'),
+                  _rowTile(
+                      context,
+                      AppIcons.phone,
+                      'WhatsApp',
+                      v.whatsappNumber ??
+                          v.businessPhone ??
+                          v.phoneNumber ??
+                          '—'),
+                  const Divider(height: 20),
+                  _rowTile(
+                    context,
+                    AppIcons.wallet,
+                    'Payout account',
+                    payoutReady
+                        ? '${v.momoNetwork} ending in ${v.momoNumber!.substring(v.momoNumber!.length - 4)}'
+                        : 'Not set – Cash on Delivery only',
+                  ),
                   const Divider(height: 20),
                   _rowTile(context, Icons.school_outlined, 'Program',
                       v.programYear?.isNotEmpty == true ? v.programYear! : '—'),
@@ -150,8 +207,8 @@ class VendorProfileScreen extends ConsumerWidget {
               color: isVerified
                   ? AppColors.success.withValues(alpha: 0.06)
                   : v.verificationStatus == 'pending'
-                  ? AppColors.warning.withValues(alpha: 0.06)
-                  : null,
+                      ? AppColors.warning.withValues(alpha: 0.06)
+                      : null,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -161,17 +218,17 @@ class VendorProfileScreen extends ConsumerWidget {
                         isVerified
                             ? Icons.verified
                             : v.verificationStatus == 'pending'
-                            ? Icons.hourglass_top
-                            : v.verificationStatus == 'rejected'
-                            ? Icons.error_outline
-                            : Icons.shield_outlined,
+                                ? Icons.hourglass_top
+                                : v.verificationStatus == 'rejected'
+                                    ? Icons.error_outline
+                                    : Icons.shield_outlined,
                         color: isVerified
                             ? AppColors.success
                             : v.verificationStatus == 'pending'
-                            ? AppColors.warning
-                            : v.verificationStatus == 'rejected'
-                            ? AppColors.error
-                            : scheme.onSurfaceVariant,
+                                ? AppColors.warning
+                                : v.verificationStatus == 'rejected'
+                                    ? AppColors.error
+                                    : scheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -179,17 +236,17 @@ class VendorProfileScreen extends ConsumerWidget {
                           isVerified
                               ? 'Verified Student Seller ✓'
                               : v.verificationStatus == 'pending'
-                              ? 'Verification pending – 12–24hr'
-                              : v.verificationStatus == 'rejected'
-                              ? 'Verification rejected'
-                              : 'Unverified – Cash on Delivery only',
+                                  ? 'Verification pending – 12–24hr'
+                                  : v.verificationStatus == 'rejected'
+                                      ? 'Verification rejected'
+                                      : 'Unverified – Cash on Delivery only',
                           style: AppTextStyles.titleSmall.copyWith(
                             fontWeight: FontWeight.w700,
                             color: isVerified
                                 ? AppColors.success
                                 : v.verificationStatus == 'rejected'
-                                ? AppColors.error
-                                : null,
+                                    ? AppColors.error
+                                    : null,
                           ),
                         ),
                       ),
@@ -198,29 +255,42 @@ class VendorProfileScreen extends ConsumerWidget {
                   if (!isVerified) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'Verify with Ghana Card or Student ID to unlock:\n• Prepayment / Mobile Money\n• Verified badge\n• Priority search',
+                      'Verify with Ghana Card or Student ID to unlock:\n'
+                      '• Verified badge\n'
+                      '• Priority search\n'
+                      '${payoutReady ? '• Prepayment after approval' : '• Add payout details separately for prepayment'}',
                       style: AppTextStyles.bodySmall,
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        icon: Icon(v.verificationStatus == 'rejected' ? Icons.refresh : Icons.verified_user_outlined, size: 18),
+                        icon: Icon(
+                            v.verificationStatus == 'rejected'
+                                ? Icons.refresh
+                                : Icons.verified_user_outlined,
+                            size: 18),
                         label: Text(
                           v.verificationStatus == 'pending'
                               ? 'View Status'
                               : v.verificationStatus == 'rejected'
-                              ? 'Re-apply'
-                              : 'Verify ID Now',
+                                  ? 'Re-apply'
+                                  : 'Verify ID Now',
                         ),
-                        onPressed: () => context.push('/vendor/settings/verification'),
+                        onPressed: () =>
+                            context.push('/vendor/settings/verification'),
                       ),
                     ),
                   ] else ...[
                     const SizedBox(height: 6),
                     Text(
-                      'ID: ${v.verificationType ?? 'verified'} • Prepayment unlocked',
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.success),
+                      payoutReady
+                          ? 'ID: ${v.verificationType ?? 'verified'} • Prepayment ready'
+                          : 'Identity verified • Add payout details to accept prepayment',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color:
+                            payoutReady ? AppColors.success : AppColors.warning,
+                      ),
                     ),
                   ],
                 ],
@@ -239,20 +309,18 @@ class VendorProfileScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Icon(
-                        v.isClosedToday || v.holidayMode ? Icons.do_not_disturb_on_outlined : Icons.check_circle_outline,
-                        color: v.isClosedToday || v.holidayMode ? AppColors.warning : AppColors.success,
+                        isOpenNow
+                            ? Icons.check_circle_outline
+                            : Icons.do_not_disturb_on_outlined,
+                        color: availabilityColor,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        v.holidayMode
-                            ? 'On break'
-                            : v.isClosedToday
-                            ? 'Closed today'
-                            : 'Open',
+                        availabilityLabel,
                         style: AppTextStyles.titleSmall.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: v.isClosedToday || v.holidayMode ? AppColors.warning : AppColors.success,
+                          color: availabilityColor,
                         ),
                       ),
                       const Spacer(),
@@ -260,10 +328,14 @@ class VendorProfileScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(workingDays, style: AppTextStyles.bodySmall.copyWith(color: scheme.onSurfaceVariant)),
+                  Text(workingDays,
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: scheme.onSurfaceVariant)),
                   if ((v.customNote ?? '').isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text('“${v.customNote}”', style: AppTextStyles.bodySmall.copyWith(fontStyle: FontStyle.italic)),
+                    Text('“${v.customNote}”',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(fontStyle: FontStyle.italic)),
                   ],
                   const SizedBox(height: 8),
                   Align(
@@ -281,16 +353,22 @@ class VendorProfileScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.lg),
 
             // ===== Group 4: Earnings & Fees – SELLER ONLY =====
-            _groupLabel('Earnings & Fees', Icons.account_balance_wallet_outlined, sellerOnly: true),
+            _groupLabel(
+                'Earnings & Fees', Icons.account_balance_wallet_outlined,
+                sellerOnly: true),
             const SizedBox(height: AppSpacing.sm),
             AppCard(
               child: Column(
                 children: [
-                  _feeRow('Platform fee – products',
-                      '${_fee(platformSettings?.platformFeeSellerPercent ?? v.platformFeeRate)}%', 'Seller-only'),
+                  _feeRow(
+                      'Platform fee – products',
+                      '${_fee(platformSettings?.platformFeeSellerPercent ?? v.platformFeeRate)}%',
+                      'Seller-only'),
                   const Divider(height: 20),
-                  _feeRow('Platform fee – services',
-                      '${_fee(platformSettings?.platformFeeServicePercent ?? 8)}%', 'Seller-only'),
+                  _feeRow(
+                      'Platform fee – services',
+                      '${_fee(platformSettings?.platformFeeServicePercent ?? 8)}%',
+                      'Seller-only'),
                   const Divider(height: 20),
                   _feeRow('Payout schedule', 'T+2 business days', null),
                   const SizedBox(height: 12),
@@ -305,7 +383,8 @@ class VendorProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 6),
                   Text(
                     'Platform fees are never shown to buyers – seller dashboard only.',
-                    style: AppTextStyles.bodySmall.copyWith(color: scheme.onSurfaceVariant),
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: scheme.onSurfaceVariant),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -344,54 +423,37 @@ class VendorProfileScreen extends ConsumerWidget {
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  _navTile(context, AppIcons.user, 'Store Details', 'Working hours, location, bio',
-                          () => context.push('/vendor/store/edit')),
+                  _navTile(
+                      context,
+                      AppIcons.user,
+                      'Store Details',
+                      'Working hours, location, bio',
+                      () => context.push('/vendor/store/edit')),
                   const Divider(height: 1),
-                  _navTile(context, Icons.verified_user_outlined, 'Identity Verification',
+                  _navTile(
+                      context,
+                      Icons.verified_user_outlined,
+                      'Identity Verification',
                       isVerified ? 'Verified ✓' : 'Ghana Card or Student ID',
-                          () => context.push('/vendor/settings/verification'),
+                      () => context.push('/vendor/settings/verification'),
                       trailingBadge: isVerified ? '✓' : null,
                       badgeColor: AppColors.success),
                   const Divider(height: 1),
-                  _navTile(context, Icons.description_outlined, 'Seller Agreement',
+                  _navTile(
+                      context,
+                      Icons.description_outlined,
+                      'Seller Agreement',
                       'v1.0 – ${v.consentSellerAgreement ? 'Agreed' : 'Review'}',
-                          () => context.push('/vendor/agreement')),
-                  const Divider(height: 1),
-                  _navTile(context, AppIcons.tag, 'Referral Hub', 'Invite friends & earn tokens',
-                          () => context.push('/referrals')),
+                      () => context.push('/vendor/agreement')),
                 ],
               ),
-            ),
-
-            const SizedBox(height: AppSpacing.md),
-
-            // About / Developer – split out per spec
-            AppCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  _navTile(context, Icons.info_outline, 'About', 'About UjustBUY',
-                          () => context.push('/profile/about')),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: AppSpacing.md),
-
-            // legacy tiles kept - theme, notifications, passcode
-            const SizedBox(height: AppSpacing.lg),
-
-            AppButton(
-              label: 'Sign Out',
-              icon: AppIcons.logout,
-              variant: AppButtonVariant.secondary,
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
             ),
             const SizedBox(height: AppSpacing.xl),
             Center(
               child: Text(
                 user?.email ?? '',
-                style: AppTextStyles.bodySmall.copyWith(color: scheme.onSurfaceVariant),
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: scheme.onSurfaceVariant),
               ),
             ),
             const SizedBox(height: 8),
@@ -406,20 +468,19 @@ class VendorProfileScreen extends ConsumerWidget {
 
   static String _verificationLabel(String status) {
     switch (status) {
-      case 'pending': return 'Verification pending';
-      case 'approved': return 'Verified';
-      case 'rejected': return 'Verification rejected';
-      default: return 'Unverified';
+      case 'pending':
+        return 'Verification pending';
+      case 'approved':
+        return 'Verified';
+      case 'rejected':
+        return 'Verification rejected';
+      default:
+        return 'Unverified';
     }
   }
 
-  static String? _shortTime(String? value) {
-    if (value == null || value.length < 5) return null;
-    return value.substring(0, 5);
-  }
-
-  static String _fee(double value) => value.toStringAsFixed(
-      value.truncateToDouble() == value ? 0 : 1);
+  static String _fee(double value) =>
+      value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1);
 
   Widget _groupLabel(String text, IconData icon, {bool sellerOnly = false}) {
     return Builder(builder: (context) {
@@ -459,7 +520,8 @@ class VendorProfileScreen extends ConsumerWidget {
     });
   }
 
-  Widget _rowTile(BuildContext context, IconData icon, String label, String value) {
+  Widget _rowTile(
+      BuildContext context, IconData icon, String label, String value) {
     final scheme = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,7 +534,9 @@ class VendorProfileScreen extends ConsumerWidget {
             children: [
               Text(label, style: AppTextStyles.bodySmall),
               const SizedBox(height: 2),
-              Text(value, style: AppTextStyles.titleSmall.copyWith(color: scheme.onSurface)),
+              Text(value,
+                  style: AppTextStyles.titleSmall
+                      .copyWith(color: scheme.onSurface)),
             ],
           ),
         ),
@@ -508,7 +572,8 @@ class VendorProfileScreen extends ConsumerWidget {
           ],
           Text(
             value,
-            style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w800),
+            style:
+                AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w800),
           ),
         ],
       );
@@ -516,33 +581,34 @@ class VendorProfileScreen extends ConsumerWidget {
   }
 
   Widget _navTile(
-      BuildContext context,
-      IconData icon,
-      String title,
-      String subtitle,
-      VoidCallback onTap, {
-        String? trailingBadge,
-        Color? badgeColor,
-      }) {
+    BuildContext context,
+    IconData icon,
+    String title,
+    String subtitle,
+    VoidCallback onTap, {
+    String? trailingBadge,
+    Color? badgeColor,
+  }) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
       subtitle: Text(subtitle),
       trailing: trailingBadge != null
           ? Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: (badgeColor ?? Theme.of(context).colorScheme.primary).withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(99),
-        ),
-        child: Text(
-          trailingBadge,
-          style: AppTextStyles.labelSmall.copyWith(
-            color: badgeColor,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      )
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: (badgeColor ?? Theme.of(context).colorScheme.primary)
+                    .withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Text(
+                trailingBadge,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: badgeColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            )
           : Icon(AppIcons.caretRight, size: 18),
       onTap: onTap,
     );
