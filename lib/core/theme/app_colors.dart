@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// UjustBUY colour tokens.
 ///
 /// Single source of truth for every colour in the app. Derived from the brand
-/// primary **#8E153E** (deep rose / burgundy). All other systems
+/// primary **#0E6E74** (brand teal). All other systems
 /// (`AppTheme`, widgets, screens) read from here — never hardcode a hex value
 /// in a screen.
 ///
@@ -15,26 +15,26 @@ class AppColors {
   AppColors._();
 
   // ---------------------------------------------------------------------------
-  // PRIMARY — brand burgundy tonal scale (50 lightest → 900 darkest)
+  // PRIMARY — brand teal tonal scale (50 lightest → 900 darkest)
   // ---------------------------------------------------------------------------
-  static const Color primary50 = Color(0xFFFBEAF0);
-  static const Color primary100 = Color(0xFFF6D2DE);
-  static const Color primary200 = Color(0xFFECA6BD);
-  static const Color primary300 = Color(0xFFDE7596);
-  static const Color primary400 = Color(0xFFC44A72);
-  static const Color primary500 = Color(0xFF8E153E); // brand base
-  static const Color primary600 = Color(0xFF7F1F40);
-  static const Color primary700 = Color(0xFF6A1936);
-  static const Color primary800 = Color(0xFF54142B);
-  static const Color primary900 = Color(0xFF3D0E20);
+  static const Color primary50 = Color(0xFFE7F5F5);
+  static const Color primary100 = Color(0xFFC9E9EA);
+  static const Color primary200 = Color(0xFF96D5D9);
+  static const Color primary300 = Color(0xFF62BEC4);
+  static const Color primary400 = Color(0xFF329FA7);
+  static const Color primary500 = Color(0xFF0E6E74); // brand base
+  static const Color primary600 = Color(0xFF0B5B61);
+  static const Color primary700 = Color(0xFF094A50);
+  static const Color primary800 = Color(0xFF073A40);
+  static const Color primary900 = Color(0xFF05282D);
 
   /// Canonical brand colour alias.
   static const Color primary = primary500;
 
   // ---------------------------------------------------------------------------
-  // SECONDARY / TERTIARY — supporting accents that complement burgundy
+  // SECONDARY / TERTIARY — supporting accents sampled from the app mark
   // ---------------------------------------------------------------------------
-  static const Color secondary = Color(0xFFC75B7A); // muted rose
+  static const Color secondary = Color(0xFF072450); // logo navy
   static const Color tertiary = Color(0xFFC8973F); // warm gold (ratings)
 
   // ---------------------------------------------------------------------------
@@ -75,7 +75,7 @@ class AppColors {
   // SURFACES — light mode
   // ---------------------------------------------------------------------------
   /// App page background (the "60%").
-  static const Color background = Color(0xFFF6F3F5);
+  static const Color background = Color(0xFFF3F7F8);
 
   /// Default card / sheet surface (the "30%").
   static const Color surface = neutral0;
@@ -84,16 +84,16 @@ class AppColors {
   static const Color surfaceElevated = neutral0;
 
   /// Low-emphasis filled surface (chips, skeletons, input fill at rest).
-  static const Color surfaceMuted = Color(0xFFF0EBEE);
+  static const Color surfaceMuted = Color(0xFFEAF1F2);
 
   /// Hairline dividers / card borders.
-  static const Color divider = Color(0xFFE2DADF);
+  static const Color divider = Color(0xFFD7E3E5);
 
   /// Resting border for inputs / outlined cards.
-  static const Color border = Color(0xFFCFC3CA);
+  static const Color border = Color(0xFFB9CBCD);
 
   // ---------------------------------------------------------------------------
-  // SURFACES — dark mode (warm greys, never pure black)
+  // SURFACES — dark mode (cool neutrals, never pure black)
   // ---------------------------------------------------------------------------
   static const Color backgroundDark = Color(0xFF0E1519);
   static const Color surfaceDark = Color(0xFF151E23);
@@ -105,33 +105,33 @@ class AppColors {
   // ---------------------------------------------------------------------------
   // TEXT
   // ---------------------------------------------------------------------------
-  static const Color textPrimary = Color(0xFF1C1A1B);
-  static const Color textSecondary = Color(0xFF595157);
-  static const Color textHint = Color(0xFF776E74);
-  static const Color textDisabled = Color(0xFFBDB5BA);
+  static const Color textPrimary = Color(0xFF10283E);
+  static const Color textSecondary = Color(0xFF465E6C);
+  static const Color textHint = Color(0xFF5F737E);
+  static const Color textDisabled = Color(0xFFA9B6BC);
 
   /// Text/icon colour on top of the brand primary.
   static const Color onPrimary = Color(0xFFFFFFFF);
 
   /// Text/icon colour on dark surfaces.
-  static const Color onDark = Color(0xFFECE3E7);
+  static const Color onDark = Color(0xFFF1FAFA);
 
   // Dark-mode text
-  static const Color textPrimaryDark = Color(0xFFFFF4F8);
-  static const Color textSecondaryDark = Color(0xFFF2C9D8);
-  static const Color textHintDark = Color(0xFFDFA9BD);
+  static const Color textPrimaryDark = Color(0xFFF1FAFA);
+  static const Color textSecondaryDark = Color(0xFFC7DADC);
+  static const Color textHintDark = Color(0xFF9BB5B8);
 
   // ---------------------------------------------------------------------------
   // GRADIENTS
   // ---------------------------------------------------------------------------
   static const LinearGradient brandGradient = LinearGradient(
-    colors: [primary500, Color(0xFFB84A6E)],
+    colors: [primary500, Color(0xFF1595A0)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient brandGradientDeep = LinearGradient(
-    colors: [primary700, primary500],
+    colors: [secondary, primary500],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

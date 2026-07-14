@@ -41,7 +41,7 @@ class AppTheme {
   static const Color infoContainer = AppColors.infoContainer;
   static const Color onInfoContainer = AppColors.onInfoContainer;
 
-  static const Color neutralInk = Color(0xFF2A2228);
+  static const Color neutralInk = Color(0xFF10283E);
 
   // ---- Spacing scale (kept as aliases of AppSpacing) ------------------------
   static const double space4 = 4;
@@ -77,13 +77,17 @@ class AppTheme {
       seedColor: AppColors.primary,
       brightness: brightness,
     ).copyWith(
-      primary: AppColors.primary,
-      onPrimary: Colors.white,
-      primaryContainer:
-      isLight ? AppColors.primary50 : AppColors.primary900,
+      primary: isLight ? AppColors.primary : AppColors.primary200,
+      onPrimary: isLight ? Colors.white : AppColors.primary900,
+      primaryContainer: isLight ? AppColors.primary50 : AppColors.primary900,
       onPrimaryContainer:
-      isLight ? AppColors.primary800 : AppColors.primary50,
-      secondary: isLight ? AppColors.secondary : const Color(0xFFE6A2B6),
+          isLight ? AppColors.primary800 : AppColors.primary50,
+      secondary: isLight ? AppColors.secondary : const Color(0xFF8CB5E1),
+      onSecondary: isLight ? Colors.white : AppColors.secondary,
+      secondaryContainer:
+          isLight ? const Color(0xFFE4ECF7) : const Color(0xFF173A67),
+      onSecondaryContainer:
+          isLight ? AppColors.secondary : const Color(0xFFDCEBFB),
       tertiary: isLight ? AppColors.tertiary : const Color(0xFFE6C98C),
       error: isLight ? AppColors.error : const Color(0xFFF2A8B0),
       onError: isLight ? Colors.white : const Color(0xFF680018),
@@ -92,21 +96,20 @@ class AppTheme {
       onErrorContainer:
           isLight ? AppColors.onErrorContainer : const Color(0xFFFFD9DE),
       surface: isLight ? AppColors.background : AppColors.backgroundDark,
-      onSurface:
-      isLight ? AppColors.textPrimary : AppColors.textPrimaryDark,
+      onSurface: isLight ? AppColors.textPrimary : AppColors.textPrimaryDark,
       surfaceContainerLowest:
-      isLight ? AppColors.surface : AppColors.surfaceDark,
+          isLight ? AppColors.surface : AppColors.surfaceDark,
       surfaceContainerLow: isLight
-          ? const Color(0xFFFDFCFC)
+          ? const Color(0xFFFBFDFD)
           : AppColors.surfaceElevatedDark,
-      surfaceContainerHighest:
-      isLight ? const Color(0xFFEDE7EA) : AppColors.surfaceMutedDark,
-      outline: isLight ? const Color(0xFF756B72) : const Color(0xFFC0B3BC),
-      outlineVariant:
-      isLight ? AppColors.border : AppColors.borderDark,
+      surfaceContainerHighest: isLight
+          ? const Color(0xFFE7EFF0)
+          : AppColors.surfaceMutedDark,
+      outline: isLight ? const Color(0xFF62737E) : const Color(0xFFADC1C4),
+      outlineVariant: isLight ? AppColors.border : AppColors.borderDark,
       onSurfaceVariant: isLight
           ? AppColors.textSecondary
-          : const Color(0xFFF2E8EC),
+          : const Color(0xFFD2E2E4),
     );
 
     final textTheme = AppTextStyles.textTheme(

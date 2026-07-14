@@ -21,12 +21,12 @@ project spec. Here is exactly where each one is implemented in the codebase.
 
 ## Visual design system
 
-- **Palette**: **primary Reparto blue `#2563EB`**, sky/cyan secondary `#0EA5E9`,
-  warm amber tertiary `#F59E0B`, plus semantic success/warning/danger.
+- **Palette**: **UjustBUY teal `#0E6E74`**, logo navy `#072450`,
+  warm gold tertiary `#C8973F`, plus semantic success/warning/danger.
 - **Type**: Plus Jakarta Sans for headings, Inter for body (via `google_fonts`).
 - **Shape**: 10/16/24 px radius scale, soft card borders, pill status badges.
-- **Brand**: gradient logo lockup, gradient auth hero, custom-painted Google "G",
-  immersive blue shop-storefront header (`SliverAppBar`).
+- **Brand**: the app icon is the canonical mark, supported by a teal/navy
+  gradient, a restrained auth hero, and a custom-painted Google "G".
 - **Light / Dark / System**: full dark theme (`AppTheme.dark`) with a user
   toggle that **persists** via `shared_preferences`
   (`core/theme/theme_provider.dart`, `ThemeModeTile` in every profile + a

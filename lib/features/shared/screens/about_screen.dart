@@ -4,11 +4,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_brand_mark.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -26,25 +26,7 @@ class AboutScreen extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerLowest,
-                    borderRadius: AppRadius.brXl,
-                    border: Border.all(color: scheme.outlineVariant),
-                  ),
-                  child: Image.asset(
-                    'assets/ujustbuy_logo.jpeg',
-                    height: 64,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(
-                      AppIcons.storefrontFill,
-                      size: 48,
-                      color: scheme.primary,
-                    ),
-                  ),
-                ),
+                const AppBrandMark(size: 104),
                 const SizedBox(height: AppSpacing.sm + 4),
                 Text(
                   'UjustBUY',

@@ -4,11 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_icons.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/app_error.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_brand_mark.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/google_auth_button.dart';
@@ -79,26 +79,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   children:
                       [
                             const SizedBox(height: AppSpacing.md),
-                            // Brand logo on a soft card for a polished first impression.
-                            Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.lg,
-                                  vertical: AppSpacing.md,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: scheme.surfaceContainerLowest,
-                                  borderRadius: AppRadius.brXl,
-                                  border: Border.all(
-                                    color: scheme.outlineVariant,
-                                  ),
-                                ),
-                                child: Image.asset(
-                                  'assets/ujustbuy_logo.jpeg',
-                                  height: 72,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
+                            const Center(
+                              child: AppBrandMark(size: 104),
                             ),
                             const SizedBox(height: AppSpacing.xl),
                             Text(

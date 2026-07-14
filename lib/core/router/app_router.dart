@@ -117,24 +117,46 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
-      GoRoute(path: '/welcome', builder: (_, __) => const OnboardingScreen()),
-      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
-          path: '/register/student',
-          builder: (_, __) => const RegisterStudentScreen()),
+        path: '/splash',
+        pageBuilder: (_, state) => NoTransitionPage<void>(
+          key: state.pageKey,
+          child: const SplashScreen(),
+        ),
+      ),
       GoRoute(
-          path: '/register/vendor',
-          builder: (_, __) => const RegisterVendorScreen()),
+        path: '/welcome',
+        pageBuilder: (_, state) =>
+            _entryPage(state, const OnboardingScreen()),
+      ),
       GoRoute(
-          path: '/select-campus',
-          builder: (_, __) => const SelectCampusScreen()),
+        path: '/login',
+        pageBuilder: (_, state) => _entryPage(state, const LoginScreen()),
+      ),
+      GoRoute(
+        path: '/register/student',
+        pageBuilder: (_, state) =>
+            _entryPage(state, const RegisterStudentScreen()),
+      ),
+      GoRoute(
+        path: '/register/vendor',
+        pageBuilder: (_, state) =>
+            _entryPage(state, const RegisterVendorScreen()),
+      ),
+      GoRoute(
+        path: '/select-campus',
+        pageBuilder: (_, state) =>
+            _entryPage(state, const SelectCampusScreen()),
+      ),
       GoRoute(
           path: '/forgot-passcode',
           builder: (_, __) => const ForgotPasscodeScreen()),
 
       // Student
-      GoRoute(path: '/student', builder: (_, __) => const StudentShell()),
+      GoRoute(
+        path: '/student',
+        pageBuilder: (_, state) => _entryPage(state, const StudentShell()),
+      ),
       GoRoute(
         path: '/student/product/:id',
         builder: (_, s) =>
@@ -170,7 +192,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           OrderChatScreen(orderId: s.pathParameters['id']!)),
 
       // Vendor – v1.0 new routes
-      GoRoute(path: '/vendor', builder: (_, __) => const VendorShell()),
+      GoRoute(
+        path: '/vendor',
+        pageBuilder: (_, state) => _entryPage(state, const VendorShell()),
+      ),
       GoRoute(
         path: '/vendor/agreement',
         builder: (_, __) => const SellerAgreementScreen(),
@@ -202,7 +227,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Admin – v1.0 reorganized
       GoRoute(path: '/vendor/weekly-earnings',
           builder: (_, __) => const WeeklyRevenueScreen(admin: false)),
-      GoRoute(path: '/admin', builder: (_, __) => const AdminShell()),
+      GoRoute(
+        path: '/admin',
+        pageBuilder: (_, state) => _entryPage(state, const AdminShell()),
+      ),
       GoRoute(path: '/admin/revenue',
           builder: (_, __) => const WeeklyRevenueScreen(admin: true)),
       // deep links (optional – shell handles tabs internally)
@@ -277,6 +305,34 @@ final routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
+
+CustomTransitionPage<void> _entryPage(
+  GoRouterState state,
+  Widget child,
+) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 260),
+    reverseTransitionDuration: const Duration(milliseconds: 210),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      if (MediaQuery.disableAnimationsOf(context)) return child;
+      final curved = animation.drive(
+        CurveTween(curve: Curves.easeOutCubic),
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.018),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
 
 /// Bridges Riverpod auth changes to GoRouter's refresh.
 class AuthChangeNotifier extends ChangeNotifier {

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_brand_mark.dart';
 
 /// A2 — Welcome / Onboarding. Shown on first launch or after sign-out.
 class OnboardingScreen extends StatelessWidget {
@@ -45,7 +45,7 @@ class OnboardingScreen extends StatelessWidget {
               child: Column(
                 children: [
                   const Spacer(),
-                  Image.asset('assets/ujustbuy_logo.jpeg', height: 64)
+                  const AppBrandMark(size: 104)
                       .animate()
                       .fadeIn(duration: 400.ms)
                       .scale(begin: const Offset(0.95, 0.95)),

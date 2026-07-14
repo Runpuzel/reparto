@@ -70,19 +70,17 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: "assets/icon/app_icon.png"
-    background_color: "#FFFFFF"
+    background_color: "#F3F7F8"
     theme_color: "#0E6E74"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
 
 # Run:  dart run flutter_native_splash:create
-# Shows the UjustBUY logo on a white background while the app starts (Android + web).
+# Shows the UjustBUY logo on the brand-neutral background while the app starts.
 flutter_native_splash:
-  color: "#FFFFFF"
+  color: "#F3F7F8"
   image: assets/icon/app_icon.png
   android_12:
     image: assets/icon/app_icon.png
-    color: "#FFFFFF"
+    color: "#F3F7F8"
   web: true
 
 flutter:
@@ -91,5 +89,4 @@ flutter:
     # Config file. `env.txt` (no leading dot) is what Netlify serves on web,
     # since hosts hide dotfiles like `.env`. `.env` is kept for local dev.
     - env.txt
-    - assets/ujustbuy_logo.jpeg
     - assets/icon/app_icon.png

@@ -4,122 +4,186 @@
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Ujustbuy is an online shopping store for quality products, student sellers, campus services, deals, and easy ordering in Ghana.">
+  <meta name="description" content="UjustBUY is an online shopping store for quality products, student sellers, campus services, deals, and easy ordering in Ghana.">
   <meta name="keywords" content="Ujustbuy, UjustBUY, online shopping Ghana, campus marketplace, student sellers, Ghana student marketplace">
-  <meta name="author" content="Ujustbuy">
+  <meta name="author" content="UjustBUY">
   <meta name="robots" content="index, follow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#8E153E">
+  <meta name="theme-color" content="#0E6E74">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Ujustbuy">
+  <meta name="apple-mobile-web-app-title" content="UjustBUY">
   <meta name="google-signin-client_id" content="462208558450-ksclni4ftcnsncv2gdut8gouesbp4s7l.apps.googleusercontent.com">
   <link rel="canonical" href="https://ujustbuy.store/">
   <link rel="preconnect" href="https://eidqnjldlnlwqnblruep.supabase.co" crossorigin>
   <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 
-  <title>Ujustbuy - Online Shopping Store</title>
-  <meta property="og:site_name" content="Ujustbuy">
-  <meta property="og:title" content="Ujustbuy - Online Shopping Store">
-  <meta property="og:description" content="Ujustbuy is an online shopping store for quality products, student sellers, campus services, deals, and easy ordering in Ghana.">
+  <title>UjustBUY - Online Shopping Store</title>
+  <meta property="og:site_name" content="UjustBUY">
+  <meta property="og:title" content="UjustBUY - Online Shopping Store">
+  <meta property="og:description" content="UjustBUY is an online shopping store for quality products, student sellers, campus services, deals, and easy ordering in Ghana.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://ujustbuy.store/">
   <meta property="og:image" content="https://ujustbuy.store/app_icon.png">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Ujustbuy - Online Shopping Store">
-  <meta name="twitter:description" content="Shop products and services from student sellers with Ujustbuy.">
+  <meta name="twitter:title" content="UjustBUY - Online Shopping Store">
+  <meta name="twitter:description" content="Shop products and services from student sellers with UjustBUY.">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="icons/Icon-192.png"/>
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-  <link rel="preload" href="icons/Icon-192.png" as="image" fetchpriority="high">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=2"/>
+  <link rel="apple-touch-icon" href="icons/Icon-192.png?v=2">
+  <link rel="preload" href="icons/Icon-192.png?v=2" as="image" fetchpriority="high">
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "OnlineStore",
-      "name": "Ujustbuy",
-      "alternateName": "UjustBUY",
+      "name": "UjustBUY",
+      "alternateName": "Ujustbuy",
       "url": "https://ujustbuy.store/",
-      "description": "Ujustbuy is an online shopping store for quality products, student sellers, campus services, deals, and easy ordering in Ghana.",
+      "description": "UjustBUY is an online shopping store for quality products, student sellers, campus services, deals, and easy ordering in Ghana.",
       "logo": "https://ujustbuy.store/app_icon.png",
       "sameAs": []
     }
   </script>
 
   <style>
-    html, body { margin: 0; width: 100%; min-height: 100%; }
+    :root {
+      color-scheme: light dark;
+      --brand: #0E6E74;
+      --brand-navy: #072450;
+      --page: #F3F7F8;
+      --surface: #FFFFFF;
+      --text: #10283E;
+      --muted: #465E6C;
+      --border: #B9CBCD;
+      --soft: #EAF1F2;
+    }
+    html, body { margin: 0; width: 100%; height: 100%; }
     body {
-      background: #F6F3F5; overflow: hidden; color: #241A1E;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      overflow: hidden; background: var(--page); color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     #loading {
-      position: fixed; inset: 0; display: grid; place-items: center;
-      padding: 24px; color: #8E153E; background: #F6F3F5; z-index: 9999;
-      box-sizing: border-box;
+      position: fixed; inset: 0; z-index: 9999; isolation: isolate;
+      display: flex; align-items: flex-start; justify-content: center;
+      box-sizing: border-box; padding: 24px; overflow-x: hidden; overflow-y: auto;
+      overscroll-behavior: none;
+      background:
+        radial-gradient(circle at 108% -12%, rgba(14, 110, 116, .14), rgba(14, 110, 116, 0) 48%),
+        radial-gradient(circle at -10% 112%, rgba(7, 36, 80, .10), rgba(7, 36, 80, 0) 48%),
+        var(--page);
+      opacity: 1; visibility: visible;
+      transition: opacity 360ms cubic-bezier(.22, 1, .36, 1), visibility 0s linear 360ms;
     }
-    .loading-shell { width: min(100%, 400px); }
-    .loading-brand {
-      display: flex; align-items: center; justify-content: center; gap: 12px;
-      margin-bottom: 28px; color: #241A1E; font-size: 21px; font-weight: 800;
+    #loading.is-leaving { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loading-shell {
+      flex: none; width: min(100%, 420px); margin: auto 0; padding: 16px 0;
+      text-align: center;
+      animation: loading-enter 480ms cubic-bezier(.22, 1, .36, 1) both;
     }
-    .loading-brand img {
-      width: 52px; height: 52px; object-fit: cover; border-radius: 8px;
-      box-shadow: 0 8px 24px rgba(36, 26, 30, 0.12);
+    .loading-logo {
+      position: relative; display: grid; place-items: center;
+      width: 132px; height: 132px; margin: 0 auto 24px;
     }
-    #loading-copy { margin: 0; text-align: center; font-size: 14px; font-weight: 650; }
+    .loading-logo::before {
+      content: ''; position: absolute; inset: -16px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(14, 110, 116, .20), rgba(14, 110, 116, 0) 68%);
+      animation: loading-breathe 1.6s ease-in-out infinite alternate;
+    }
+    .loading-logo img {
+      position: relative; width: 124px; height: 124px; box-sizing: border-box;
+      object-fit: contain; padding: 4px; border: 1px solid rgba(14, 110, 116, .18);
+      border-radius: 27px; background: #FFFFFF;
+      box-shadow: 0 16px 42px rgba(7, 36, 80, .14);
+    }
+    .loading-title {
+      display: block; color: var(--text); font-size: 32px;
+      line-height: 1.15; letter-spacing: -1.1px; font-weight: 800;
+    }
+    .loading-tagline {
+      display: block; margin-top: 8px; color: var(--muted);
+      font-size: 15px; line-height: 1.5; font-weight: 550;
+    }
+    #loading-copy {
+      margin: 34px 0 0; color: var(--muted); font-size: 12.5px;
+      line-height: 1.45; font-weight: 650;
+    }
     .loading-track {
-      width: 112px; height: 4px; margin: 14px auto 0; overflow: hidden;
-      border-radius: 999px; background: rgba(142, 21, 62, 0.14);
+      width: 156px; height: 5px; margin: 14px auto 0; overflow: hidden;
+      border-radius: 999px; background: rgba(14, 110, 116, .14);
     }
     .loading-track::after {
-      content: ''; display: block; width: 48%; height: 100%; border-radius: inherit;
-      background: #8E153E; animation: loading-slide 1s ease-in-out infinite alternate;
+      content: ''; display: block; width: 44%; height: 100%; border-radius: inherit;
+      background: linear-gradient(90deg, var(--brand), #1595A0);
+      animation: loading-sweep 1.15s cubic-bezier(.4, 0, .2, 1) infinite;
     }
-    @keyframes loading-slide {
-      from { transform: translateX(0); }
-      to { transform: translateX(118%); }
-    }
-    #offline-preview { display: none; }
+    #offline-preview { display: none; margin-top: 30px; text-align: left; }
     html.is-offline #loading-copy, html.is-offline .loading-track { display: none; }
     html.is-offline #offline-preview { display: block; }
     .offline-status {
       display: flex; align-items: center; gap: 9px; margin-bottom: 18px;
-      color: #241A1E; font-size: 16px; font-weight: 750;
+      color: var(--text); font-size: 16px; font-weight: 750;
     }
-    .offline-dot { width: 9px; height: 9px; border-radius: 50%; background: #D14343; }
+    .offline-dot { width: 9px; height: 9px; border-radius: 50%; background: #C5283D; }
     .offline-search {
-      height: 46px; margin-bottom: 16px; border: 1px solid #DED4D8;
-      border-radius: 8px; background: #FFFFFF;
+      height: 46px; margin-bottom: 16px; border: 1px solid var(--border);
+      border-radius: 12px; background: var(--surface);
     }
     .preview-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .preview-item {
-      min-width: 0; overflow: hidden; border: 1px solid #E5DDE0;
-      border-radius: 8px; background: #FFFFFF;
+      min-width: 0; overflow: hidden; border: 1px solid var(--border);
+      border-radius: 12px; background: var(--surface);
     }
-    .preview-image { aspect-ratio: 4 / 3; background: #E9E1E4; }
+    .preview-image { aspect-ratio: 4 / 3; background: var(--soft); }
     .preview-lines { padding: 11px; }
-    .preview-line { height: 8px; border-radius: 999px; background: #DED4D8; }
-    .preview-line + .preview-line { width: 62%; margin-top: 9px; background: #E9E1E4; }
+    .preview-line { height: 8px; border-radius: 999px; background: #C8D9DB; }
+    .preview-line + .preview-line { width: 62%; margin-top: 9px; background: var(--soft); }
     .offline-note {
-      margin: 18px 0 0; color: #6D5B62; font-size: 13px;
-      line-height: 1.45; text-align: center;
+      margin: 18px 0 0; color: var(--muted); font-size: 13px;
+      line-height: 1.5; text-align: center;
+    }
+    @keyframes loading-enter {
+      from { opacity: 0; transform: translateY(10px) scale(.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes loading-breathe {
+      from { opacity: .55; transform: scale(.96); }
+      to { opacity: 1; transform: scale(1.05); }
+    }
+    @keyframes loading-sweep {
+      from { transform: translateX(-120%); }
+      to { transform: translateX(330%); }
     }
     @media (prefers-color-scheme: dark) {
-      body, #loading { background: #120F11; }
-      .loading-brand, .offline-status { color: #F5EDF0; }
-      .offline-search, .preview-item { background: #211A1D; border-color: #3B3035; }
-      .preview-image, .preview-line { background: #3B3035; }
-      .preview-line + .preview-line { background: #30272B; }
-      .offline-note { color: #B9A8AF; }
+      :root {
+        --page: #0E1519; --surface: #151E23; --text: #F1FAFA;
+        --muted: #C7DADC; --border: #3B4D58; --soft: #243038;
+      }
+      .loading-logo img { border-color: rgba(98, 190, 196, .34); }
+      .preview-line { background: #3B4D58; }
+    }
+    @media (max-height: 560px) {
+      .loading-logo { width: 98px; height: 98px; margin-bottom: 16px; }
+      .loading-logo img { width: 90px; height: 90px; border-radius: 20px; }
+      #loading-copy { margin-top: 22px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #loading, .loading-shell, .loading-logo::before, .loading-track::after {
+        animation: none; transition-duration: 1ms; transition-delay: 0s;
+      }
+      .loading-track::after { transform: translateX(0); }
     }
   </style>
 </head>
 <body>
-  <div id="loading">
+  <div id="loading" role="status" aria-live="polite" aria-label="Opening UjustBUY">
     <div class="loading-shell">
+      <div class="loading-logo">
+        <img src="icons/Icon-192.png?v=2" alt="" />
+      </div>
       <div class="loading-brand">
-        <img src="icons/Icon-192.png" alt="" />
-        <span>UjustBUY</span>
+        <span class="loading-title">UjustBUY</span>
+        <span class="loading-tagline">Your campus. Your marketplace.</span>
       </div>
       <p id="loading-copy">Opening your marketplace...</p>
       <div class="loading-track" aria-hidden="true"></div>
@@ -190,24 +254,112 @@
     });
   </script>
 
-  <script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js" defer></script>
-
   <script>
     let flutterStarted = false;
+    let loaderDismissed = false;
+    let passkeysReady = false;
+    let passkeysLoadStarted = false;
+    let firstFrameWatchdog = null;
+
+    function resetStartupStatus() {
+      const copy = document.getElementById('loading-copy');
+      const track = document.querySelector('.loading-track');
+      if (copy) copy.textContent = 'Opening your marketplace...';
+      if (track) track.style.removeProperty('display');
+    }
+
+    function showStartupError(message) {
+      const copy = document.getElementById('loading-copy');
+      const track = document.querySelector('.loading-track');
+      if (copy) copy.textContent = message;
+      if (track) track.style.display = 'none';
+    }
+
+    function dismissLoadingScreen() {
+      if (loaderDismissed) return;
+      const loader = document.getElementById('loading');
+      if (!loader) return;
+      loaderDismissed = true;
+      if (firstFrameWatchdog) clearTimeout(firstFrameWatchdog);
+      loader.setAttribute('aria-hidden', 'true');
+      requestAnimationFrame(function() {
+        loader.classList.add('is-leaving');
+      });
+      setTimeout(function() { loader.remove(); }, 440);
+    }
+
+    window.addEventListener('flutter-first-frame', function() {
+      if (firstFrameWatchdog) clearTimeout(firstFrameWatchdog);
+      setTimeout(dismissLoadingScreen, 80);
+    }, { once: true });
+
+    function loadPasskeys() {
+      if (passkeysReady || passkeysLoadStarted) return;
+      passkeysLoadStarted = true;
+      resetStartupStatus();
+
+      const script = document.createElement('script');
+      let settled = false;
+      let timeout = null;
+      const fail = function(message) {
+        if (settled) return;
+        settled = true;
+        if (timeout) clearTimeout(timeout);
+        passkeysLoadStarted = false;
+        script.onload = null;
+        script.onerror = null;
+        script.remove();
+        showStartupError(message);
+      };
+      timeout = setTimeout(function() {
+        fail('Secure sign-in took too long to prepare. Refresh to try again.');
+      }, 10000);
+      script.src = 'https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js';
+      script.async = true;
+      script.onload = function() {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        passkeysLoadStarted = false;
+        passkeysReady = true;
+        startFlutter();
+      };
+      script.onerror = function() {
+        fail('Unable to prepare secure sign-in. Refresh to try again.');
+      };
+      document.head.appendChild(script);
+    }
 
     function startFlutter() {
-      if (flutterStarted || !navigator.onLine) return;
-      flutterStarted = true;
+      if (flutterStarted) return;
+      if (!navigator.onLine) {
+        document.documentElement.classList.add('is-offline');
+        return;
+      }
       document.documentElement.classList.remove('is-offline');
+      if (!passkeysReady) {
+        loadPasskeys();
+        return;
+      }
+      resetStartupStatus();
+      flutterStarted = true;
 
       const script = document.createElement('script');
       script.src = 'flutter_bootstrap.js';
       script.async = true;
       script.onerror = function() {
+        if (firstFrameWatchdog) clearTimeout(firstFrameWatchdog);
         flutterStarted = false;
-        if (!navigator.onLine) document.documentElement.classList.add('is-offline');
+        if (!navigator.onLine) {
+          document.documentElement.classList.add('is-offline');
+          return;
+        }
+        showStartupError('Unable to open UjustBUY. Refresh to try again.');
       };
       document.body.appendChild(script);
+      firstFrameWatchdog = setTimeout(function() {
+        showStartupError('UjustBUY is still starting. Check your connection or refresh.');
+      }, 20000);
     }
 
     if (!navigator.onLine) document.documentElement.classList.add('is-offline');
@@ -218,14 +370,6 @@
       document.documentElement.classList.add('is-offline');
     });
 
-    const observer = new MutationObserver(function() {
-      if (document.querySelector('flutter-view')) {
-        const loader = document.getElementById('loading');
-        if (loader) loader.style.display = 'none';
-        observer.disconnect();
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
   </script>
 </body>
 </html>
