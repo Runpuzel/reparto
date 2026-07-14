@@ -24,6 +24,7 @@ class BrowseScreen extends ConsumerStatefulWidget {
 
 class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   final _searchCtrl = TextEditingController();
+  _ListingFilter _listingFilter = _ListingFilter.all;
 
   @override
   void dispose() {
@@ -76,6 +77,12 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                     .slideY(begin: 0.04, end: 0),
           ),
           SliverToBoxAdapter(
+            child: _ListingFilterBar(
+              selected: _listingFilter,
+              onSelected: (filter) => setState(() => _listingFilter = filter),
+            ),
+          ),
+          SliverToBoxAdapter(
             child: _CategoryRail(
               categories: categories,
               selectedCategory: selectedCat,
@@ -85,7 +92,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xs)),
-          ..._contentSlivers(context, products, services),
+          ..._contentSlivers(context, products, services, _listingFilter),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
         ],
       ),
@@ -96,7 +103,46 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     BuildContext context,
     AsyncValue<List<Product>> products,
     AsyncValue<List<Service>> services,
+    _ListingFilter filter,
   ) {
+    if (filter == _ListingFilter.products) {
+      return products.when(
+        data: (items) => items.isEmpty
+            ? const [_NoListingsFound()]
+            : [SliverToBoxAdapter(child: _ProductSection(products: items))],
+        loading: () => const [
+          SliverToBoxAdapter(child: _LoadingProductSection()),
+        ],
+        error: (error, _) => [
+          SliverFillRemaining(
+            child: ErrorState(
+              error: error,
+              onRetry: () => ref.invalidate(productsProvider),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (filter == _ListingFilter.services) {
+      return services.when(
+        data: (items) => items.isEmpty
+            ? const [_NoListingsFound()]
+            : [SliverToBoxAdapter(child: _ServiceSection(services: items))],
+        loading: () => const [
+          SliverToBoxAdapter(child: _LoadingServiceSection()),
+        ],
+        error: (error, _) => [
+          SliverFillRemaining(
+            child: ErrorState(
+              error: error,
+              onRetry: () => ref.invalidate(browseServicesProvider),
+            ),
+          ),
+        ],
+      );
+    }
+
     return products.when(
       data: (productList) {
         final serviceList = services.valueOrNull ?? const <Service>[];
@@ -119,32 +165,160 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
         }
 
         return [
-          SliverList(
-            delegate: SliverChildListDelegate([
-              if (productList.isNotEmpty)
-                _ProductSection(products: productList),
-              services.when(
-                data: (items) => items.isEmpty
-                    ? const SizedBox.shrink()
-                    : _ServiceSection(services: items),
-                loading: () => const _LoadingServiceSection(),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-            ]),
+          SliverToBoxAdapter(
+            child: _BalancedListingFeed(
+              products: productList,
+              services: serviceList,
+              servicesLoading: services.isLoading,
+            ),
           ),
         ];
       },
-      loading: () => const [
-        SliverToBoxAdapter(child: _LoadingProductSection()),
+      loading: () => [
+        if ((services.valueOrNull ?? const <Service>[]).isNotEmpty)
+          SliverToBoxAdapter(
+            child: _ServiceSection(services: services.valueOrNull!),
+          )
+        else
+          const SliverToBoxAdapter(child: _LoadingProductSection()),
       ],
-      error: (error, _) => [
-        SliverFillRemaining(
-          child: ErrorState(
-            error: error,
-            onRetry: () => ref.invalidate(productsProvider),
+      error: (error, _) {
+        final serviceList = services.valueOrNull ?? const <Service>[];
+        if (serviceList.isNotEmpty) {
+          return [
+            SliverToBoxAdapter(
+              child: _ServiceSection(services: serviceList),
+            ),
+          ];
+        }
+        return [
+          SliverFillRemaining(
+            child: ErrorState(
+              error: error,
+              onRetry: () => ref.invalidate(productsProvider),
+            ),
           ),
+        ];
+      },
+    );
+  }
+}
+
+enum _ListingFilter { all, products, services }
+
+class _ListingFilterBar extends StatelessWidget {
+  const _ListingFilterBar({required this.selected, required this.onSelected});
+
+  final _ListingFilter selected;
+  final ValueChanged<_ListingFilter> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<_ListingFilter>(
+          segments: const [
+            ButtonSegment(
+              value: _ListingFilter.all,
+              icon: Icon(AppIcons.grid),
+              label: Text('All'),
+            ),
+            ButtonSegment(
+              value: _ListingFilter.products,
+              icon: Icon(AppIcons.bag),
+              label: Text('Products'),
+            ),
+            ButtonSegment(
+              value: _ListingFilter.services,
+              icon: Icon(AppIcons.services),
+              label: Text('Services'),
+            ),
+          ],
+          selected: {selected},
+          showSelectedIcon: false,
+          onSelectionChanged: (value) => onSelected(value.first),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _NoListingsFound extends SliverFillRemaining {
+  const _NoListingsFound()
+      : super(
+          hasScrollBody: false,
+          child: const EmptyState(
+            icon: Icons.search_rounded,
+            title: 'No matches found',
+            subtitle: 'Try a different search or category.',
+          ),
+        );
+}
+
+class _BalancedListingFeed extends StatelessWidget {
+  const _BalancedListingFeed({
+    required this.products,
+    required this.services,
+    required this.servicesLoading,
+  });
+
+  final List<Product> products;
+  final List<Service> services;
+  final bool servicesLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final children = <Widget>[
+      _SectionHeader(
+        icon: AppIcons.grid,
+        title: 'All listings',
+        subtitle: 'Products and services available now',
+        count: products.length + services.length,
+      ),
+      const SizedBox(height: AppSpacing.sm),
+    ];
+
+    var productIndex = 0;
+    var serviceIndex = 0;
+    while (productIndex < products.length || serviceIndex < services.length) {
+      if (productIndex < products.length) {
+        final end = productIndex + 2 < products.length
+            ? productIndex + 2
+            : products.length;
+        children.add(
+          _ProductGrid(products: products.sublist(productIndex, end)),
+        );
+        productIndex = end;
+      }
+      if (serviceIndex < services.length) {
+        children.add(const SizedBox(height: AppSpacing.md));
+        children.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: ServiceCard(service: services[serviceIndex]),
+          ),
+        );
+        serviceIndex++;
+      }
+      if (productIndex < products.length || serviceIndex < services.length) {
+        children.add(const SizedBox(height: AppSpacing.md));
+      }
+    }
+
+    if (servicesLoading) {
+      children.add(const _LoadingServiceSection());
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
     );
   }
 }
