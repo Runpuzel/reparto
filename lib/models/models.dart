@@ -791,7 +791,6 @@ class PlatformSetting {
   final int serviceAuthDurationDays;
   final int serviceFreeListingDays;
   final double platformFeeSellerPercent;
-  final double platformFeeServicePercent;
   final bool verificationRequiredForPrepayment;
   final List<String> kycAllowedTypes;
   final String currentPolicyVersion;
@@ -802,7 +801,6 @@ class PlatformSetting {
     required this.serviceAuthDurationDays,
     required this.serviceFreeListingDays,
     required this.platformFeeSellerPercent,
-    required this.platformFeeServicePercent,
     required this.verificationRequiredForPrepayment,
     required this.kycAllowedTypes,
     required this.currentPolicyVersion,
@@ -815,8 +813,8 @@ class PlatformSetting {
     serviceAuthDurationDays: toInt(m['service_auth_duration_days']),
     serviceFreeListingDays: toInt(m['service_free_listing_days']),
     platformFeeSellerPercent: toDouble(m['platform_fee_seller_percent']),
-    platformFeeServicePercent: toDouble(m['platform_fee_service_percent']),
-    verificationRequiredForPrepayment: m['verification_required_for_prepayment'] as bool? ?? true,
+    verificationRequiredForPrepayment:
+        m['verification_required_for_prepayment'] as bool? ?? true,
     kycAllowedTypes: toStringList(m['kyc_allowed_types']),
     currentPolicyVersion: m['current_policy_version'] as String? ?? 'v1.0-2025-07',
     updatedAt: date(m['updated_at']) ?? DateTime.now(),
@@ -827,9 +825,8 @@ class PlatformSetting {
     serviceAuthDurationDays: 30,
     serviceFreeListingDays: 14,
     platformFeeSellerPercent: 5.0,
-    platformFeeServicePercent: 8.0,
     verificationRequiredForPrepayment: true,
-    kycAllowedTypes: const ['ghana_card','student_id'],
+    kycAllowedTypes: const ['ghana_card', 'student_id'],
     currentPolicyVersion: 'v1.0-2025-07',
     updatedAt: DateTime.now(),
   );

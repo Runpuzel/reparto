@@ -366,9 +366,12 @@ class VendorProfileScreen extends ConsumerWidget {
                       'Seller-only'),
                   const Divider(height: 20),
                   _feeRow(
-                      'Platform fee – services',
-                      '${_fee(platformSettings?.platformFeeServicePercent ?? 8)}%',
-                      'Seller-only'),
+                      'Service listing authorization',
+                      platformSettings == null || platformSettings.isFreeMode
+                          ? 'Free'
+                          : 'GHS ${_fee(platformSettings.serviceAuthFee)} / '
+                              '${platformSettings.serviceAuthDurationDays} days',
+                      'Provider-only'),
                   const Divider(height: 20),
                   _feeRow('Payout schedule', 'T+2 business days', null),
                   const SizedBox(height: 12),

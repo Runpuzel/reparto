@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>UjustBUY Ad Studio</title>
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #07171b; color: white; font-family: Arial, sans-serif; }
+    body { display: grid; place-items: center; padding: 24px; box-sizing: border-box; }
+    main { display: grid; gap: 16px; justify-items: center; }
+    canvas, video { width: min(360px, 90vw); aspect-ratio: 9 / 16; border-radius: 20px; background: #07171b; box-shadow: 0 24px 70px #0008; }
+    video { display: none; }
+    #status { font-size: 14px; color: #b8ced1; }
+    #download { display: none; color: white; background: #078791; padding: 10px 16px; border-radius: 999px; text-decoration: none; font-weight: 700; }
+  </style>
+</head>
+<body>
+<main>
+  <canvas id="stage" width="720" height="1280"></canvas>
+  <video id="result" controls></video>
+  <div id="status">Preparing video…</div>
+  <a id="download">Download video</a>
+</main>
+<script>
+const ads = {
+  browse: {
+    file: '01-browse-campus-marketplace',
+    badge: 'FOR EVERY STUDENT',
+    hook: 'What you need\nmay be right\non campus.',
+    accent: '#24c7c9',
+    steps: [
+      ['OPEN', 'UjustBUY'],
+      ['BROWSE', 'Products'],
+      ['DISCOVER', 'Services'],
+      ['CONNECT', 'Nearby']
+    ],
+    cta: 'Your campus.\nYour marketplace.',
+    button: 'START EXPLORING'
+  },
+  cod: {
+    file: '02-cash-on-delivery',
+    badge: 'SHOP WITH CONFIDENCE',
+    hook: 'Want to pay\nwhen it arrives?',
+    accent: '#ffb547',
+    steps: [
+      ['CHOOSE', 'Your item'],
+      ['SELECT', 'Cash on Delivery'],
+      ['RECEIVE', 'Your order'],
+      ['PAY', 'On delivery']
+    ],
+    cta: 'Simple ordering.\nPayment on delivery.',
+    button: 'SHOP ON UJUSTBUY'
+  },
+  sell: {
+    file: '03-post-a-product',
+    badge: 'FOR STUDENT SELLERS',
+    hook: 'Turn what\nyou sell into\na campus business.',
+    accent: '#65d68a',
+    steps: [
+      ['ADD', 'Product photos'],
+      ['SET', 'Price & stock'],
+      ['PUBLISH', 'Your listing'],
+      ['GROW', 'Your sales']
+    ],
+    cta: 'List it once.\nReach students nearby.',
+    button: 'START SELLING'
+  },
+  service: {
+    file: '04-offer-a-service',
+    badge: 'YOUR SKILL HAS VALUE',
+    hook: 'Good at\nsomething?\nOffer it on campus.',
+    accent: '#b8a1ff',
+    steps: [
+      ['DESCRIBE', 'Your service'],
+      ['ADD', 'Your price'],
+      ['SHOW', 'Availability'],
+      ['GET', 'Discovered']
+    ],
+    cta: 'Your skill.\nYour next customer.',
+    button: 'OFFER A SERVICE'
+  },
+  wallet: {
+    file: '05-cod-wallet',
+    badge: 'SELLER PROTECTION',
+    hook: 'How does the\nCOD wallet work?',
+    accent: '#ff7d8d',
+    steps: [
+      ['TOP UP', 'Your wallet'],
+      ['CONFIRM', 'The COD order'],
+      ['RESERVE', 'Marketplace fee'],
+      ['RELEASE', 'If cancelled']
+    ],
+    cta: 'Clear fees.\nSafer COD orders.',
+    button: 'FUND YOUR WALLET'
+  }
+};
+
+const params = new URLSearchParams(location.search);
+const key = params.get('ad') || 'browse';
+const ad = ads[key] || ads.browse;
+const duration = 11;
+const canvas = document.querySelector('#stage');
+const ctx = canvas.getContext('2d');
+const statusEl = document.querySelector('#status');
+const video = document.querySelector('#result');
+const download = document.querySelector('#download');
+const logo = new Image();
+logo.src = '../../assets/icon/app_icon.png';
+
+function clamp(v, a = 0, b = 1) { return Math.max(a, Math.min(b, v)); }
+function ease(v) { v = clamp(v); return 1 - Math.pow(1 - v, 3); }
+function mix(a, b, t) { return a + (b - a) * t; }
+function rr(x, y, w, h, r) {
+  const q = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + q, y); ctx.lineTo(x + w - q, y); ctx.quadraticCurveTo(x + w, y, x + w, y + q);
+  ctx.lineTo(x + w, y + h - q); ctx.quadraticCurveTo(x + w, y + h, x + w - q, y + h);
+  ctx.lineTo(x + q, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - q);
+  ctx.lineTo(x, y + q); ctx.quadraticCurveTo(x, y, x + q, y); ctx.closePath();
+}
+function fillTextLines(text, x, y, lineHeight, align = 'left') {
+  ctx.textAlign = align;
+  text.split('\n').forEach((line, i) => ctx.fillText(line, x, y + i * lineHeight));
+}
+function hexAlpha(hex, alpha) {
+  const value = parseInt(hex.slice(1), 16);
+  return `rgba(${value >> 16},${(value >> 8) & 255},${value & 255},${alpha})`;
+}
+function drawBackground(t) {
+  const grad = ctx.createLinearGradient(0, 0, 720, 1280);
+  grad.addColorStop(0, '#06191d'); grad.addColorStop(.55, '#09272b'); grad.addColorStop(1, '#061216');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, 720, 1280);
+  for (let i = 0; i < 5; i++) {
+    const x = 80 + ((i * 173 + t * (12 + i * 4)) % 700);
+    const y = 130 + ((i * 241 + t * (18 + i * 3)) % 1100);
+    const radius = 80 + i * 22;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    g.addColorStop(0, hexAlpha(ad.accent, .12)); g.addColorStop(1, hexAlpha(ad.accent, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,.035)'; ctx.lineWidth = 1;
+  for (let y = 0; y < 1280; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(720, y); ctx.stroke(); }
+}
+function drawBrand(alpha = 1) {
+  ctx.globalAlpha = alpha;
+  if (logo.complete && logo.naturalWidth) {
+    ctx.save(); rr(52, 46, 66, 66, 18); ctx.clip(); ctx.drawImage(logo, 52, 46, 66, 66); ctx.restore();
+  } else {
+    ctx.fillStyle = '#fff'; rr(52, 46, 66, 66, 18); ctx.fill();
+  }
+  ctx.fillStyle = '#fff'; ctx.font = '800 34px Arial'; ctx.textAlign = 'left'; ctx.fillText('UjustBUY', 136, 90);
+  ctx.fillStyle = '#9db9bc'; ctx.font = '600 15px Arial'; ctx.fillText('YOUR CAMPUS MARKETPLACE', 137, 112);
+  ctx.globalAlpha = 1;
+}
+function drawHook(t) {
+  const a = clamp(t / .5) * clamp((2.35 - t) / .45);
+  const slide = mix(45, 0, ease(t / .6));
+  ctx.globalAlpha = a;
+  ctx.fillStyle = ad.accent; ctx.font = '800 16px Arial'; ctx.textAlign = 'left';
+  ctx.fillText(ad.badge, 58, 244 + slide);
+  ctx.fillStyle = '#fff'; ctx.font = '900 66px Arial';
+  fillTextLines(ad.hook, 56, 324 + slide, 77);
+  ctx.fillStyle = '#c8d8da'; ctx.font = '500 22px Arial';
+  ctx.fillText('Watch how it works in seconds.', 58, 620 + slide);
+  ctx.fillStyle = ad.accent; rr(58, 680 + slide, 92, 8, 4); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+function drawPhone(progress, activeStep) {
+  const appear = ease(progress);
+  const y = mix(1160, 210, appear);
+  ctx.save();
+  ctx.shadowColor = '#000b'; ctx.shadowBlur = 50; ctx.shadowOffsetY = 24;
+  ctx.fillStyle = '#eaf4f4'; rr(86, y, 548, 870, 54); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = '#07171b'; rr(106, y + 20, 508, 830, 38); ctx.fill();
+  ctx.fillStyle = '#183338'; rr(277, y + 38, 166, 25, 13); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = '800 23px Arial'; ctx.fillText('UjustBUY', 142, y + 105);
+  ctx.fillStyle = ad.accent; rr(493, y + 77, 72, 38, 19); ctx.fill();
+  ctx.fillStyle = '#07171b'; ctx.font = '800 12px Arial'; ctx.textAlign = 'center'; ctx.fillText('LIVE', 529, y + 102);
+  ctx.fillStyle = '#163238'; rr(142, y + 143, 436, 62, 18); ctx.fill();
+  ctx.fillStyle = '#8eaaad'; ctx.font = '500 17px Arial'; ctx.textAlign = 'left'; ctx.fillText('Search campus listings…', 168, y + 182);
+  ad.steps.forEach((step, i) => {
+    const rowY = y + 238 + i * 128;
+    const active = i === activeStep;
+    ctx.fillStyle = active ? hexAlpha(ad.accent, .22) : '#10272c'; rr(142, rowY, 436, 102, 22); ctx.fill();
+    ctx.fillStyle = active ? ad.accent : '#34535a'; ctx.beginPath(); ctx.arc(183, rowY + 51, 25, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = active ? '#05191c' : '#b6cacc'; ctx.font = '900 15px Arial'; ctx.textAlign = 'center'; ctx.fillText(`${i + 1}`, 183, rowY + 57);
+    ctx.textAlign = 'left'; ctx.fillStyle = active ? ad.accent : '#8eaaad'; ctx.font = '800 13px Arial'; ctx.fillText(step[0], 225, rowY + 40);
+    ctx.fillStyle = '#fff'; ctx.font = '700 22px Arial'; ctx.fillText(step[1], 225, rowY + 70);
+    if (active) { ctx.fillStyle = ad.accent; rr(548, rowY + 37, 10, 28, 5); ctx.fill(); }
+  });
+}
+function drawDemo(t) {
+  const local = t - 2.15;
+  const a = clamp(local / .45) * clamp((8.8 - t) / .5);
+  ctx.globalAlpha = a;
+  const active = Math.min(3, Math.max(0, Math.floor(local / 1.55)));
+  drawPhone(clamp(local / .7), active);
+  ctx.fillStyle = '#fff'; ctx.font = '800 27px Arial'; ctx.textAlign = 'center';
+  ctx.fillText(`${active + 1} / 4`, 360, 1170);
+  ctx.fillStyle = '#244249'; rr(120, 1194, 480, 8, 4); ctx.fill();
+  ctx.fillStyle = ad.accent; rr(120, 1194, 480 * ((active + 1) / 4), 8, 4); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+function drawCTA(t) {
+  const local = t - 8.45;
+  const a = ease(local / .55);
+  const scale = mix(.92, 1, ease(local / .65));
+  ctx.save(); ctx.translate(360, 660); ctx.scale(scale, scale); ctx.translate(-360, -660); ctx.globalAlpha = a;
+  ctx.fillStyle = ad.accent; ctx.font = '800 16px Arial'; ctx.textAlign = 'center'; ctx.fillText('UJUSTBUY MAKES IT SIMPLE', 360, 330);
+  ctx.fillStyle = '#fff'; ctx.font = '900 58px Arial'; fillTextLines(ad.cta, 360, 420, 70, 'center');
+  ctx.fillStyle = ad.accent; rr(150, 650, 420, 78, 39); ctx.fill();
+  ctx.fillStyle = '#06171a'; ctx.font = '900 18px Arial'; ctx.fillText(ad.button, 360, 698);
+  ctx.fillStyle = '#b6cacc'; ctx.font = '600 20px Arial'; ctx.fillText('ujustbuy.store', 360, 790);
+  ctx.fillStyle = '#819b9e'; ctx.font = '500 15px Arial'; ctx.fillText('Products • Services • Student Sellers', 360, 830);
+  ctx.restore();
+}
+function drawFrame(t) {
+  drawBackground(t); drawBrand();
+  if (t < 2.6) drawHook(t);
+  if (t > 2.0 && t < 9.1) drawDemo(t);
+  if (t > 8.35) drawCTA(t);
+  ctx.fillStyle = '#1c3b40'; ctx.fillRect(0, 1268, 720, 12);
+  ctx.fillStyle = ad.accent; ctx.fillRect(0, 1268, 720 * clamp(t / duration), 12);
+}
+
+let renderStarted = false;
+async function render() {
+  if (renderStarted) return;
+  renderStarted = true;
+  const webmCandidates = [
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm'
+  ];
+  const mp4Candidates = [
+    'video/mp4;codecs=avc1.42E01E',
+    'video/mp4'
+  ];
+  const candidates = params.get('format') === 'mp4'
+    ? [...mp4Candidates, ...webmCandidates]
+    : [...webmCandidates, ...mp4Candidates];
+  const mimeType = candidates.find(type => MediaRecorder.isTypeSupported(type));
+  if (!mimeType) { statusEl.textContent = 'This browser cannot encode video.'; return; }
+  const ext = mimeType.startsWith('video/mp4') ? 'mp4' : 'webm';
+  const stream = canvas.captureStream(30);
+  const chunks = [];
+  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5000000 });
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = async () => {
+    const blob = new Blob(chunks, { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const filename = `${ad.file}.${ext}`;
+    video.src = url; video.style.display = 'block';
+    video.setAttribute('data-filename', filename);
+    download.href = url; download.download = filename; download.style.display = 'inline-block'; download.textContent = `Download ${filename}`;
+    statusEl.textContent = `Saving • ${ext.toUpperCase()} • ${(blob.size / 1048576).toFixed(1)} MB`;
+    try {
+      const response = await fetch(`/upload?name=${encodeURIComponent(filename)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': mimeType },
+        body: blob
+      });
+      if (!response.ok) throw new Error('Save failed');
+      statusEl.textContent = `Saved • ${ext.toUpperCase()} • ${(blob.size / 1048576).toFixed(1)} MB`;
+    } catch (_) {
+      statusEl.textContent = `Ready to download • ${ext.toUpperCase()} • ${(blob.size / 1048576).toFixed(1)} MB`;
+    }
+  };
+  const singleChunk = params.get('chunks') === 'single';
+  if (singleChunk) recorder.start();
+  else recorder.start(500);
+  const started = performance.now();
+  function tick(now) {
+    const elapsed = Math.min(duration, (now - started) / 1000);
+    drawFrame(elapsed);
+    if (elapsed < duration) requestAnimationFrame(tick);
+    else setTimeout(() => {
+      if (singleChunk) recorder.stop();
+      else {
+        recorder.requestData();
+        setTimeout(() => recorder.stop(), 300);
+      }
+    }, 250);
+  }
+  requestAnimationFrame(tick);
+}
+
+logo.onload = render;
+logo.onerror = render;
+setTimeout(() => { if (!logo.complete) render(); }, 1500);
+</script>
+</body>
+</html>

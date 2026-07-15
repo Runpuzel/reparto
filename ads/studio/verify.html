@@ -1,0 +1,20 @@
+<!doctype html>
+<html><body style="background:#07171b;color:white;font-family:Arial">
+<video id="video" controls style="width:360px"></video>
+<pre id="status">Loading…</pre>
+<script>
+const name = new URLSearchParams(location.search).get('file') || '';
+const video = document.querySelector('#video');
+const status = document.querySelector('#status');
+video.src = `/ads/output/${encodeURIComponent(name)}`;
+video.addEventListener('loadedmetadata', () => {
+  status.textContent = JSON.stringify({
+    name,
+    duration: video.duration,
+    width: video.videoWidth,
+    height: video.videoHeight
+  });
+});
+video.addEventListener('error', () => status.textContent = 'ERROR');
+</script>
+</body></html>

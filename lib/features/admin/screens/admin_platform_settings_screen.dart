@@ -28,7 +28,6 @@ class _AdminPlatformSettingsScreenState
   final _authDays = TextEditingController();
   final _freeDays = TextEditingController();
   final _sellerFee = TextEditingController();
-  final _serviceFee = TextEditingController();
   final _policyVersion = TextEditingController();
 
   bool _initialized = false;
@@ -48,7 +47,6 @@ class _AdminPlatformSettingsScreenState
     _authDays.dispose();
     _freeDays.dispose();
     _sellerFee.dispose();
-    _serviceFee.dispose();
     _policyVersion.dispose();
     super.dispose();
   }
@@ -60,7 +58,6 @@ class _AdminPlatformSettingsScreenState
     _authDays.text = '${settings.serviceAuthDurationDays}';
     _freeDays.text = '${settings.serviceFreeListingDays}';
     _sellerFee.text = _number(settings.platformFeeSellerPercent);
-    _serviceFee.text = _number(settings.platformFeeServicePercent);
     _policyVersion.text = settings.currentPolicyVersion;
     _verificationRequired = settings.verificationRequiredForPrepayment;
     _kycTypes.addAll(settings.kycAllowedTypes);
@@ -155,14 +152,11 @@ class _AdminPlatformSettingsScreenState
           title: 'Marketplace fees',
           subtitle: 'Percentage charged on successful marketplace activity.',
           children: [
-            _fieldRow([
-              _decimalField(_sellerFee, 'Product seller fee', '%', 0, 100),
-              _decimalField(_serviceFee, 'Service provider fee', '%', 0, 100),
-            ]),
+            _decimalField(_sellerFee, 'Product seller fee', '%', 0, 100),
             const SizedBox(height: 12),
             _InfoBanner(
               text:
-                  'Product fees are charged when an order is settled. Service fees apply to supported service transactions.',
+                  'Charged to product sellers when an order is completed. For cash on delivery, the fee is reserved from the seller wallet when the order is confirmed.',
             ),
           ],
         );
@@ -346,7 +340,6 @@ class _AdminPlatformSettingsScreenState
         'service_auth_duration_days': int.parse(_authDays.text.trim()),
         'service_free_listing_days': int.parse(_freeDays.text.trim()),
         'platform_fee_seller_percent': _parseDouble(_sellerFee.text),
-        'platform_fee_service_percent': _parseDouble(_serviceFee.text),
         'verification_required_for_prepayment': _verificationRequired,
         'kyc_allowed_types': _kycTypes.toList()..sort(),
         'current_policy_version': _policyVersion.text.trim(),
