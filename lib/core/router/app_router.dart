@@ -35,6 +35,7 @@ import '../../features/vendor/screens/seller_agreement_screen.dart';
 import '../../features/vendor/screens/store_details_update_screen.dart';
 import '../../features/vendor/screens/identity_verification_screen.dart';
 import '../../features/vendor/screens/vendor_shell.dart';
+import '../../features/vendor/screens/vendor_wallet_screen.dart';
 import '../services/push_service.dart';
 
 /// Global navigator key so background services (e.g. push taps) can navigate.
@@ -207,6 +208,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/vendor/settings/verification',
         builder: (_, __) => const IdentityVerificationScreen(),
+      ),
+      GoRoute(
+        path: '/vendor/wallet',
+        builder: (_, __) => Scaffold(
+          appBar: AppBar(title: const Text('COD wallet')),
+          body: const SafeArea(child: VendorWalletScreen()),
+        ),
       ),
       GoRoute(
         path: '/vendor/product-form',

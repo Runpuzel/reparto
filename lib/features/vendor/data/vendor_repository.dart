@@ -20,8 +20,8 @@ class VendorRepository {
       availablePesewas: (wallet?['available_pesewas'] as num?)?.toInt() ?? 0,
       reservedPesewas: (wallet?['reserved_pesewas'] as num?)?.toInt() ?? 0,
       transactions: (rows as List)
-          .map((row) => WalletTransaction.fromMap(
-              Map<String, dynamic>.from(row)))
+          .map((row) =>
+              WalletTransaction.fromMap(Map<String, dynamic>.from(row)))
           .toList(),
     );
   }
@@ -33,9 +33,11 @@ class VendorRepository {
         .order('updated_at', ascending: false)
         .limit(1)
         .maybeSingle();
-    return row == null
-        ? PlatformSetting.freeMode
-        : PlatformSetting.fromMap(Map<String, dynamic>.from(row));
+    if (row == null) {
+      throw StateError(
+          'Marketplace fee settings are unavailable. Contact support.');
+    }
+    return PlatformSetting.fromMap(Map<String, dynamic>.from(row));
   }
 
   Future<List<Product>> fetchMyProducts(String vendorId) async {
@@ -69,7 +71,10 @@ class VendorRepository {
           .single();
       id = inserted['product_id'] as String;
     } else {
-      await supabase.from('products').update(payload).eq('product_id', productId);
+      await supabase
+          .from('products')
+          .update(payload)
+          .eq('product_id', productId);
       id = productId;
     }
 
@@ -98,7 +103,8 @@ class VendorRepository {
   Future<List<Service>> fetchMyServices(String vendorId) async {
     final rows = await supabase
         .from('services')
-        .select('*, vendors(business_name), service_images(image_url, position)')
+        .select(
+            '*, vendors(business_name), service_images(image_url, position)')
         .eq('vendor_id', vendorId)
         .order('created_at', ascending: false);
     return (rows as List)
@@ -134,7 +140,10 @@ class VendorRepository {
           .single();
       id = inserted['service_id'] as String;
     } else {
-      await supabase.from('services').update(payload).eq('service_id', serviceId);
+      await supabase
+          .from('services')
+          .update(payload)
+          .eq('service_id', serviceId);
       id = serviceId;
     }
 
@@ -160,7 +169,9 @@ class VendorRepository {
   }
 
   Future<void> updateServiceStatus(String serviceId, String status) async {
-    await supabase.from('services').update({'status': status}).eq('service_id', serviceId);
+    await supabase
+        .from('services')
+        .update({'status': status}).eq('service_id', serviceId);
   }
 
   Future<void> authorizeService(String serviceId) async {

@@ -418,6 +418,7 @@ class AppOrder {
   final String? note;
   final String? vendorMomoNumber;
   final String? vendorMomoNetwork;
+  final int tokenDiscountPesewas;
   final DateTime? confirmedAt;
   final DateTime? dispatchedAt;
   final DateTime? deliveredAt;
@@ -438,6 +439,7 @@ class AppOrder {
     this.note,
     this.vendorMomoNumber,
     this.vendorMomoNetwork,
+    this.tokenDiscountPesewas = 0,
     this.confirmedAt,
     this.dispatchedAt,
     this.deliveredAt,
@@ -483,6 +485,7 @@ class AppOrder {
     note: m['note'] as String?,
     vendorMomoNumber: m['vendor_momo_number'] as String?,
     vendorMomoNetwork: m['vendor_momo_network'] as String?,
+    tokenDiscountPesewas: toInt(m['token_discount_pesewas']),
     confirmedAt: date(m['confirmed_at']),
     dispatchedAt: date(m['dispatched_at']),
     deliveredAt: date(m['delivered_at']),

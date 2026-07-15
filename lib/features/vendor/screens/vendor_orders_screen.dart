@@ -13,6 +13,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/money.dart';
+import '../../../core/utils/cod_commission.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/product_image_viewer.dart';
 import '../../../core/widgets/app_skeleton.dart';
@@ -91,26 +92,26 @@ class _VendorOrdersScreenState extends ConsumerState<VendorOrdersScreen>
                   onRefresh: () async => ref.invalidate(vendorOrdersProvider),
                   child: filtered.isEmpty
                       ? ListView(children: const [
-                    SizedBox(height: 120),
-                    EmptyState(
-                      icon: Icons.receipt_long_outlined,
-                      title: 'No orders here',
-                      subtitle: 'Incoming orders will appear here.',
-                    ),
-                  ])
+                          SizedBox(height: 120),
+                          EmptyState(
+                            icon: Icons.receipt_long_outlined,
+                            title: 'No orders here',
+                            subtitle: 'Incoming orders will appear here.',
+                          ),
+                        ])
                       : ListView.separated(
-                    padding: const EdgeInsets.all(AppSpacing.sm + 4),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) =>
-                    const SizedBox(height: AppSpacing.sm),
-                    itemBuilder: (_, i) =>
-                        _VendorOrderCard(order: filtered[i])
-                            .animate()
-                            .fadeIn(
-                            delay: (40 * (i % 12)).ms,
-                            duration: 280.ms)
-                            .slideY(begin: 0.05, end: 0),
-                  ),
+                          padding: const EdgeInsets.all(AppSpacing.sm + 4),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: AppSpacing.sm),
+                          itemBuilder: (_, i) =>
+                              _VendorOrderCard(order: filtered[i])
+                                  .animate()
+                                  .fadeIn(
+                                      delay: (40 * (i % 12)).ms,
+                                      duration: 280.ms)
+                                  .slideY(begin: 0.05, end: 0),
+                        ),
                 );
               }).toList(),
             ),
@@ -138,22 +139,45 @@ class _VendorOrderCard extends ConsumerWidget {
             !(order.isPaid && order.paymentMethod != 'cash_on_delivery'))
         .toList();
     final scheme = Theme.of(context).colorScheme;
-    final feeRate = ref.watch(vendorPlatformSettingsProvider).valueOrNull
-            ?.platformFeeSellerPercent ??
-        5.0;
-    final wallet = ref.watch(vendorWalletProvider).valueOrNull;
+    final settings = ref.watch(vendorPlatformSettingsProvider);
+    final feeRate = settings.valueOrNull?.platformFeeSellerPercent;
+    final walletState = ref.watch(vendorWalletProvider);
+    final wallet = walletState.valueOrNull;
     final walletAvailablePesewas = wallet?.availablePesewas;
-    final marketplaceFee = order.totalAmount * feeRate / 100;
-    final marketplaceFeePesewas =
-        (order.totalAmountPesewas * feeRate / 100).round();
-    final sellerPayout = order.totalAmount - marketplaceFee;
-    final isCod =
-        order.paymentMethod == 'cash_on_delivery' || order.paymentMethod == null;
+    final normalMarketplaceFeePesewas = feeRate == null
+        ? null
+        : CodCommission.requiredFeePesewas(
+            grossPesewas: order.totalAmountPesewas,
+            ratePercent: feeRate,
+          );
+    final requiredCodFeePesewas = feeRate == null
+        ? null
+        : CodCommission.requiredFeePesewas(
+            grossPesewas: order.totalAmountPesewas,
+            ratePercent: feeRate,
+            discountPesewas: order.tokenDiscountPesewas,
+          );
+    final marketplaceFee = requiredCodFeePesewas == null
+        ? null
+        : Money.toCedis(requiredCodFeePesewas);
+    final sellerPayout = normalMarketplaceFeePesewas == null
+        ? null
+        : order.totalAmount - Money.toCedis(normalMarketplaceFeePesewas);
+    final isCod = order.paymentMethod == 'cash_on_delivery' ||
+        order.paymentMethod == null;
     final hasLowCodWallet = isCod &&
         order.status == OrderStatus.pending &&
         walletAvailablePesewas != null &&
-        marketplaceFeePesewas > 0 &&
-        walletAvailablePesewas < marketplaceFeePesewas;
+        requiredCodFeePesewas != null &&
+        requiredCodFeePesewas > 0 &&
+        walletAvailablePesewas < requiredCodFeePesewas;
+    final codCheckUnavailable = isCod &&
+        order.status == OrderStatus.pending &&
+        (requiredCodFeePesewas == null ||
+            (requiredCodFeePesewas > 0 && walletAvailablePesewas == null));
+    final codConfirmationBlocked = isCod &&
+        order.status == OrderStatus.pending &&
+        (codCheckUnavailable || hasLowCodWallet);
 
     return AppCard(
       padding: EdgeInsets.zero,
@@ -167,7 +191,8 @@ class _VendorOrderCard extends ConsumerWidget {
             child: Icon(orderStatusIcon(order.status), color: color, size: 20),
           ),
           title: Text(order.studentName ?? 'Customer',
-              style: AppTextStyles.titleSmall.copyWith(color: scheme.onSurface)),
+              style:
+                  AppTextStyles.titleSmall.copyWith(color: scheme.onSurface)),
           subtitle: Text(
               '#$_shortId · ${order.itemCount} item(s) · ${Formatters.dateTime(order.createdAt)}',
               style: AppTextStyles.bodySmall),
@@ -178,35 +203,35 @@ class _VendorOrderCard extends ConsumerWidget {
             // ---- WHAT to prepare ------------------------------------------
             _sectionLabel(context, 'Items to prepare'),
             ...order.items.map((it) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              child: Row(
-                children: [
-                  OrderProductThumbnail(
-                    imageUrl: it.productImage,
-                    productName: it.productName ?? 'Item',
-                    size: 44,
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Row(
+                    children: [
+                      OrderProductThumbnail(
+                        imageUrl: it.productImage,
+                        productName: it.productName ?? 'Item',
+                        size: 44,
+                      ),
+                      const SizedBox(width: AppSpacing.sm + 2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.12),
+                          borderRadius: AppRadius.brSm,
+                        ),
+                        child: Text('×${it.quantity}',
+                            style: AppTextStyles.labelMedium
+                                .copyWith(color: scheme.primary)),
+                      ),
+                      const SizedBox(width: AppSpacing.sm + 2),
+                      Expanded(
+                          child: Text(it.productName ?? 'Item',
+                              style: AppTextStyles.bodyMedium)),
+                      Text(Formatters.money(it.lineTotal),
+                          style: AppTextStyles.bodyMedium),
+                    ],
                   ),
-                  const SizedBox(width: AppSpacing.sm + 2),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: scheme.primary.withValues(alpha: 0.12),
-                      borderRadius: AppRadius.brSm,
-                    ),
-                    child: Text('×${it.quantity}',
-                        style: AppTextStyles.labelMedium
-                            .copyWith(color: scheme.primary)),
-                  ),
-                  const SizedBox(width: AppSpacing.sm + 2),
-                  Expanded(
-                      child: Text(it.productName ?? 'Item',
-                          style: AppTextStyles.bodyMedium)),
-                  Text(Formatters.money(it.lineTotal),
-                      style: AppTextStyles.bodyMedium),
-                ],
-              ),
-            )),
+                )),
 
             const Divider(height: 22),
 
@@ -298,7 +323,7 @@ class _VendorOrderCard extends ConsumerWidget {
                 padding: const EdgeInsets.only(left: 28, top: 2),
                 child: Text(
                   'Paid to your MoMo: ${order.vendorMomoNumber}'
-                      '${order.vendorMomoNetwork != null ? ' (${order.vendorMomoNetwork})' : ''}',
+                  '${order.vendorMomoNetwork != null ? ' (${order.vendorMomoNetwork})' : ''}',
                   style: AppTextStyles.bodySmall,
                 ),
               ),
@@ -313,14 +338,26 @@ class _VendorOrderCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
-            _moneyRow('Marketplace fee (${feeRate.toStringAsFixed(1)}%)',
-                marketplaceFee),
-            _moneyRow('Expected seller payout', sellerPayout, strong: true),
+            if (feeRate != null && marketplaceFee != null) ...[
+              _moneyRow(
+                'Marketplace fee (${feeRate.toStringAsFixed(1)}%)',
+                marketplaceFee,
+              ),
+              if (sellerPayout != null)
+                _moneyRow('Expected seller payout', sellerPayout, strong: true),
+            ],
+            if (codCheckUnavailable) ...[
+              const SizedBox(height: AppSpacing.sm),
+              const _CodConfirmationNotice(
+                message:
+                    'COD confirmation is unavailable until the marketplace fee and wallet balance have loaded.',
+              ),
+            ],
             if (hasLowCodWallet) ...[
               const SizedBox(height: AppSpacing.sm),
               _CodWalletWarning(
                 availablePesewas: walletAvailablePesewas,
-                neededPesewas: marketplaceFeePesewas,
+                neededPesewas: requiredCodFeePesewas,
               ),
             ],
 
@@ -341,22 +378,25 @@ class _VendorOrderCard extends ConsumerWidget {
                 runSpacing: AppSpacing.sm,
                 children: next.map((s) {
                   final isCancel = s == OrderStatus.cancelled;
+                  final blocked =
+                      s == OrderStatus.confirmed && codConfirmationBlocked;
                   return isCancel
                       ? OutlinedButton(
-                    onPressed: () => _update(context, ref, s),
-                    style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                        minimumSize: const Size(0, 44)),
-                    child: const Text('Cancel'),
-                  )
+                          onPressed: () => _update(context, ref, s),
+                          style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                              side: const BorderSide(color: AppColors.error),
+                              minimumSize: const Size(0, 44)),
+                          child: const Text('Cancel'),
+                        )
                       : FilledButton.icon(
-                    onPressed: () => _update(context, ref, s),
-                    style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 44)),
-                    icon: Icon(orderStatusIcon(s), size: 18),
-                    label: Text('Mark ${s.label}'),
-                  );
+                          onPressed:
+                              blocked ? null : () => _update(context, ref, s),
+                          style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 44)),
+                          icon: Icon(orderStatusIcon(s), size: 18),
+                          label: Text('Mark ${s.label}'),
+                        );
                 }).toList(),
               ),
             ],
@@ -394,13 +434,13 @@ class _VendorOrderCard extends ConsumerWidget {
   }
 
   Widget _detailRow(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        required String value,
-        List<Widget> actions = const [],
-        bool highlight = false,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    List<Widget> actions = const [],
+    bool highlight = false,
+  }) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -420,17 +460,17 @@ class _VendorOrderCard extends ConsumerWidget {
                 Container(
                   decoration: highlight
                       ? BoxDecoration(
-                    color:
-                    scheme.tertiaryContainer.withValues(alpha: 0.4),
-                    borderRadius: AppRadius.brSm,
-                  )
+                          color:
+                              scheme.tertiaryContainer.withValues(alpha: 0.4),
+                          borderRadius: AppRadius.brSm,
+                        )
                       : null,
                   padding: highlight
                       ? const EdgeInsets.symmetric(horizontal: 6, vertical: 3)
                       : EdgeInsets.zero,
                   child: Text(value,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w600, height: 1.3)),
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(fontWeight: FontWeight.w600, height: 1.3)),
                 ),
               ],
             ),
@@ -446,14 +486,16 @@ class _VendorOrderCard extends ConsumerWidget {
 
   Future<void> _launch(BuildContext context, String url) async {
     try {
-      final ok = await launchUrl(Uri.parse(url),
-          mode: LaunchMode.externalApplication);
+      final ok =
+          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       if (!ok && context.mounted) {
-        ConfirmActions.showError(context, 'Could not open this on your device.');
+        ConfirmActions.showError(
+            context, 'Could not open this on your device.');
       }
     } catch (_) {
       if (context.mounted) {
-        ConfirmActions.showError(context, 'Could not open this on your device.');
+        ConfirmActions.showError(
+            context, 'Could not open this on your device.');
       }
     }
   }
@@ -485,6 +527,7 @@ class _VendorOrderCard extends ConsumerWidget {
       ref.invalidate(vendorOrdersProvider);
       ref.invalidate(salesSummaryProvider);
       ref.invalidate(productStatsProvider);
+      ref.invalidate(vendorWalletProvider);
       if (context.mounted) {
         ConfirmActions.toast(context, 'Order marked ${status.label}',
             success: true);
@@ -492,6 +535,42 @@ class _VendorOrderCard extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) ConfirmActions.showError(context, e);
     }
+  }
+}
+
+class _CodConfirmationNotice extends StatelessWidget {
+  const _CodConfirmationNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.sm + 4),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.10),
+        borderRadius: AppRadius.brSm,
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.sync_problem_outlined,
+              color: AppColors.warning, size: 20),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -522,14 +601,25 @@ class _CodWalletWarning extends StatelessWidget {
               color: AppColors.warning, size: 20),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(
-              'COD wallet is low. You need ${Money.format(neededPesewas)} to confirm this order; '
-              'available balance is ${Money.format(availablePesewas)}. '
-              'Top up at least ${Money.format(shortfall)}.',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'COD wallet is low. You need ${Money.format(neededPesewas)} to confirm this order; '
+                  'available balance is ${Money.format(availablePesewas)}. '
+                  'Top up at least ${Money.format(shortfall)}.',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                FilledButton.icon(
+                  onPressed: () => context.push('/vendor/wallet'),
+                  icon: const Icon(Icons.add_card_outlined, size: 18),
+                  label: const Text('Top up wallet'),
+                ),
+              ],
             ),
           ),
         ],
@@ -574,10 +664,11 @@ class _PaymentBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCod =
-        order.paymentMethod == 'cash_on_delivery' || order.paymentMethod == null;
+    final isCod = order.paymentMethod == 'cash_on_delivery' ||
+        order.paymentMethod == null;
     if (isCod) {
-      return StatusPill(label: 'Collect on delivery', color: AppColors.warning);
+      return const StatusPill(
+          label: 'Collect on delivery', color: AppColors.warning);
     }
     return StatusPill(
       label: order.isPaid ? 'Paid' : 'Awaiting payment',
