@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/listing_policy.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -100,10 +101,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     if (!_isEdit && !vendor.isVerified) {
       final products = await ref.read(myProductsProvider.future);
       final services = await ref.read(myServicesProvider.future);
-      if (products.length + services.length >= 5) {
+      if (products.length + services.length >= unverifiedListingLimit) {
         if (mounted) {
           ConfirmActions.showError(context,
-              'Identity verification is required to publish more than 5 listings. '
+              'Identity verification is required to publish more than $unverifiedListingLimit listings. '
               'Submit your Ghana Card or Student ID and wait for admin approval.');
         }
         return;

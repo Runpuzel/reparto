@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/listing_policy.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -79,10 +80,10 @@ class ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
     if (!isEdit && !vendor.isVerified) {
       final products = await ref.read(myProductsProvider.future);
       final services = await ref.read(myServicesProvider.future);
-      if (products.length + services.length >= 5) {
+      if (products.length + services.length >= unverifiedListingLimit) {
         if (mounted) {
           ConfirmActions.showError(context,
-              'Identity verification is required to publish more than 5 listings. '
+              'Identity verification is required to publish more than $unverifiedListingLimit listings. '
               'Submit your Ghana Card or Student ID and wait for admin approval.');
         }
         return;
@@ -101,8 +102,8 @@ class ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
         bodyMarkdown: '''
 Service Listing Policy - v2.0 - July 2026
 
-- Your first 5 combined product and service listings do not require identity verification.
-- An admin-approved Ghana Card or Student ID is required for listing 6 and beyond.
+- Your first $unverifiedListingLimit combined product and service listings do not require identity verification.
+- An admin-approved Ghana Card or Student ID is required for listing ${unverifiedListingLimit + 1} and beyond.
 - Duration and authorization fees follow the current Platform Settings shown before posting.
 - Authorization fees already consumed by a listing period are non-refundable.
 - You are responsible for accurate descriptions, availability, pricing, and delivery.
@@ -110,7 +111,7 @@ Service Listing Policy - v2.0 - July 2026
 ''',
         requiredCheckboxes: [
           'I agree to the Service Listing Policy v2.0',
-          'I understand identity approval is required after 5 combined listings',
+          'I understand identity approval is required after $unverifiedListingLimit combined listings',
           'I accept the current duration and authorization terms shown in the app',
         ],
         scrollToAccept: true,
