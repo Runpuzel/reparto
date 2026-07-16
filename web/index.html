@@ -205,7 +205,7 @@
     </div>
   </div>
 
-  <!-- Required by passkeys_web. Load it before Flutter initializes plugins. -->
+  <!-- PWA install-prompt bridge used by the Flutter app. -->
   <script>
     window.ujustbuyDeferredInstallPrompt = null;
     window.ujustbuyInstallPromptWaiters = [];
@@ -254,11 +254,12 @@
     });
   </script>
 
+  <!-- Kept local so authentication startup never depends on GitHub. -->
+  <script src="passkeys_bundle.js" type="application/javascript"></script>
+
   <script>
     let flutterStarted = false;
     let loaderDismissed = false;
-    let passkeysReady = false;
-    let passkeysLoadStarted = false;
     let firstFrameWatchdog = null;
 
     function resetStartupStatus() {
@@ -293,43 +294,6 @@
       setTimeout(dismissLoadingScreen, 80);
     }, { once: true });
 
-    function loadPasskeys() {
-      if (passkeysReady || passkeysLoadStarted) return;
-      passkeysLoadStarted = true;
-      resetStartupStatus();
-
-      const script = document.createElement('script');
-      let settled = false;
-      let timeout = null;
-      const fail = function(message) {
-        if (settled) return;
-        settled = true;
-        if (timeout) clearTimeout(timeout);
-        passkeysLoadStarted = false;
-        script.onload = null;
-        script.onerror = null;
-        script.remove();
-        showStartupError(message);
-      };
-      timeout = setTimeout(function() {
-        fail('Secure sign-in took too long to prepare. Refresh to try again.');
-      }, 10000);
-      script.src = 'https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js';
-      script.async = true;
-      script.onload = function() {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeout);
-        passkeysLoadStarted = false;
-        passkeysReady = true;
-        startFlutter();
-      };
-      script.onerror = function() {
-        fail('Unable to prepare secure sign-in. Refresh to try again.');
-      };
-      document.head.appendChild(script);
-    }
-
     function startFlutter() {
       if (flutterStarted) return;
       if (!navigator.onLine) {
@@ -337,10 +301,6 @@
         return;
       }
       document.documentElement.classList.remove('is-offline');
-      if (!passkeysReady) {
-        loadPasskeys();
-        return;
-      }
       resetStartupStatus();
       flutterStarted = true;
 
