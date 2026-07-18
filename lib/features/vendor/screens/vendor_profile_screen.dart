@@ -255,7 +255,7 @@ class VendorProfileScreen extends ConsumerWidget {
                   if (!isVerified) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'Verify with Ghana Card or Student ID to unlock:\n'
+                      'Verify with your Student ID to unlock:\n'
                       '• Verified badge\n'
                       '• Priority search\n'
                       '${payoutReady ? '• Prepayment after approval' : '• Add payout details separately for prepayment'}',
@@ -437,7 +437,7 @@ class VendorProfileScreen extends ConsumerWidget {
                       context,
                       Icons.verified_user_outlined,
                       'Identity Verification',
-                      isVerified ? 'Verified ✓' : 'Ghana Card or Student ID',
+                      isVerified ? 'Verified ✓' : 'Student ID',
                       () => context.push('/vendor/settings/verification'),
                       trailingBadge: isVerified ? '✓' : null,
                       badgeColor: AppColors.success),

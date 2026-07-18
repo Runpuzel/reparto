@@ -383,20 +383,16 @@ class VendorTile extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                if (vendor.verificationFrontUrl != null ||
-                    vendor.ghanaCardImageUrl != null) ...[
+                if (vendor.verificationFrontUrl != null) ...[
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      if ((vendor.verificationFrontUrl ??
-                          vendor.ghanaCardImageUrl) !=
-                          null)
+                      if (vendor.verificationFrontUrl != null)
                         _docButton(
                           context,
                           'ID Front',
-                          vendor.verificationFrontUrl ??
-                              vendor.ghanaCardImageUrl!,
+                          vendor.verificationFrontUrl!,
                         ),
                       if (vendor.verificationBackUrl != null)
                         _docButton(
@@ -716,8 +712,7 @@ extension VendorV1X on Vendor {
   String? get verificationIdNumber =>
       (this as dynamic).verificationIdNumber as String?;
   String? get verificationFrontUrl =>
-      (this as dynamic).verificationFrontUrl as String? ??
-          ghanaCardImageUrl;
+      (this as dynamic).verificationFrontUrl as String?;
   String? get verificationBackUrl =>
       (this as dynamic).verificationBackUrl as String?;
   String? get verificationSelfieUrl =>

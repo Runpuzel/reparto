@@ -105,7 +105,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         if (mounted) {
           ConfirmActions.showError(context,
               'Identity verification is required to publish more than $unverifiedListingLimit listings. '
-              'Submit your Ghana Card or Student ID and wait for admin approval.');
+              'Submit your Student ID and wait for admin approval.');
         }
         return;
       }

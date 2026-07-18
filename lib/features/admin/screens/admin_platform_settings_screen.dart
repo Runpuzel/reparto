@@ -34,12 +34,6 @@ class _AdminPlatformSettingsScreenState
   bool _saving = false;
   bool _dirty = false;
   bool _verificationRequired = true;
-  final Set<String> _kycTypes = {};
-
-  static const _documents = <String, String>{
-    'ghana_card': 'Ghana Card',
-    'student_id': 'Student ID',
-  };
 
   @override
   void dispose() {
@@ -60,7 +54,6 @@ class _AdminPlatformSettingsScreenState
     _sellerFee.text = _number(settings.platformFeeSellerPercent);
     _policyVersion.text = settings.currentPolicyVersion;
     _verificationRequired = settings.verificationRequiredForPrepayment;
-    _kycTypes.addAll(settings.kycAllowedTypes);
   }
 
   String _number(double value) =>
@@ -177,24 +170,14 @@ class _AdminPlatformSettingsScreenState
               }),
             ),
             const SizedBox(height: 12),
-            Text('Accepted identity documents',
+            Text('Accepted identity document',
                 style: AppTextStyles.labelMedium),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _documents.entries
-                  .map((entry) => FilterChip(
-                        label: Text(entry.value),
-                        selected: _kycTypes.contains(entry.key),
-                        onSelected: (selected) => setState(() {
-                          selected
-                              ? _kycTypes.add(entry.key)
-                              : _kycTypes.remove(entry.key);
-                          _dirty = true;
-                        }),
-                      ))
-                  .toList(),
+            const ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.school_outlined),
+              title: Text('Student ID'),
+              subtitle: Text('The only document accepted for verification.'),
             ),
           ],
         );
@@ -328,11 +311,6 @@ class _AdminPlatformSettingsScreenState
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_verificationRequired && _kycTypes.isEmpty) {
-      ConfirmActions.showError(
-          context, 'Select at least one accepted identity document.');
-      return;
-    }
     setState(() => _saving = true);
     try {
       await ref.read(adminRepositoryProvider).updatePlatformSettings({
@@ -341,7 +319,6 @@ class _AdminPlatformSettingsScreenState
         'service_free_listing_days': int.parse(_freeDays.text.trim()),
         'platform_fee_seller_percent': _parseDouble(_sellerFee.text),
         'verification_required_for_prepayment': _verificationRequired,
-        'kyc_allowed_types': _kycTypes.toList()..sort(),
         'current_policy_version': _policyVersion.text.trim(),
       });
       ref.invalidate(platformSettingsProvider);

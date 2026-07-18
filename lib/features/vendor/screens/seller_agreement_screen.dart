@@ -133,7 +133,7 @@ class _SellerAgreementScreenState extends ConsumerState<SellerAgreementScreen> {
                   _policySection('1. Eligibility',
                       'You may access your seller account immediately after registration. You must be a currently enrolled student in Ghana and at least 16 years old. False identity or enrollment information may lead to suspension.'),
                   _policySection('2. Identity and listing allowance',
-                      'Identity verification is optional for your first $unverifiedListingLimit combined product and service listings. Before publishing listing ${unverifiedListingLimit + 1}, submit a valid Ghana Card or Student ID and receive admin approval. Editing an existing listing does not use another slot.'),
+                      'Identity verification is optional for your first $unverifiedListingLimit combined product and service listings. Before publishing listing ${unverifiedListingLimit + 1}, submit a valid Student ID and receive admin approval. Editing an existing listing does not use another slot.'),
                   _policySection('3. Account review',
                       'General admin approval is not required to sign in or publish within the starter allowance. Admins may review or remove unsafe or misleading content and suspend accounts that breach these rules.'),
                   _policySection('4. Listings and stock',

@@ -36,7 +36,6 @@ class AuthRepository {
     required String businessPhone,
     required String momoNumber,
     required String momoNetwork,
-    required String ghanaCardNumber,
     required String email,
     required String password,
     required String campusId,
@@ -56,7 +55,6 @@ class AuthRepository {
         'business_phone': businessPhone,
         'momo_number': momoNumber,
         'momo_network': momoNetwork,
-        'ghana_card_number': ghanaCardNumber,
       },
     );
   }
@@ -195,10 +193,8 @@ class AuthRepository {
     required String businessPhone,
     required String momoNumber,
     required String momoNetwork,
-    required String ghanaCardNumber,
     required String campusId,
     String? logoUrl,
-    String? ghanaCardImageUrl,
   }) async {
     final uid = currentAuthUser?.id;
     if (uid == null) return;
@@ -210,10 +206,8 @@ class AuthRepository {
       'business_phone': businessPhone,
       'momo_number': momoNumber,
       'momo_network': momoNetwork,
-      'ghana_card_number': ghanaCardNumber.isEmpty ? null : ghanaCardNumber,
       'campus_id': campusId,
       if (logoUrl != null) 'logo_url': logoUrl,
-      if (ghanaCardImageUrl != null) 'ghana_card_image_url': ghanaCardImageUrl,
     }, onConflict: 'user_id');
   }
 

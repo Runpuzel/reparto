@@ -24,11 +24,11 @@ project documentation. Extend it feature-by-feature.
 | Notifications (in-app + realtime unread badge) | ✅ |
 | Campus isolation + role rules enforced in DB via **RLS** | ✅ |
 | Order lifecycle, stock decrement, review-after-completion — server-side | ✅ |
-| **Image uploads** — business logo, product photos, Ghana Card (private bucket) | ✅ |
+| **Image uploads** — business logo, product photos, Student ID (private bucket) | ✅ |
 | **Paystack payments** — secure server-verified checkout (Edge Functions) | ✅ |
 | **Push notifications** — FCM via Edge Function + DB trigger | ✅ |
 | **Google Sign-In** — native id-token flow on mobile, OAuth on web | ✅ |
-| **Vendor KYC** — Ghana Card (number + photo), business phone, mobile money | ✅ |
+| **Vendor KYC** — Student ID (number + photo), business phone, mobile money | ✅ |
 | Refined **design system** + the 8 UI/UX principles (see `UX_PRINCIPLES.md`) | ✅ |
 
 > 📘 New integration setup lives in **[INTEGRATIONS_GUIDE.md](INTEGRATIONS_GUIDE.md)**

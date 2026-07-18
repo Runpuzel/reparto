@@ -1,6 +1,6 @@
 // lib/features/auth/screens/register_vendor_screen.dart
 // UPDATED – v1.0-2025-07 – Frictionless onboarding
-// REMOVED: Ghana Card fields (moved to post-registration IdentityVerificationScreen)
+// Identity verification is completed after registration.
 // ADDED: SellerAgreement redirect gate
 
 import 'package:flutter/material.dart';
@@ -47,8 +47,6 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
   bool agreeTerms = false;
 
   PickedImage? logo;
-  // REMOVED in v1.0: ghanaCard, ghanaCardImage
-
   final storage = StorageService();
 
   @override
@@ -83,7 +81,6 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
         momoNetwork: momoNetwork,
         email: email.text.trim(),
         password: password.text,
-        ghanaCardNumber: '',
         campusId: campusId!,
       );
 
@@ -101,10 +98,8 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
           businessPhone: businessPhone.text.trim(),
           momoNumber: momo.text.trim(),
           momoNetwork: momoNetwork,
-          ghanaCardNumber: '', // v1.0 – KYC post-registration
           campusId: campusId!,
           logoUrl: logoUrl,
-          ghanaCardImageUrl: null, // removed
         );
       }
 
@@ -276,7 +271,7 @@ class RegisterVendorScreenState extends ConsumerState<RegisterVendorScreen> {
                       },
                     ),
 
-                    // REMOVED v1.0: Identity verification (Ghana Card) section
+                    // Identity verification is completed after registration.
                     // → moved to /vendor/settings/verification post-registration
 
                     const SizedBox(height: AppSpacing.lg),

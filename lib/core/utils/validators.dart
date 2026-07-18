@@ -28,13 +28,6 @@ class Validators {
     return null;
   }
 
-  /// Ghana Card PIN format: GHA-XXXXXXXXX-X (9 digits then a check digit).
-  static String? ghanaCard(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Ghana Card number is required';
-    final ok = RegExp(r'^GHA-[0-9]{9}-[0-9]$').hasMatch(v.trim().toUpperCase());
-    return ok ? null : 'Format: GHA-123456789-0';
-  }
-
   /// Ghana mobile money number: must start with 0 and be exactly 10 digits.
   static String? momo(String? v) {
     if (v == null || v.trim().isEmpty) return 'Mobile money number is required';

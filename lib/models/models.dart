@@ -85,8 +85,6 @@ class Vendor {
   final String? businessPhone;
   final String? momoNumber;
   final String? momoNetwork;
-  final String? ghanaCardNumber;
-  final String? ghanaCardImageUrl;
   final String? logoUrl;
   final String? description;
   final ApprovalStatus approvalStatus;
@@ -141,8 +139,6 @@ class Vendor {
     this.businessPhone,
     this.momoNumber,
     this.momoNetwork,
-    this.ghanaCardNumber,
-    this.ghanaCardImageUrl,
     this.logoUrl,
     this.description,
     required this.approvalStatus,
@@ -192,8 +188,6 @@ class Vendor {
     businessPhone: m['business_phone'] as String?,
     momoNumber: m['momo_number'] as String?,
     momoNetwork: m['momo_network'] as String?,
-    ghanaCardNumber: m['ghana_card_number'] as String?,
-    ghanaCardImageUrl: m['ghana_card_image_url'] as String?,
     logoUrl: m['logo_url'] as String?,
     description: m['description'] as String?,
     approvalStatus: ApprovalStatus.fromDb((m['approval_status'] as String?) ?? 'pending'),
@@ -792,7 +786,6 @@ class PlatformSetting {
   final int serviceFreeListingDays;
   final double platformFeeSellerPercent;
   final bool verificationRequiredForPrepayment;
-  final List<String> kycAllowedTypes;
   final String currentPolicyVersion;
   final DateTime updatedAt;
   PlatformSetting({
@@ -802,7 +795,6 @@ class PlatformSetting {
     required this.serviceFreeListingDays,
     required this.platformFeeSellerPercent,
     required this.verificationRequiredForPrepayment,
-    required this.kycAllowedTypes,
     required this.currentPolicyVersion,
     required this.updatedAt,
   });
@@ -815,7 +807,6 @@ class PlatformSetting {
     platformFeeSellerPercent: toDouble(m['platform_fee_seller_percent']),
     verificationRequiredForPrepayment:
         m['verification_required_for_prepayment'] as bool? ?? true,
-    kycAllowedTypes: toStringList(m['kyc_allowed_types']),
     currentPolicyVersion: m['current_policy_version'] as String? ?? 'v1.0-2025-07',
     updatedAt: date(m['updated_at']) ?? DateTime.now(),
   );
@@ -826,7 +817,6 @@ class PlatformSetting {
     serviceFreeListingDays: 14,
     platformFeeSellerPercent: 5.0,
     verificationRequiredForPrepayment: true,
-    kycAllowedTypes: const ['ghana_card', 'student_id'],
     currentPolicyVersion: 'v1.0-2025-07',
     updatedAt: DateTime.now(),
   );

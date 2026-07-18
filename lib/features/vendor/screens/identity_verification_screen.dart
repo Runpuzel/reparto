@@ -1,6 +1,6 @@
 // lib/features/vendor/screens/identity_verification_screen.dart
 // Phase 2 – Identity Verification Screen (NEW)
-// v1.0-2025-07 – Ghana Card OR Student ID – post-registration KYC
+// Student ID verification for sellers.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,8 +21,7 @@ import '../../../models/models.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../providers/vendor_providers.dart';
 
-enum KycType { ghanaCard, studentId }
-enum KycUiState { choose, form, pending, approved, rejected }
+enum KycUiState { form, pending, approved, rejected }
 
 class IdentityVerificationScreen extends ConsumerStatefulWidget {
   const IdentityVerificationScreen({super.key});
@@ -32,13 +31,6 @@ class IdentityVerificationScreen extends ConsumerStatefulWidget {
 }
 
 class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificationScreen> {
-  KycType? _type;
-  // Ghana Card
-  final _gcName = TextEditingController();
-  final _gcNumber = TextEditingController();
-  PickedImage? _gcFront;
-  PickedImage? _gcBack;
-  // Student ID
   final _studentId = TextEditingController();
   final _program = TextEditingController();
   String _year = '1';
@@ -46,14 +38,13 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
   PickedImage? _sidBack;
   bool _consent = false;
   bool _submitting = false;
+  bool _retrying = false;
   int _submitCount = 0;
 
   final _storage = StorageService();
 
   @override
   void dispose() {
-    _gcName.dispose();
-    _gcNumber.dispose();
     _studentId.dispose();
     _program.dispose();
     super.dispose();
@@ -63,12 +54,22 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
     switch (v.verificationStatus) {
       case 'pending': return KycUiState.pending;
       case 'approved': return KycUiState.approved;
-      case 'rejected': return KycUiState.rejected;
-      default: return _type == null ? KycUiState.choose : KycUiState.form;
+      case 'rejected':
+        return _retrying ? KycUiState.form : KycUiState.rejected;
+      default:
+        return KycUiState.form;
     }
   }
 
   Future<void> _submit(Vendor v) async {
+    if (_studentId.text.trim().isEmpty) {
+      ConfirmActions.showError(context, 'Student ID number is required');
+      return;
+    }
+    if (_sidFront == null) {
+      ConfirmActions.showError(context, 'Student ID front image is required');
+      return;
+    }
     if (!_consent) {
       ConfirmActions.showError(context, 'Please accept the DPA consent to continue');
       return;
@@ -103,29 +104,22 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
       String? frontUrl, backUrl;
       final vendorId = v.vendorId;
       final ts = DateTime.now().millisecondsSinceEpoch;
-      final isGc = _type == KycType.ghanaCard;
-
       Future<String?> up(PickedImage? p, String name) async {
         if (p == null) return null;
         return _storage.upload(
           bucket: StorageService.kycDocuments,
           bytes: p.bytes,
-          fileName: 'kyc/$vendorId/${isGc ? 'gc' : 'sid'}/${ts}_$name.jpg',
+          fileName: 'kyc/$vendorId/sid/${ts}_$name.jpg',
           publicUrl: false,
         );
       }
 
-      if (isGc) {
-        frontUrl = await up(_gcFront, 'front');
-        backUrl = await up(_gcBack, 'back');
-      } else {
-        frontUrl = await up(_sidFront, 'front');
-        backUrl = await up(_sidBack, 'back');
-      }
+      frontUrl = await up(_sidFront, 'front');
+      backUrl = await up(_sidBack, 'back');
 
       await ref.read(vendorRepositoryProvider).submitVerification({
-        'verification_type': isGc ? 'ghana_card' : 'student_id',
-        'verification_id_number': isGc ? _gcNumber.text.trim().toUpperCase() : _studentId.text.trim(),
+        'verification_type': 'student_id',
+        'verification_id_number': _studentId.text.trim(),
         'verification_front_url': frontUrl,
         'verification_back_url': backUrl,
         'verification_status': 'pending',
@@ -163,7 +157,6 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
                 _buildHeader(v, state),
                 const SizedBox(height: AppSpacing.lg),
                 switch (state) {
-                  KycUiState.choose => _chooseType(),
                   KycUiState.form => _formBody(),
                   KycUiState.pending => _pendingCard(v),
                   KycUiState.approved => _approvedCard(v),
@@ -193,85 +186,26 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
     );
   }
 
-  Widget _chooseType() {
-    final allowed = ref.watch(vendorPlatformSettingsProvider).valueOrNull
-            ?.kycAllowedTypes ??
-        const ['ghana_card', 'student_id'];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Select verification method:', style: AppTextStyles.titleSmall),
-        const SizedBox(height: 12),
-        if (allowed.contains('ghana_card')) _typeCard(
-          title: 'Ghana Card',
-          subtitle: 'Recommended – Quick verification',
-          icon: AppIcons.badge,
-          onTap: () => setState(() => _type = KycType.ghanaCard),
-        ),
-        if (allowed.contains('ghana_card') && allowed.contains('student_id'))
-          const SizedBox(height: AppSpacing.md),
-        if (allowed.contains('student_id')) _typeCard(
-          title: 'Student ID',
-          subtitle: 'Valid student ID card',
-          icon: Icons.school_outlined,
-          onTap: () => setState(() => _type = KycType.studentId),
-        ),
-      ],
-    );
-  }
-
-  Widget _typeCard({required String title, required String subtitle, required IconData icon, required VoidCallback onTap}) {
-    return AppCard(
-      onTap: onTap,
-      child: Row(children: [
-        Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 16),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: AppTextStyles.titleMedium),
-          Text(subtitle, style: AppTextStyles.bodySmall),
-        ])),
-        const Icon(Icons.chevron_right),
-      ]),
-    );
-  }
-
   Widget _formBody() {
-    final isGc = _type == KycType.ghanaCard;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Text(isGc ? 'Ghana Card' : 'Student ID', style: AppTextStyles.titleLarge),
-            const Spacer(),
-            TextButton(onPressed: () => setState(() => _type = null), child: const Text('Change')),
-          ],
+        Text('Student ID', style: AppTextStyles.titleLarge),
+        const SizedBox(height: AppSpacing.md),
+        AppTextField(controller: _studentId, label: 'Student ID number *', prefixIcon: AppIcons.badge),
+        const SizedBox(height: AppSpacing.md),
+        AppTextField(controller: _program, label: 'Program *', prefixIcon: AppIcons.user),
+        const SizedBox(height: AppSpacing.md),
+        DropdownButtonFormField<String>(
+          value: _year,
+          decoration: const InputDecoration(labelText: 'Year of study'),
+          items: ['1','2','3','4'].map((y)=>DropdownMenuItem(value:y, child: Text('Year $y'))).toList(),
+          onChanged: (v)=> setState(()=> _year = v ?? '1'),
         ),
         const SizedBox(height: AppSpacing.md),
-        if (isGc) ...[
-          AppTextField(controller: _gcName, label: 'Full name on card *', prefixIcon: AppIcons.user),
-          const SizedBox(height: AppSpacing.md),
-          AppTextField(controller: _gcNumber, label: 'Ghana Card Number *', hint: 'GHA-123456789-0', prefixIcon: AppIcons.badge),
-          const SizedBox(height: AppSpacing.md),
-          ImageUploadField(label: 'Card front *', icon: Icons.badge_outlined, onPicked: (p)=> _gcFront = p),
-          const SizedBox(height: AppSpacing.md),
-          ImageUploadField(label: 'Card back *', icon: Icons.badge_outlined, onPicked: (p)=> _gcBack = p),
-        ] else ...[
-          AppTextField(controller: _studentId, label: 'Student ID number *', prefixIcon: AppIcons.badge),
-          const SizedBox(height: AppSpacing.md),
-          AppTextField(controller: _program, label: 'Program *', prefixIcon: AppIcons.user),
-          const SizedBox(height: AppSpacing.md),
-          DropdownButtonFormField<String>(
-            value: _year,
-            decoration: const InputDecoration(labelText: 'Year of study'),
-            items: ['1','2','3','4'].map((y)=>DropdownMenuItem(value:y, child: Text('Year $y'))).toList(),
-            onChanged: (v)=> setState(()=> _year = v ?? '1'),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ImageUploadField(label: 'Student ID front *', icon: Icons.credit_card, onPicked: (p)=> _sidFront = p),
-          const SizedBox(height: AppSpacing.md),
-          ImageUploadField(label: 'Student ID back (optional)', icon: Icons.credit_card, onPicked: (p)=> _sidBack = p),
-        ],
+        ImageUploadField(label: 'Student ID front *', icon: Icons.credit_card, onPicked: (p)=> _sidFront = p),
+        const SizedBox(height: AppSpacing.md),
+        ImageUploadField(label: 'Student ID back (optional)', icon: Icons.credit_card, onPicked: (p)=> _sidBack = p),
         const SizedBox(height: AppSpacing.lg),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
@@ -344,7 +278,7 @@ class _IdentityVerificationScreenState extends ConsumerState<IdentityVerificatio
         AppButton(
           label: 'Try Again',
           icon: Icons.refresh,
-          onPressed: () => setState(() => _type = null),
+          onPressed: () => setState(() => _retrying = true),
           variant: AppButtonVariant.secondary,
         ),
       ],

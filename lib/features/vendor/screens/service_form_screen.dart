@@ -84,7 +84,7 @@ class ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
         if (mounted) {
           ConfirmActions.showError(context,
               'Identity verification is required to publish more than $unverifiedListingLimit listings. '
-              'Submit your Ghana Card or Student ID and wait for admin approval.');
+              'Submit your Student ID and wait for admin approval.');
         }
         return;
       }
@@ -103,7 +103,7 @@ class ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
 Service Listing Policy - v2.0 - July 2026
 
 - Your first $unverifiedListingLimit combined product and service listings do not require identity verification.
-- An admin-approved Ghana Card or Student ID is required for listing ${unverifiedListingLimit + 1} and beyond.
+- An admin-approved Student ID is required for listing ${unverifiedListingLimit + 1} and beyond.
 - Duration and authorization fees follow the current Platform Settings shown before posting.
 - Authorization fees already consumed by a listing period are non-refundable.
 - You are responsible for accurate descriptions, availability, pricing, and delivery.

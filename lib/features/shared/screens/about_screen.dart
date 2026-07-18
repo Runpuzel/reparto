@@ -89,7 +89,7 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  '• Verified Student Seller badge – Ghana Card or Student ID checked\n'
+                  '• Verified Student Seller badge – Student ID checked\n'
                       '• Unverified sellers = Cash on Delivery only\n'
                       '• Escrow – 48hr buyer confirmation\n'
                       '• 24hr content takedown SLA\n'

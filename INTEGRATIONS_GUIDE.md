@@ -23,7 +23,7 @@ supabase/migrations/0012_paid_checkout_delivery.sql   -- Paystack checkout w/ de
 Verify: **Storage** now shows buckets `product-images`, `business-logos`
 (public) and `kyc-documents` (private). **Table Editor** shows `payments` and
 `device_tokens`, and `vendors` has new columns (logo_url, business_phone,
-momo_number, ghana_card_number, …).
+momo_number, verification_id_number, …).
 
 ---
 
@@ -31,7 +31,7 @@ momo_number, ghana_card_number, …).
 
 No extra config — buckets + RLS were created in `0007_storage.sql`. The app:
 - Vendor **logo** & **product photos** → public buckets, URLs stored on the row.
-- **Ghana Card photo** → private `kyc-documents` bucket; admins view it via a
+- **Student ID photo** → private `kyc-documents` bucket; admins view it via a
   short-lived **signed URL** in the Vendors tab.
 
 Files are stored under `<user-id>/<timestamp>.<ext>` so the storage policies
@@ -168,7 +168,7 @@ ENABLE_PUSH=true
 |---------|---------------|
 | Logo upload | Register vendor → pick a logo → see it on vendor profile & admin list |
 | Product image | Vendor adds product with photo → appears on Browse card |
-| Ghana Card | Vendor submits number + photo → admin opens "View Ghana Card photo" |
+| Student ID | Vendor submits number + photo → admin opens the ID document |
 | Google sign-in | Tap "Continue with Google" → lands on dashboard / Select Campus |
 | Paystack | Cart → "Pay & Order" → test card → order appears as paid |
 | Push | Place order → vendor device gets a push (app in background) |
